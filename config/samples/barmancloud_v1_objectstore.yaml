@@ -1,0 +1,9 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  labels:
+    app.kubernetes.io/name: plugin-barman-cloud
+    app.kubernetes.io/managed-by: kustomize
+  name: objectstore-sample
+spec:
+  # TODO(user): Add fields here
