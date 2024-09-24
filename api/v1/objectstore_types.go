@@ -18,6 +18,8 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -25,11 +27,9 @@ import (
 
 // ObjectStoreSpec defines the desired state of ObjectStore
 type ObjectStoreSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
-	// Foo is an example field of ObjectStore. Edit objectstore_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// TODO: we add here any exclusive fields for our plugin CRD
 }
 
 // ObjectStoreStatus defines the observed state of ObjectStore
