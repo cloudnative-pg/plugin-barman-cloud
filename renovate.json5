@@ -1,0 +1,73 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":gitSignOff",
+    ":semanticCommitType(chore)",
+    ":labels(automated,no-issue)",
+    "customManagers:githubActionsVersions",
+    ":automergeMinor",
+    ":automergeDigest"
+  ],
+  "gomod": {
+    // Do not manage the dagger go.mod file
+    "ignorePaths": ["dagger/gotest/go.mod"],
+  },
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
+  "semanticCommits": "enabled",
+  "commitBodyTable": true,
+  // Allow renovate to update the following types of dependencies in the Taskfile.yml:
+  // - digests for env variables ending in _SHA
+  // - versions for env variables ending in _VERSION
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "(^Taskfile\\.yml$)"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: currentValue=(?<currentValue>[^\\s]+?))?\\s+[A-Za-z0-9_]+?_SHA\\s*:\\s*[\"']?(?<currentDigest>[a-f0-9]+?)[\"']?\\s",
+        "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\s+[A-Za-z0-9_]+?_VERSION\\s*:\\s*[\"']?(?<currentValue>.+?)[\"']?\\s"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackageNames": [
+        // Avoid k8s dependencies from being grouped with other dependencies. We want to be careful
+        // with how we update them.
+        "!/k8s.io/"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "all non-major go dependencies"
+    },
+    {
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "matchPackageNames": [
+        "https://github.com/cloudnative-pg/daggerverse"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "groupName": "all cloudnative-pg daggerverse dependencies"
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0/"
+    }
+  ]
+}
