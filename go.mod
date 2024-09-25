@@ -5,10 +5,9 @@ go 1.22.0
 require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20240902182059-c9f193bf825b
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240923090729-e3d2e7d21fb2
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926095718-27da985944d4
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	github.com/spf13/cobra v1.8.1
 	google.golang.org/grpc v1.66.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
@@ -19,6 +18,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -53,6 +53,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -70,10 +71,12 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
+	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/thoas/go-funk v0.9.3 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
