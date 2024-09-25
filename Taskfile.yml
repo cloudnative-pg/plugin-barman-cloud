@@ -1,0 +1,170 @@
+version: 3
+
+tasks:
+  lint:
+    desc: Run golangci-lint
+    env:
+      # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
+      DAGGER_GOLANGCI_LINT_SHA: b2bd806a2c43a5a58459aa7969d0e3740e66ec43
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        run --source . --config .golangci.yml stdout
+    sources:
+      - ./**/*.go
+
+  spellcheck:
+    desc: Run spellcheck
+    env:
+      # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_SPELLCHECK_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
+        spellcheck --source . with-exec --use-entrypoint --args="" stdout
+    sources:
+      - ./**/*.md
+      - .spellcheck.yaml
+      - .wordlist.txt
+
+  commitlint:
+    desc: Check for conventional commits
+    env:
+      # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_COMMITLINT_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
+        lint --source . --args "--from=origin/main" stdout
+
+  uncommitted:
+    desc: Check for uncommitted changes
+    env:
+      # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_UNCOMMITTED_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+    cmds:
+      - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
+    sources:
+      - ./**
+
+  go-test:
+    desc: Run go test
+    env:
+      # renovate: datasource=docker depName=golang versioning=semver
+      GOLANG_IMAGE_VERSION: 1.23.1
+      # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
+      K8S_VERSION: 1.31.0
+      # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
+      SETUP_ENVTEST_VERSION: 0.19.0
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m ./dagger/gotest
+        --go-version ${GOLANG_IMAGE_VERSION}
+        --kube-version ${K8S_VERSION}
+        --setup-envtest-version ${SETUP_ENVTEST_VERSION}
+        unit-test --src .
+    sources:
+      - ./**/*.go
+
+  build-image:
+    desc: Build a container image for the plugin
+    env:
+      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
+      DAGGER_DOCKER_SHA: dcf4cc7865ada8433f601f728e4a019b68d1fe4e
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        build --dir . --platform linux/amd64 image > /dev/null
+
+  ci:
+    desc: Run the CI pipeline
+    deps:
+      - spellcheck
+      - commitlint
+      - uncommitted
+      - lint
+      - go-test
+      - build-image
+
+  publish:
+    desc: Build and publish a container image for the plugin
+    requires:
+      # We expect this to run in a GitHub workflow, so we put a few GitHub-specific vars here
+      # to prevent running this task locally by accident.
+      vars:
+        - CI
+        - GITHUB_REPOSITORY
+        - GITHUB_REF
+        - GITHUB_REF_NAME
+        - REGISTRY_USER
+        - REGISTRY_PASSWORD
+    vars:
+      IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
+      # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
+      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+    env:
+      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
+      DAGGER_DOCKER_SHA: dcf4cc7865ada8433f601f728e4a019b68d1fe4e
+    cmds:
+      - >
+        dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
+        build --dir . --platform linux/amd64
+        publish --ref {{.IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
+
+  manifest:
+    desc: Update the image in the Kustomization
+    requires:
+      # We expect this to run in a GitHub workflow, so we put a few GitHub-specific vars here
+      # to prevent running this task locally by accident.
+      vars:
+        - CI
+        - GITHUB_REPOSITORY
+        - GITHUB_REF
+        - GITHUB_REF_NAME
+    vars:
+      IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
+      # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
+      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+    env:
+      # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
+      DAGGER_KUSTOMIZE_SHA: d814d0d7c421348f51cdda96870a05ca2aa8e96a
+    cmds:
+      - >
+        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        edit --source config --dir default set image --image controller={{.IMAGE_NAME}}:{{.IMAGE_VERSION}}
+        directory export --path manifest-build
+      - >
+        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        build --source manifest-build --dir default export --path manifest.yaml
+
+  upload-manifest-to-release:
+    desc: Upload the manifest to the release
+    requires:
+      # We expect this to run in a GitHub workflow, so we put a few GitHub-specific vars here
+      # to prevent running this task locally by accident.
+      vars:
+        - CI
+        - GITHUB_REPOSITORY
+        - GITHUB_REF
+        - GITHUB_REF_NAME
+        - GITHUB_TOKEN
+    env:
+      # renovate: datasource=git-refs depName=gh lookupName=https://github.com/sagikazarmark/daggerverse
+      DAGGER_GH_SHA: 8f444e2c2b8e8162cea76d702086034ed3edc4f1
+    preconditions:
+      - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
+        msg: not a tag, failing
+    cmds:
+        - >
+            dagger -s call -m github.com/sagikazarmark/daggerverse/gh@${DAGGER_GH_SHA}
+            with-source --source .
+            run --repo {{.GITHUB_REPOSITORY}} --token env:GITHUB_TOKEN
+            --cmd "release upload {{.GITHUB_REF_NAME}} manifest.yaml"
+
+  clean:
+    desc: Remove autogenerated artifacts
+    cmds:
+      - rm -rf .task/
