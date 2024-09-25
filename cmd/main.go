@@ -21,6 +21,8 @@ import (
 	"flag"
 	"os"
 
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -159,6 +161,11 @@ func main() {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.Add(&operator.CNPGI{}); err != nil {
+		setupLog.Error(err, "unable to create CNPGI webserver")
 		os.Exit(1)
 	}
 
