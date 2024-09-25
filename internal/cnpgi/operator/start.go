@@ -20,5 +20,5 @@ func (c *CNPGI) Start(ctx context.Context) error {
 	})
 	cmd.Use = "plugin-operator"
 
-	return cmd.ExecuteContext(ctx)
+	return cmd.ExecuteContext(ctx) //nolint:wrapcheck
 }

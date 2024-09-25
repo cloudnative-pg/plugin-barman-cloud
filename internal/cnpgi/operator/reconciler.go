@@ -11,8 +11,8 @@ type ReconcilerImplementation struct {
 }
 
 func (r ReconcilerImplementation) GetCapabilities(
-	ctx context.Context,
-	request *reconciler.ReconcilerHooksCapabilitiesRequest,
+	_ context.Context,
+	_ *reconciler.ReconcilerHooksCapabilitiesRequest,
 ) (*reconciler.ReconcilerHooksCapabilitiesResult, error) {
 	return &reconciler.ReconcilerHooksCapabilitiesResult{
 		ReconcilerCapabilities: []*reconciler.ReconcilerHooksCapability{
@@ -27,8 +27,8 @@ func (r ReconcilerImplementation) GetCapabilities(
 }
 
 func (r ReconcilerImplementation) Pre(
-	ctx context.Context,
-	request *reconciler.ReconcilerHooksRequest,
+	_ context.Context,
+	_ *reconciler.ReconcilerHooksRequest,
 ) (*reconciler.ReconcilerHooksResult, error) {
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
@@ -36,8 +36,8 @@ func (r ReconcilerImplementation) Pre(
 }
 
 func (r ReconcilerImplementation) Post(
-	ctx context.Context,
-	request *reconciler.ReconcilerHooksRequest,
+	_ context.Context,
+	_ *reconciler.ReconcilerHooksRequest,
 ) (*reconciler.ReconcilerHooksResult, error) {
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,

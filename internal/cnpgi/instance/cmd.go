@@ -1,11 +1,10 @@
 package instance
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/http"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
 
@@ -18,5 +17,6 @@ func NewCMD() *cobra.Command {
 	})
 
 	cmd.Use = "plugin-instance"
+
 	return cmd
 }

@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,7 +28,7 @@ import (
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-// ObjectStoreReconciler reconciles a ObjectStore object
+// ObjectStoreReconciler reconciles a ObjectStore object.
 type ObjectStoreReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -46,7 +47,7 @@ type ObjectStoreReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
-func (r *ObjectStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ObjectStoreReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -56,7 +57,12 @@ func (r *ObjectStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ObjectStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&barmancloudv1.ObjectStore{}).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("unable to create controller: %w", err)
+	}
+
+	return nil
 }

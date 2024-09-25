@@ -19,15 +19,16 @@ package controller
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ObjectStore Controller", func() {
@@ -50,6 +51,9 @@ var _ = Describe("ObjectStore Controller", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
+					},
+					Spec: barmancloudv1.ObjectStoreSpec{
+						Configuration: barmanapi.BarmanObjectStoreConfiguration{DestinationPath: "/tmp"},
 					},
 					// TODO(user): Specify other spec details if needed.
 				}
