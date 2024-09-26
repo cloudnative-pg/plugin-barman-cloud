@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"fmt"
+
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
