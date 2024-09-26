@@ -55,9 +55,15 @@ func main() {
 			Namespace: namespace,
 			Name:      boName,
 		},
+		// TODO: improve
 		PGDataPath:     os.Getenv("PGDATA"),
 		PGWALPath:      os.Getenv("PGWAL"),
 		SpoolDirectory: os.Getenv("SPOOL_DIRECTORY"),
+		ServerCertPath: os.Getenv("SERVER_CERT"),
+		ServerKeyPath:  os.Getenv("SERVER_KEY"),
+		ClientCertPath: os.Getenv("CLIENT_CERT"),
+		ServerAddress:  os.Getenv("SERVER_ADDRESS"),
+		PluginPath:     os.Getenv("PLUGIN_PATH"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
 		os.Exit(1)
