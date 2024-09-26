@@ -11,15 +11,15 @@ type IdentityImplementation struct {
 }
 
 func (i IdentityImplementation) GetPluginMetadata(
-	ctx context.Context,
-	request *identity.GetPluginMetadataRequest,
+	_ context.Context,
+	_ *identity.GetPluginMetadataRequest,
 ) (*identity.GetPluginMetadataResponse, error) {
 	return &Data, nil
 }
 
 func (i IdentityImplementation) GetPluginCapabilities(
-	ctx context.Context,
-	request *identity.GetPluginCapabilitiesRequest,
+	_ context.Context,
+	_ *identity.GetPluginCapabilitiesRequest,
 ) (*identity.GetPluginCapabilitiesResponse, error) {
 	return &identity.GetPluginCapabilitiesResponse{
 		Capabilities: []*identity.PluginCapability{
@@ -42,8 +42,8 @@ func (i IdentityImplementation) GetPluginCapabilities(
 }
 
 func (i IdentityImplementation) Probe(
-	ctx context.Context,
-	request *identity.ProbeRequest,
+	_ context.Context,
+	_ *identity.ProbeRequest,
 ) (*identity.ProbeResponse, error) {
 	return &identity.ProbeResponse{
 		Ready: true,

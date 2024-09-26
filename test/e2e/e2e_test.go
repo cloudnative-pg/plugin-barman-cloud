@@ -21,10 +21,10 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/utils"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/cloudnative-pg/plugin-barman-cloud/test/utils"
 )
 
 const namespace = "plugin-barman-cloud-system"
@@ -60,14 +60,15 @@ var _ = Describe("controller", Ordered, func() {
 			var err error
 
 			// projectimage stores the name of the image used in the example
-			var projectimage = "example.com/plugin-barman-cloud:v0.0.1"
+			projectimage := "example.com/plugin-barman-cloud:v0.0.1"
 
 			By("building the manager(Operator) image")
+			//nolint:gosec,perfsprint
 			cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectimage))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			By("loading the the manager(Operator) image on Kind")
+			By("loading the manager(Operator) image on Kind")
 			err = utils.LoadImageToKindClusterWithName(projectimage)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -77,6 +78,7 @@ var _ = Describe("controller", Ordered, func() {
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("deploying the controller-manager")
+			//nolint:gosec,perfsprint
 			cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectimage))
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -113,10 +115,10 @@ var _ = Describe("controller", Ordered, func() {
 				if string(status) != "Running" {
 					return fmt.Errorf("controller pod in %s status", status)
 				}
+
 				return nil
 			}
 			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
-
 		})
 	})
 })

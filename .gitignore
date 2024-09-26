@@ -26,5 +26,11 @@ go.work
 *.swo
 *~
 
-# Temporary files
+# Dependency directories (remove the comment below to include it)
 vendor/
+
+# Go workspace file
+go.work
+
+# Taskfile cache
+.task

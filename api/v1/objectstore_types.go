@@ -17,22 +17,21 @@ limitations under the License.
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ObjectStoreSpec defines the desired state of ObjectStore
+// ObjectStoreSpec defines the desired state of ObjectStore.
 type ObjectStoreSpec struct {
 	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
 	// TODO: we add here any exclusive fields for our plugin CRD
 }
 
-// ObjectStoreStatus defines the observed state of ObjectStore
+// ObjectStoreStatus defines the observed state of ObjectStore.
 type ObjectStoreStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -41,7 +40,7 @@ type ObjectStoreStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// ObjectStore is the Schema for the objectstores API
+// ObjectStore is the Schema for the objectstores API.
 type ObjectStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -52,7 +51,7 @@ type ObjectStore struct {
 
 // +kubebuilder:object:root=true
 
-// ObjectStoreList contains a list of ObjectStore
+// ObjectStoreList contains a list of ObjectStore.
 type ObjectStoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

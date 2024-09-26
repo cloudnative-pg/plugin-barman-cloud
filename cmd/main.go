@@ -21,12 +21,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator"
-
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
+	// +kubebuilder:scaffold:imports
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -38,8 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/controller"
-	// +kubebuilder:scaffold:imports
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 var (

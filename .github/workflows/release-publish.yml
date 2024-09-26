@@ -1,0 +1,31 @@
+name: Release Publish Artifacts
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-publish-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Task
+        uses: arduino/setup-task@v2
+      - name: Install Dagger
+        env:
+          # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+          DAGGER_VERSION: 0.13.3
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+      - name: Create image and manifest
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          task publish
+          task manifest
+      - name: Attach manifest to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          task upload-manifest-to-release

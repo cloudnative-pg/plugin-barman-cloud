@@ -10,7 +10,9 @@ type BackupServiceImplementation struct {
 	backup.UnimplementedBackupServer
 }
 
-func (b BackupServiceImplementation) GetCapabilities(ctx context.Context, request *backup.BackupCapabilitiesRequest) (*backup.BackupCapabilitiesResult, error) {
+func (b BackupServiceImplementation) GetCapabilities(
+	_ context.Context, _ *backup.BackupCapabilitiesRequest,
+) (*backup.BackupCapabilitiesResult, error) {
 	return &backup.BackupCapabilitiesResult{
 		Capabilities: []*backup.BackupCapability{
 			{
@@ -24,7 +26,7 @@ func (b BackupServiceImplementation) GetCapabilities(ctx context.Context, reques
 	}, nil
 }
 
-func (b BackupServiceImplementation) Backup(ctx context.Context, request *backup.BackupRequest) (*backup.BackupResult, error) {
+func (b BackupServiceImplementation) Backup(_ context.Context, _ *backup.BackupRequest) (*backup.BackupResult, error) {
 	// TODO implement me
 	panic("implement me")
 }
