@@ -38,7 +38,10 @@ func (c *CNPGI) Start(ctx context.Context) error {
 	}
 
 	srv := http.Server{
-		IdentityImpl:   IdentityImplementation{},
+		IdentityImpl: IdentityImplementation{
+			Client:          c.Client,
+			BarmanObjectKey: c.BarmanObjectKey,
+		},
 		Enrichers:      []http.ServerEnricher{enrich},
 		ServerCertPath: c.ServerCertPath,
 		ServerKeyPath:  c.ServerKeyPath,
