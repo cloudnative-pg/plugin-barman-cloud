@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- barmancloud_v1_objectstore.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
