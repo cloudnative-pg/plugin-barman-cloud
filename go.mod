@@ -4,12 +4,12 @@ go 1.22.0
 
 require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20240902182059-c9f193bf825b
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240923090729-e3d2e7d21fb2
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926153929-09e2c6f6689b
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/spf13/cobra v1.8.1
-	google.golang.org/grpc v1.66.0
+	google.golang.org/grpc v1.67.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
 	sigs.k8s.io/controller-runtime v0.19.0
@@ -95,8 +95,8 @@ require (
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
