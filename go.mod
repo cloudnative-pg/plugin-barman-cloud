@@ -6,10 +6,12 @@ require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20240902182059-c9f193bf825b
 	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926095718-27da985944d4
+	github.com/cloudnative-pg/machinery v0.0.0-20240919131343-9dd62b9257c7
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
+	github.com/spf13/cobra v1.8.1
 	google.golang.org/grpc v1.66.0
-	k8s.io/apimachinery v0.31.0
+	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.0
 	sigs.k8s.io/controller-runtime v0.19.0
 )
@@ -22,7 +24,6 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudnative-pg/machinery v0.0.0-20240919131343-9dd62b9257c7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
@@ -71,7 +72,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
@@ -98,14 +98,14 @@ require (
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.31.0 // indirect
+	k8s.io/api v0.31.1 // indirect
 	k8s.io/apiextensions-apiserver v0.31.0 // indirect
 	k8s.io/apiserver v0.31.0 // indirect
 	k8s.io/component-base v0.31.0 // indirect

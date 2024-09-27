@@ -1,0 +1,57 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: googleapis/release-please-action cannot sign commits yet.
+      #   We'll use the cli until there's a fix for
+      #   https://github.com/googleapis/release-please/issues/2280.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Task
+        uses: arduino/setup-task@v2
+      - name: Install Dagger
+        env:
+          # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+          DAGGER_VERSION: 0.13.3
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+      - name: Create image and manifest
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          task publish
+          task manifest
+      - name: Attach manifest to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest.yaml
+          path: ./manifest.yaml
+      # TODO: remove bump-minor-pre-major when in production. It prevents
+      #   release-please from bumping the major version on breaking changes.
+      # TODO: remove release-as after first release. Used to set the first
+      #   release version, which would default to 1.0.0. Set the version
+      #   manually also for 1.0.0.
+      # We use a GitHub token with write permissions to create the release,
+      # otherwise we won't be able to trigger a new run when pushing on main.
+      - name: Run release-please
+        run: |
+          npx release-please release-pr \
+            --token="${{ secrets.REPO_PAT }}" \
+            --repo-url="${{ github.repository }}" \
+            --bump-minor-pre-major=true \
+            --release-as=0.1.0 \
+            --signoff "Peggie <info@cloudnative-pg.io>";
+          npx release-please github-release \
+            --token="${{ secrets.REPO_PAT }}" \
+            --repo-url="${{ github.repository }}"

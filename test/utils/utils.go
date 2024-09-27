@@ -22,7 +22,7 @@ import (
 	"os/exec"
 	"strings"
 
-	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
+	. "github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -43,10 +43,11 @@ func InstallPrometheusOperator() error {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
 	cmd := exec.Command("kubectl", "create", "-f", url)
 	_, err := Run(cmd)
+
 	return err
 }
 
-// Run executes the provided command within this context
+// Run executes the provided command within this context.
 func Run(cmd *exec.Cmd) ([]byte, error) {
 	dir, _ := GetProjectDir()
 	cmd.Dir = dir
@@ -60,13 +61,13 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return output, fmt.Errorf("%s failed with error: (%v) %s", command, err, string(output))
+		return output, fmt.Errorf("%s failed with error: (%w) %s", command, err, string(output))
 	}
 
 	return output, nil
 }
 
-// UninstallPrometheusOperator uninstalls the prometheus
+// UninstallPrometheusOperator uninstalls the prometheus.
 func UninstallPrometheusOperator() {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
 	cmd := exec.Command("kubectl", "delete", "-f", url)
@@ -75,7 +76,7 @@ func UninstallPrometheusOperator() {
 	}
 }
 
-// UninstallCertManager uninstalls the cert manager
+// UninstallCertManager uninstalls the cert manager.
 func UninstallCertManager() {
 	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
 	cmd := exec.Command("kubectl", "delete", "-f", url)
@@ -100,10 +101,11 @@ func InstallCertManager() error {
 	)
 
 	_, err := Run(cmd)
+
 	return err
 }
 
-// LoadImageToKindClusterWithName loads a local docker image to the kind cluster
+// LoadImageToKindClusterWithName loads a local docker image to the kind cluster.
 func LoadImageToKindClusterWithName(name string) error {
 	cluster := "kind"
 	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
@@ -112,6 +114,7 @@ func LoadImageToKindClusterWithName(name string) error {
 	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
 	cmd := exec.Command("kind", kindOptions...)
 	_, err := Run(cmd)
+
 	return err
 }
 
@@ -129,12 +132,13 @@ func GetNonEmptyLines(output string) []string {
 	return res
 }
 
-// GetProjectDir will return the directory where the project is
+// GetProjectDir will return the directory where the project is.
 func GetProjectDir() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return wd, err
+		return wd, fmt.Errorf("failed to get the current working directory: %w", err)
 	}
-	wd = strings.Replace(wd, "/test/e2e", "", -1)
+	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+
 	return wd, nil
 }
