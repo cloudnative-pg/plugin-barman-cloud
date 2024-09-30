@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 type IdentityImplementation struct {

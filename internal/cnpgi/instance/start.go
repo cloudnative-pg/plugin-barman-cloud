@@ -11,28 +11,32 @@ import (
 )
 
 type CNPGI struct {
-	Client          client.Client
-	BarmanObjectKey client.ObjectKey
-	PGDataPath      string
-	PGWALPath       string
-	SpoolDirectory  string
-	ServerCertPath  string
-	ServerKeyPath   string
-	ClientCertPath  string
+	Client           client.Client
+	BarmanObjectKey  client.ObjectKey
+	ClusterObjectKey client.ObjectKey
+	PGDataPath       string
+	PGWALPath        string
+	SpoolDirectory   string
+	ServerCertPath   string
+	ServerKeyPath    string
+	ClientCertPath   string
 	// mutually exclusive with pluginPath
 	ServerAddress string
 	// mutually exclusive with serverAddress
-	PluginPath string
+	PluginPath   string
+	InstanceName string
 }
 
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, WALServiceImplementation{
-			BarmanObjectKey: c.BarmanObjectKey,
-			Client:          c.Client,
-			SpoolDirectory:  c.SpoolDirectory,
-			PGDataPath:      c.PGDataPath,
-			PGWALPath:       c.PGWALPath,
+			BarmanObjectKey:  c.BarmanObjectKey,
+			ClusterObjectKey: c.ClusterObjectKey,
+			InstanceName:     c.InstanceName,
+			Client:           c.Client,
+			SpoolDirectory:   c.SpoolDirectory,
+			PGDataPath:       c.PGDataPath,
+			PGWALPath:        c.PGWALPath,
 		})
 		backup.RegisterBackupServer(server, BackupServiceImplementation{})
 		return nil

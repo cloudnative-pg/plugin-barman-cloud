@@ -4,31 +4,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
-	"github.com/cloudnative-pg/machinery/pkg/log"
-
-	"os"
-
+	"github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudnative-pg/barman-cloud/pkg/archiver"
-	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 type WALServiceImplementation struct {
-	BarmanObjectKey client.ObjectKey
-	Client          client.Client
-	SpoolDirectory  string
-	PGDataPath      string
-	PGWALPath       string
+	BarmanObjectKey  client.ObjectKey
+	ClusterObjectKey client.ObjectKey
+	Client           client.Client
+	InstanceName     string
+	SpoolDirectory   string
+	PGDataPath       string
+	PGWALPath        string
 	wal.UnimplementedWALServer
 }
 
@@ -93,6 +94,12 @@ func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALR
 	contextLogger := log.FromContext(ctx)
 	startTime := time.Now()
 
+	var cluster *cnpgv1.Cluster
+
+	if err := w.Client.Get(ctx, w.ClusterObjectKey, cluster); err != nil {
+		return nil, err
+	}
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
 		return nil, err
@@ -140,14 +147,12 @@ func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALR
 		return nil, nil
 	}
 
-	// TODO
-	// Step 2: return error if the end-of-wal-stream flag is set.
 	// We skip this step if streaming connection is not available
-	//if isStreamingAvailable(cluster, podName) {
-	//	if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
-	//		return nil, err
-	//	}
-	//}
+	if isStreamingAvailable(cluster, w.InstanceName) {
+		if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
+			return nil, err
+		}
+	}
 
 	// Step 3: gather the WAL files names to restore. If the required file isn't a regular WAL, we download it directly.
 	var walFilesList []string
@@ -176,19 +181,17 @@ func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALR
 		return nil, walStatus[0].Err
 	}
 
-	// TODO
-	// Step 5: set end-of-wal-stream flag if any download job returned file-not-found
-	// We skip this step if streaming connection is not available
-	//endOfWALStream := isEndOfWALStream(walStatus)
-	//if isStreamingAvailable(cluster, podName) && endOfWALStream {
-	//	contextLogger.Info(
-	//		"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
-	//
-	//	err = walRestorer.SetEndOfWALStream()
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
+	//We skip this step if streaming connection is not available
+	endOfWALStream := isEndOfWALStream(walStatus)
+	if isStreamingAvailable(cluster, w.InstanceName) && endOfWALStream {
+		contextLogger.Info(
+			"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
+
+		err = walRestorer.SetEndOfWALStream()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	successfulWalRestore := 0
 	for idx := range walStatus {
@@ -220,7 +223,7 @@ func (w WALServiceImplementation) SetFirstRequired(ctx context.Context, request 
 	panic("implement me")
 }
 
-// mergeEnv merges all the values inside incomingEnv into env
+// mergeEnv merges all the values inside incomingEnv into env.
 func mergeEnv(env []string, incomingEnv []string) {
 	for _, incomingItem := range incomingEnv {
 		incomingKV := strings.SplitAfterN(incomingItem, "=", 2)
@@ -235,28 +238,28 @@ func mergeEnv(env []string, incomingEnv []string) {
 	}
 }
 
-// TODO: refactor
+// TODO: refactor.
 const (
-	// ScratchDataDirectory is the directory to be used for scratch data
+	// ScratchDataDirectory is the directory to be used for scratch data.
 	ScratchDataDirectory = "/controller"
 
-	// CertificatesDir location to store the certificates
+	// CertificatesDir location to store the certificates.
 	CertificatesDir = ScratchDataDirectory + "/certificates/"
 
 	// BarmanBackupEndpointCACertificateLocation is the location where the barman endpoint
-	// CA certificate is stored
+	// CA certificate is stored.
 	BarmanBackupEndpointCACertificateLocation = CertificatesDir + BarmanBackupEndpointCACertificateFileName
 
 	// BarmanBackupEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate for backups is stored
+	// CA certificate for backups is stored.
 	BarmanBackupEndpointCACertificateFileName = "backup-" + BarmanEndpointCACertificateFileName
 
 	// BarmanRestoreEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate for restores is stored
+	// CA certificate for restores is stored.
 	BarmanRestoreEndpointCACertificateFileName = "restore-" + BarmanEndpointCACertificateFileName
 
 	// BarmanEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate is stored
+	// CA certificate is stored.
 	BarmanEndpointCACertificateFileName = "barman-ca.crt"
 )
 
@@ -271,35 +274,35 @@ func getRestoreCABundleEnv(configuration *barmanapi.BarmanObjectStoreConfigurati
 	return env
 }
 
-//// isStreamingAvailable checks if this pod can replicate via streaming connection
-//func isStreamingAvailable(cluster *apiv1.Cluster, podName string) bool {
-//	if cluster == nil {
-//		return false
-//	}
-//
-//	// Easy case: If this pod is a replica, the streaming is always available
-//	if cluster.Status.CurrentPrimary != podName {
-//		return true
-//	}
-//
-//	// Designated primary in a replica cluster: return true if the external cluster has streaming connection
-//	if cluster.IsReplica() {
-//		externalCluster, found := cluster.ExternalCluster(cluster.Spec.ReplicaCluster.Source)
-//
-//		// This is a configuration error
-//		if !found {
-//			return false
-//		}
-//
-//		return externalCluster.ConnectionParameters != nil
-//	}
-//
-//	// Primary, we do not replicate from nobody
-//	return false
-//}
+// isStreamingAvailable checks if this pod can replicate via streaming connection.
+func isStreamingAvailable(cluster *cnpgv1.Cluster, podName string) bool {
+	if cluster == nil {
+		return false
+	}
+
+	// Easy case: If this pod is a replica, the streaming is always available
+	if cluster.Status.CurrentPrimary != podName {
+		return true
+	}
+
+	// Designated primary in a replica cluster: return true if the external cluster has streaming connection
+	if cluster.IsReplica() {
+		externalCluster, found := cluster.ExternalCluster(cluster.Spec.ReplicaCluster.Source)
+
+		// This is a configuration error
+		if !found {
+			return false
+		}
+
+		return externalCluster.ConnectionParameters != nil
+	}
+
+	// Primary, we do not replicate from nobody
+	return false
+}
 
 // gatherWALFilesToRestore files a list of possible WAL files to restore, always
-// including as the first one the requested WAL file
+// including as the first one the requested WAL file.
 func gatherWALFilesToRestore(walName string, parallel int) (walList []string, err error) {
 	var segment Segment
 
@@ -320,4 +323,37 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 	}
 
 	return walList, err
+}
+
+// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive
+var ErrEndOfWALStreamReached = errors.New("end of WAL reached")
+
+// checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.
+func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
+	contain, err := walRestorer.IsEndOfWALStream()
+	if err != nil {
+		return err
+	}
+
+	if contain {
+		err := walRestorer.ResetEndOfWalStream()
+		if err != nil {
+			return err
+		}
+
+		return ErrEndOfWALStreamReached
+	}
+	return nil
+}
+
+// isEndOfWALStream returns true if one of the downloads has returned
+// a file-not-found error.
+func isEndOfWALStream(results []barmanRestorer.Result) bool {
+	for _, result := range results {
+		if errors.Is(result.Err, barmanRestorer.ErrWALNotFound) {
+			return true
+		}
+	}
+
+	return false
 }

@@ -28,21 +28,21 @@ import (
 
 const (
 	// DefaultWALSegmentSize is the default size of a single WAL file
-	// This must be a power of 2
+	// This must be a power of 2.
 	DefaultWALSegmentSize = int64(1 << 24)
 
-	// WALHexOctetRe is a regex to match 8 Hex characters
+	// WALHexOctetRe is a regex to match 8 Hex characters.
 	WALHexOctetRe = `([\dA-Fa-f]{8})`
 
-	// WALTimeLineRe is a regex to match the timeline in a WAL filename
+	// WALTimeLineRe is a regex to match the timeline in a WAL filename.
 	WALTimeLineRe = WALHexOctetRe
 
-	// WALSegmentNameRe is a regex to match the segment parent log file and segment id
+	// WALSegmentNameRe is a regex to match the segment parent log file and segment id.
 	WALSegmentNameRe = WALHexOctetRe + WALHexOctetRe
 )
 
 var (
-	// WALRe is the file segment name parser
+	// WALRe is the file segment name parser.
 	WALRe = regexp.MustCompile(`^` +
 		// everything has a timeline
 		WALTimeLineRe +
@@ -67,7 +67,7 @@ var (
 		// close (1)
 		`)$`)
 
-	// WALSegmentRe is the file segment name parser
+	// WALSegmentRe is the file segment name parser.
 	WALSegmentRe = regexp.MustCompile(`^` +
 		// everything has a timeline
 		WALTimeLineRe +
@@ -75,11 +75,11 @@ var (
 		WALSegmentNameRe +
 		`$`)
 
-	// ErrorBadWALSegmentName is raised when parsing an invalid segment name
+	// ErrorBadWALSegmentName is raised when parsing an invalid segment name.
 	ErrorBadWALSegmentName = errors.New("invalid WAL segment name")
 )
 
-// Segment contains the information inside a WAL segment name
+// Segment contains the information inside a WAL segment name.
 type Segment struct {
 	// Timeline number
 	Tli int32
@@ -92,7 +92,7 @@ type Segment struct {
 }
 
 // IsWALFile check if the passed file name is a regular WAL file.
-// It supports either a full file path or a simple file name
+// It supports either a full file path or a simple file name.
 func IsWALFile(name string) bool {
 	baseName := path.Base(name)
 	return WALSegmentRe.MatchString(baseName)
@@ -100,7 +100,7 @@ func IsWALFile(name string) bool {
 
 // SegmentFromName retrieves the timeline, log ID and segment ID
 // from the name of a xlog segment, and can also handle a full path
-// or a simple file name
+// or a simple file name.
 func SegmentFromName(name string) (Segment, error) {
 	var tli, log, seg int64
 	var err error
@@ -136,7 +136,7 @@ func SegmentFromName(name string) (Segment, error) {
 }
 
 // MustSegmentFromName is analogous to SegmentFromName but panics
-// if the segment name is invalid
+// if the segment name is invalid.
 func MustSegmentFromName(name string) Segment {
 	result, err := SegmentFromName(name)
 	if err != nil {
@@ -146,12 +146,12 @@ func MustSegmentFromName(name string) Segment {
 	return result
 }
 
-// Name gets the name of the segment
+// Name gets the name of the segment.
 func (segment Segment) Name() string {
 	return fmt.Sprintf("%08X%08X%08X", segment.Tli, segment.Log, segment.Seg)
 }
 
-// WalSegmentsPerFile is the number of WAL Segments in a WAL File
+// WalSegmentsPerFile is the number of WAL Segments in a WAL File.
 func WalSegmentsPerFile(walSegmentSize int64) int32 {
 	// Given that segment section is represented by 8 hex characters,
 	// we compute the number of wal segments in a file, by dividing
