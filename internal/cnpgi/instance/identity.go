@@ -2,12 +2,18 @@ package instance
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 type IdentityImplementation struct {
 	identity.UnimplementedIdentityServer
+	BarmanObjectKey client.ObjectKey
+	Client          client.Client
 }
 
 func (i IdentityImplementation) GetPluginMetadata(
@@ -42,9 +48,14 @@ func (i IdentityImplementation) GetPluginCapabilities(
 }
 
 func (i IdentityImplementation) Probe(
-	_ context.Context,
+	ctx context.Context,
 	_ *identity.ProbeRequest,
 ) (*identity.ProbeResponse, error) {
+	var obj barmancloudv1.ObjectStore
+	if err := i.Client.Get(ctx, i.BarmanObjectKey, &obj); err != nil {
+		return nil, fmt.Errorf("while fetching object store %s: %w", i.BarmanObjectKey.Name, err)
+	}
+
 	return &identity.ProbeResponse{
 		Ready: true,
 	}, nil
