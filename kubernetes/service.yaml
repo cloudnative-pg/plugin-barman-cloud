@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: barman-cloud
+    cnpg.io/pluginName: barman-cloud.cloudnative-pg.io
+  annotations:
+    cnpg.io/pluginClientSecret: barman-cloud-client-tls
+    cnpg.io/pluginServerSecret: barman-cloud-server-tls
+    cnpg.io/pluginPort: "9090"
+  name: barman-cloud
+spec:
+  ports:
+  - port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: barman-cloud

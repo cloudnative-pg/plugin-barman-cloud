@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cnpg-system
+resources:
+- certificate-issuer.yaml
+- client-certificate.yaml
+- deployment.yaml
+- server-certificate.yaml
+- service.yaml
+- ../config/crd
+- ../config/rbac
+images:
+- name: plugin-barman-cloud
+secretGenerator:
+- literals:
+  - SIDECAR_IMAGE=plugin-sidecar
+  name: plugin-barman-cloud

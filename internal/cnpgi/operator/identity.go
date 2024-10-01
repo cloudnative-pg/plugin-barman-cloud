@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // IdentityImplementation is the implementation of the CNPG-i
@@ -17,7 +19,7 @@ func (i IdentityImplementation) GetPluginMetadata(
 	_ context.Context,
 	_ *identity.GetPluginMetadataRequest,
 ) (*identity.GetPluginMetadataResponse, error) {
-	return &Data, nil
+	return &metadata.Data, nil
 }
 
 // GetPluginCapabilities implements identity

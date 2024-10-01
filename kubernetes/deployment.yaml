@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: barman-cloud
+  name: barman-cloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: barman-cloud
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: barman-cloud
+    spec:
+      serviceAccountName: plugin-barman-cloud
+      containers:
+      - image: plugin-barman-cloud:latest
+        name: barman-cloud
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        env:
+        - name: SIDECAR_IMAGE
+          valueFrom:
+            secretKeyRef:
+              key: SIDECAR_IMAGE
+              name: plugin-barman-cloud
+        args:
+        - operator
+        - --server-cert=/server/tls.crt
+        - --server-key=/server/tls.key
+        - --client-cert=/client/tls.crt
+        - --server-address=:9090
+        - --leader-elect
+        volumeMounts:
+        - mountPath: /server
+          name: server
+        - mountPath: /client
+          name: client
+        resources: {}
+      volumes:
+      - name: server
+        secret:
+          secretName: barman-cloud-server-tls
+      - name: client
+        secret:
+          secretName: barman-cloud-client-tls
