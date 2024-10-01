@@ -7,20 +7,22 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
 	"google.golang.org/grpc"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
-	Client           client.Client
-	BarmanObjectKey  client.ObjectKey
-	ClusterObjectKey client.ObjectKey
-	PGDataPath       string
-	PGWALPath        string
-	SpoolDirectory   string
-	ServerCertPath   string
-	ServerKeyPath    string
-	ClientCertPath   string
+	Client              client.Client
+	Recorder            record.EventRecorder
+	WALConfigurationKey client.ObjectKey
+	ClusterObjectKey    client.ObjectKey
+	PGDataPath          string
+	PGWALPath           string
+	SpoolDirectory      string
+	ServerCertPath      string
+	ServerKeyPath       string
+	ClientCertPath      string
 	// mutually exclusive with pluginPath
 	ServerAddress string
 	// mutually exclusive with serverAddress
@@ -32,7 +34,7 @@ type CNPGI struct {
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, WALServiceImplementation{
-			BarmanObjectKey:  c.BarmanObjectKey,
+			BarmanObjectKey:  c.WALConfigurationKey,
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
 			Client:           c.Client,
@@ -40,14 +42,18 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			PGDataPath:       c.PGDataPath,
 			PGWALPath:        c.PGWALPath,
 		})
-		backup.RegisterBackupServer(server, BackupServiceImplementation{})
+		backup.RegisterBackupServer(server, BackupServiceImplementation{
+			Client:       c.Client,
+			Recorder:     c.Recorder,
+			InstanceName: c.InstanceName,
+		})
 		return nil
 	}
 
 	srv := http.Server{
 		IdentityImpl: IdentityImplementation{
-			Client:          c.Client,
-			BarmanObjectKey: c.BarmanObjectKey,
+			Client:              c.Client,
+			WALConfigurationKey: c.WALConfigurationKey,
 		},
 		Enrichers:      []http.ServerEnricher{enrich},
 		ServerCertPath: c.ServerCertPath,

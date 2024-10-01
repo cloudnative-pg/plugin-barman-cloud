@@ -14,8 +14,8 @@ import (
 // IdentityImplementation implements IdentityServer
 type IdentityImplementation struct {
 	identity.UnimplementedIdentityServer
-	BarmanObjectKey client.ObjectKey
-	Client          client.Client
+	WALConfigurationKey client.ObjectKey
+	Client              client.Client
 }
 
 // GetPluginMetadata implements IdentityServer
@@ -57,8 +57,8 @@ func (i IdentityImplementation) Probe(
 	_ *identity.ProbeRequest,
 ) (*identity.ProbeResponse, error) {
 	var obj barmancloudv1.ObjectStore
-	if err := i.Client.Get(ctx, i.BarmanObjectKey, &obj); err != nil {
-		return nil, fmt.Errorf("while fetching object store %s: %w", i.BarmanObjectKey.Name, err)
+	if err := i.Client.Get(ctx, i.WALConfigurationKey, &obj); err != nil {
+		return nil, fmt.Errorf("while fetching object store %s: %w", i.WALConfigurationKey.Name, err)
 	}
 
 	return &identity.ProbeResponse{
