@@ -1,26 +1,21 @@
 package operator
 
 import (
-	"context"
-
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/http"
-	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
+	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
 
-// CNPGI is the implementation of the Operator plugin
-type CNPGI struct{}
-
-// Start starts the GRPC server
-func (c *CNPGI) Start(ctx context.Context) error {
+// NewCommand creates the command to start the GRPC server
+// of the operator plugin
+func NewCommand() *cobra.Command {
 	cmd := http.CreateMainCmd(IdentityImplementation{}, func(server *grpc.Server) error {
-		// Register the declared implementations
-		identity.RegisterIdentityServer(server, IdentityImplementation{})
 		reconciler.RegisterReconcilerHooksServer(server, ReconcilerImplementation{})
+		lifecycle.RegisterOperatorLifecycleServer(server, LifecycleImplementation{})
 		return nil
 	})
-	cmd.Use = "plugin-operator"
-
-	return cmd.ExecuteContext(ctx) //nolint:wrapcheck
+	cmd.Use = "plugin"
+	return cmd
 }
