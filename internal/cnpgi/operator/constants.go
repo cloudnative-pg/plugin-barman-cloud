@@ -2,6 +2,7 @@ package operator
 
 import "github.com/cloudnative-pg/cnpg-i/pkg/identity"
 
+// PluginName is the name of this plugin
 const PluginName = "operator.barman-cloud.cloudnative-pg.io"
 
 // Data is the metadata of this plugin.

@@ -6,10 +6,13 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
 )
 
+// IdentityImplementation is the implementation of the CNPG-i
+// Identity entrypoint
 type IdentityImplementation struct {
 	identity.UnimplementedIdentityServer
 }
 
+// GetPluginMetadata implements Identity
 func (i IdentityImplementation) GetPluginMetadata(
 	_ context.Context,
 	_ *identity.GetPluginMetadataRequest,
@@ -17,6 +20,7 @@ func (i IdentityImplementation) GetPluginMetadata(
 	return &Data, nil
 }
 
+// GetPluginCapabilities implements identity
 func (i IdentityImplementation) GetPluginCapabilities(
 	_ context.Context,
 	_ *identity.GetPluginCapabilitiesRequest,
@@ -41,6 +45,7 @@ func (i IdentityImplementation) GetPluginCapabilities(
 	}, nil
 }
 
+// Probe implements Identity
 func (i IdentityImplementation) Probe(
 	_ context.Context,
 	_ *identity.ProbeRequest,

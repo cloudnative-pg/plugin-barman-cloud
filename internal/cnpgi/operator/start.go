@@ -9,8 +9,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+// CNPGI is the implementation of the Operator plugin
 type CNPGI struct{}
 
+// Start starts the GRPC server
 func (c *CNPGI) Start(ctx context.Context) error {
 	cmd := http.CreateMainCmd(IdentityImplementation{}, func(server *grpc.Server) error {
 		// Register the declared implementations

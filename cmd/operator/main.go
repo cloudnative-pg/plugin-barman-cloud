@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main contains the implementation of the CNPG-i operator plugin
 package main
 
 import (
