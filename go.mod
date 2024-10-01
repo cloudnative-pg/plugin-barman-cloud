@@ -4,9 +4,9 @@ go 1.22.0
 
 require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
-	github.com/cloudnative-pg/cloudnative-pg v1.24.0
+	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241001084914-829808376542
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926153929-09e2c6f6689b
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241002070940-e5495e9c5ed6
 	github.com/cloudnative-pg/machinery v0.0.0-20241001075747-34c8797af80f
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
@@ -114,12 +114,12 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.31.0 // indirect
-	k8s.io/apiserver v0.31.0 // indirect
-	k8s.io/component-base v0.31.0 // indirect
+	k8s.io/apiextensions-apiserver v0.31.1 // indirect
+	k8s.io/apiserver v0.31.1 // indirect
+	k8s.io/component-base v0.31.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240903163716-9e1beecbcb38 // indirect
-	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3 // indirect
+	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect

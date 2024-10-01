@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/common"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -52,16 +54,40 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, errors.New("no operation set")
 	}
 
+	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
+	if err != nil {
+		return nil, err
+	}
+
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
 		return nil, err
 	}
 
+	helper := common.NewPlugin(
+		*cluster,
+		metadata.PluginName,
+	)
+
+	// TODO: Validation of the plugin configuration
+
 	mutatedPod := pod.DeepCopy()
 	err = object.InjectPluginSidecar(mutatedPod, &corev1.Container{
 		Name:  "plugin-barman-cloud",
 		Image: viper.GetString("sidecar-image"),
-	}, false)
+		Env: []corev1.EnvVar{
+			{
+				Name:  "BARMAN_OBJECT_NAME",
+				Value: helper.Parameters["barmanObjectStore"],
+			},
+			{
+				// TODO: should we really use this one?
+				// should we mount an emptyDir volume just for that?
+				Name:  "SPOOL_DIRECTORY",
+				Value: "/controller/wal-restore-spool",
+			},
+		},
+	}, true)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +97,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, err
 	}
 
-	// TODO: change to debug
-	contextLogger.Info("generated patch", "content", string(patch))
+	contextLogger.Debug("generated patch", "content", string(patch))
 	return &lifecycle.OperatorLifecycleResponse{
 		JsonPatch: patch,
 	}, nil
