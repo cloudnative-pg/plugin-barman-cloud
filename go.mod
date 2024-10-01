@@ -5,12 +5,12 @@ go 1.22.0
 require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.0
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20240902182059-c9f193bf825b
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926095718-27da985944d4
-	github.com/cloudnative-pg/machinery v0.0.0-20240919131343-9dd62b9257c7
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20240926153929-09e2c6f6689b
+	github.com/cloudnative-pg/machinery v0.0.0-20241001075747-34c8797af80f
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	google.golang.org/grpc v1.66.0
+	google.golang.org/grpc v1.67.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.0
 	sigs.k8s.io/controller-runtime v0.19.0
