@@ -22,6 +22,7 @@ import (
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
+// WALServiceImplementation is the implementation of the WAL Service
 type WALServiceImplementation struct {
 	BarmanObjectKey  client.ObjectKey
 	ClusterObjectKey client.ObjectKey
@@ -33,7 +34,11 @@ type WALServiceImplementation struct {
 	wal.UnimplementedWALServer
 }
 
-func (w WALServiceImplementation) GetCapabilities(ctx context.Context, request *wal.WALCapabilitiesRequest) (*wal.WALCapabilitiesResult, error) {
+// GetCapabilities implements the WALService interface
+func (w WALServiceImplementation) GetCapabilities(
+	_ context.Context,
+	_ *wal.WALCapabilitiesRequest,
+) (*wal.WALCapabilitiesResult, error) {
 	return &wal.WALCapabilitiesResult{
 		Capabilities: []*wal.WALCapability{
 			{
@@ -54,7 +59,11 @@ func (w WALServiceImplementation) GetCapabilities(ctx context.Context, request *
 	}, nil
 }
 
-func (w WALServiceImplementation) Archive(ctx context.Context, request *wal.WALArchiveRequest) (*wal.WALArchiveResult, error) {
+// Archive implements the WALService interface
+func (w WALServiceImplementation) Archive(
+	ctx context.Context,
+	request *wal.WALArchiveRequest,
+) (*wal.WALArchiveResult, error) {
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
 		return nil, err
@@ -90,7 +99,11 @@ func (w WALServiceImplementation) Archive(ctx context.Context, request *wal.WALA
 	return &wal.WALArchiveResult{}, nil
 }
 
-func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALRestoreRequest) (*wal.WALRestoreResult, error) {
+// Restore implements the WALService interface
+func (w WALServiceImplementation) Restore(
+	ctx context.Context,
+	request *wal.WALRestoreRequest,
+) (*wal.WALRestoreResult, error) {
 	contextLogger := log.FromContext(ctx)
 	startTime := time.Now()
 
@@ -181,7 +194,7 @@ func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALR
 		return nil, walStatus[0].Err
 	}
 
-	//We skip this step if streaming connection is not available
+	// We skip this step if streaming connection is not available
 	endOfWALStream := isEndOfWALStream(walStatus)
 	if isStreamingAvailable(cluster, w.InstanceName) && endOfWALStream {
 		contextLogger.Info(
@@ -213,12 +226,20 @@ func (w WALServiceImplementation) Restore(ctx context.Context, request *wal.WALR
 	return &wal.WALRestoreResult{}, nil
 }
 
-func (w WALServiceImplementation) Status(ctx context.Context, request *wal.WALStatusRequest) (*wal.WALStatusResult, error) {
+// Status implements the WALService interface
+func (w WALServiceImplementation) Status(
+	_ context.Context,
+	_ *wal.WALStatusRequest,
+) (*wal.WALStatusResult, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (w WALServiceImplementation) SetFirstRequired(ctx context.Context, request *wal.SetFirstRequiredRequest) (*wal.SetFirstRequiredResult, error) {
+// SetFirstRequired implements the WALService interface
+func (w WALServiceImplementation) SetFirstRequired(
+	_ context.Context,
+	_ *wal.SetFirstRequiredRequest,
+) (*wal.SetFirstRequiredResult, error) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -325,7 +346,7 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 	return walList, err
 }
 
-// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive
+// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
 var ErrEndOfWALStreamReached = errors.New("end of WAL reached")
 
 // checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.

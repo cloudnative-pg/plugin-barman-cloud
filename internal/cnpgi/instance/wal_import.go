@@ -75,8 +75,8 @@ var (
 		WALSegmentNameRe +
 		`$`)
 
-	// ErrorBadWALSegmentName is raised when parsing an invalid segment name.
-	ErrorBadWALSegmentName = errors.New("invalid WAL segment name")
+	// ErrBadWALSegmentName is raised when parsing an invalid segment name.
+	ErrBadWALSegmentName = errors.New("invalid WAL segment name")
 )
 
 // Segment contains the information inside a WAL segment name.
@@ -109,23 +109,23 @@ func SegmentFromName(name string) (Segment, error) {
 	// We could have used WALSegmentRe directly, but we wanted to adhere to barman code
 	subMatches := WALRe.FindStringSubmatch(baseName)
 	if len(subMatches) != 4 {
-		return Segment{}, ErrorBadWALSegmentName
+		return Segment{}, ErrBadWALSegmentName
 	}
 
 	if len(subMatches[0]) != 24 {
-		return Segment{}, ErrorBadWALSegmentName
+		return Segment{}, ErrBadWALSegmentName
 	}
 
 	if tli, err = strconv.ParseInt(subMatches[1], 16, 32); err != nil {
-		return Segment{}, ErrorBadWALSegmentName
+		return Segment{}, ErrBadWALSegmentName
 	}
 
 	if log, err = strconv.ParseInt(subMatches[2], 16, 32); err != nil {
-		return Segment{}, ErrorBadWALSegmentName
+		return Segment{}, ErrBadWALSegmentName
 	}
 
 	if seg, err = strconv.ParseInt(subMatches[3], 16, 32); err != nil {
-		return Segment{}, ErrorBadWALSegmentName
+		return Segment{}, ErrBadWALSegmentName
 	}
 
 	return Segment{

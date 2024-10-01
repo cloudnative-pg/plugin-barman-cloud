@@ -6,10 +6,13 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 )
 
+// BackupServiceImplementation is the implementation
+// of the Backup CNPG capability
 type BackupServiceImplementation struct {
 	backup.UnimplementedBackupServer
 }
 
+// GetCapabilities implements the BackupService interface
 func (b BackupServiceImplementation) GetCapabilities(
 	_ context.Context, _ *backup.BackupCapabilitiesRequest,
 ) (*backup.BackupCapabilitiesResult, error) {
@@ -26,6 +29,7 @@ func (b BackupServiceImplementation) GetCapabilities(
 	}, nil
 }
 
+// Backup implements the Backup interface
 func (b BackupServiceImplementation) Backup(_ context.Context, _ *backup.BackupRequest) (*backup.BackupResult, error) {
 	// TODO implement me
 	panic("implement me")

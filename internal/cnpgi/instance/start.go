@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
 	Client           client.Client
 	BarmanObjectKey  client.ObjectKey
@@ -27,6 +28,7 @@ type CNPGI struct {
 	InstanceName string
 }
 
+// Start starts the GRPC service
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, WALServiceImplementation{

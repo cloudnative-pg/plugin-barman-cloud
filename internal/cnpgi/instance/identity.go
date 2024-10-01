@@ -10,12 +10,14 @@ import (
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
+// IdentityImplementation implements IdentityServer
 type IdentityImplementation struct {
 	identity.UnimplementedIdentityServer
 	BarmanObjectKey client.ObjectKey
 	Client          client.Client
 }
 
+// GetPluginMetadata implements IdentityServer
 func (i IdentityImplementation) GetPluginMetadata(
 	_ context.Context,
 	_ *identity.GetPluginMetadataRequest,
@@ -23,6 +25,7 @@ func (i IdentityImplementation) GetPluginMetadata(
 	return &Data, nil
 }
 
+// GetPluginCapabilities implements IdentityServer
 func (i IdentityImplementation) GetPluginCapabilities(
 	_ context.Context,
 	_ *identity.GetPluginCapabilitiesRequest,
@@ -47,6 +50,7 @@ func (i IdentityImplementation) GetPluginCapabilities(
 	}, nil
 }
 
+// Probe implements IdentityServer
 func (i IdentityImplementation) Probe(
 	ctx context.Context,
 	_ *identity.ProbeRequest,
