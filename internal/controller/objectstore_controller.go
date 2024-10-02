@@ -34,6 +34,8 @@ type ObjectStoreReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;patch;update;get;list;watch
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=create;patch;update;get;list;watch
 // +kubebuilder:rbac:groups=barmancloud.cnpg.io,resources=objectstores,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=barmancloud.cnpg.io,resources=objectstores/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=barmancloud.cnpg.io,resources=objectstores/finalizers,verbs=update

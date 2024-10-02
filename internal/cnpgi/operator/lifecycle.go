@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/common"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
@@ -12,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 // LifecycleImplementation is the implementation of the lifecycle handler
@@ -65,12 +64,10 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, err
 	}
 
-	helper := common.NewPlugin(
-		*cluster,
-		metadata.PluginName,
-	)
-
-	// TODO: Validation of the plugin configuration
+	pluginConfiguration, err := config.NewFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
 
 	mutatedPod := pod.DeepCopy()
 	err = object.InjectPluginSidecar(mutatedPod, &corev1.Container{
@@ -79,7 +76,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 		Env: []corev1.EnvVar{
 			{
 				Name:  "BARMAN_OBJECT_NAME",
-				Value: helper.Parameters["barmanObjectStore"],
+				Value: pluginConfiguration.BarmanObjectName,
 			},
 			{
 				// TODO: should we really use this one?

@@ -12,8 +12,8 @@ resources:
 images:
 - name: plugin-barman-cloud
   newName: kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/operator
-  newTag: 634ab82d4f8b68ffada6033b7dff817bbed61a2fec8e05f9ebf74f5bedafb0dd
+  newTag: 7e901b38eaf33b047dcf2eb044c9c8ca85535d8041a3144d25f7e1a4690ea071
 secretGenerator:
 - literals:
-  - SIDECAR_IMAGE=kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/instance:7173a2dcf3ce74e982ca3d35053de40fcec67b31d607a0d12547b4f9d09c535c
+  - SIDECAR_IMAGE=kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/instance:ca1fd58413940a247bc52cdb44f4a6909192d781b1767dc7ee9625368ee9d7e2
   name: plugin-barman-cloud
