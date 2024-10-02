@@ -23,7 +23,7 @@ func main() {
 			logFlags.ConfigureLogging()
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			requiredSettings := []string{
 				"namespace",
 				"barman-object-name",

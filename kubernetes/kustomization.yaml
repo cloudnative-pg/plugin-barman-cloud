@@ -11,7 +11,9 @@ resources:
 - ../config/rbac
 images:
 - name: plugin-barman-cloud
+  newName: kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/operator
+  newTag: 634ab82d4f8b68ffada6033b7dff817bbed61a2fec8e05f9ebf74f5bedafb0dd
 secretGenerator:
 - literals:
-  - SIDECAR_IMAGE=plugin-sidecar
+  - SIDECAR_IMAGE=kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/instance:7173a2dcf3ce74e982ca3d35053de40fcec67b31d607a0d12547b4f9d09c535c
   name: plugin-barman-cloud
