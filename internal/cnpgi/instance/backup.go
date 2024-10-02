@@ -7,10 +7,7 @@ import (
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
-	"github.com/cloudnative-pg/cloudnative-pg/pkg/conditions"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
-	"github.com/cloudnative-pg/cloudnative-pg/pkg/resources"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
@@ -59,16 +56,6 @@ func (b BackupServiceImplementation) Backup(
 	cluster, err := decoder.DecodeClusterJSON(req.ClusterDefinition)
 	if err != nil {
 		return nil, err
-	}
-
-	// Update backup status in cluster conditions on startup
-	if err := b.retryWithRefreshedCluster(ctx, cluster, func() error {
-		// TODO: this condition is set only here, never removed or handled?
-		return conditions.Patch(ctx, b.Client, cluster, cnpgv1.BackupStartingCondition)
-	}); err != nil {
-		contextLogger.Error(err, "Error changing backup condition (backup started)")
-		// We do not terminate here because we could still have a good backup
-		// even if we are unable to communicate with the Kubernetes API server
 	}
 
 	if err := fileutils.EnsureDirectoryExists(postgres.BackupTemporaryDirectory); err != nil {
@@ -133,12 +120,4 @@ func (b BackupServiceImplementation) Backup(
 		Online:            true,
 		Metadata:          nil,
 	}, nil
-}
-
-func (b *BackupServiceImplementation) retryWithRefreshedCluster(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-	cb func() error,
-) error {
-	return resources.RetryWithRefreshedResource(ctx, b.Client, cluster, cb)
 }
