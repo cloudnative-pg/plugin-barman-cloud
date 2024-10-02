@@ -8,12 +8,13 @@ import (
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 // ReconcilerImplementation implements the Reconciler capability
@@ -24,8 +25,8 @@ type ReconcilerImplementation struct {
 
 // GetCapabilities implements the Reconciler interface
 func (r ReconcilerImplementation) GetCapabilities(
-	ctx context.Context,
-	request *reconciler.ReconcilerHooksCapabilitiesRequest,
+	_ context.Context,
+	_ *reconciler.ReconcilerHooksCapabilitiesRequest,
 ) (*reconciler.ReconcilerHooksCapabilitiesResult, error) {
 	return &reconciler.ReconcilerHooksCapabilitiesResult{
 		ReconcilerCapabilities: []*reconciler.ReconcilerHooksCapability{
@@ -79,8 +80,8 @@ func (r ReconcilerImplementation) Pre(
 
 // Post implements the reconciler interface
 func (r ReconcilerImplementation) Post(
-	ctx context.Context,
-	request *reconciler.ReconcilerHooksRequest,
+	_ context.Context,
+	_ *reconciler.ReconcilerHooksRequest,
 ) (*reconciler.ReconcilerHooksResult, error) {
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
