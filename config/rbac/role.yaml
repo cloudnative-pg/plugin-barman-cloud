@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: manager-role
+  name: plugin-barman-cloud
 rules:
 - apiGroups:
   - barmancloud.cnpg.io
@@ -30,3 +30,15 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch

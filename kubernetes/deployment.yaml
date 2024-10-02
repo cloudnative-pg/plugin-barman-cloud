@@ -29,7 +29,6 @@ spec:
               key: SIDECAR_IMAGE
               name: plugin-barman-cloud
         args:
-        - operator
         - --server-cert=/server/tls.crt
         - --server-key=/server/tls.key
         - --client-cert=/client/tls.crt

@@ -4,11 +4,11 @@ metadata:
   labels:
     app.kubernetes.io/name: plugin-barman-cloud
     app.kubernetes.io/managed-by: kustomize
-  name: manager-rolebinding
+  name: plugin-barman-cloud-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: manager-role
+  name: plugin-barman-cloud
 subjects:
 - kind: ServiceAccount
   name: plugin-barman-cloud
