@@ -10,10 +10,9 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/manager"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/operator/manager"
 )
 
 func main() {
@@ -44,7 +43,6 @@ func newOperatorCommand() *cobra.Command {
 	grpcServer := cmd.RunE
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		ctrl.SetupSignalHandler()
 		operatorPool := pool.
 			New().
 			WithContext(cmd.Context()).

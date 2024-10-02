@@ -23,6 +23,7 @@ import (
 	"flag"
 
 	// +kubebuilder:scaffold:imports
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -35,17 +36,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/controller"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/operator/controller"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -56,6 +54,8 @@ func init() {
 
 // Start starts the manager
 func Start(ctx context.Context) error {
+	setupLog := log.FromContext(ctx)
+
 	var tlsOpts []func(*tls.Config)
 
 	opts := zap.Options{

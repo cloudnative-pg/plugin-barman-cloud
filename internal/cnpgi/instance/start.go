@@ -18,11 +18,6 @@ type CNPGI struct {
 	PGDataPath       string
 	PGWALPath        string
 	SpoolDirectory   string
-	ServerCertPath   string
-	ServerKeyPath    string
-	ClientCertPath   string
-	// mutually exclusive with pluginPath
-	ServerAddress string
 	// mutually exclusive with serverAddress
 	PluginPath   string
 	InstanceName string
@@ -49,12 +44,8 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			Client:          c.Client,
 			BarmanObjectKey: c.BarmanObjectKey,
 		},
-		Enrichers:      []http.ServerEnricher{enrich},
-		ServerCertPath: c.ServerCertPath,
-		ServerKeyPath:  c.ServerKeyPath,
-		ClientCertPath: c.ClientCertPath,
-		ServerAddress:  c.ServerAddress,
-		PluginPath:     c.PluginPath,
+		Enrichers:  []http.ServerEnricher{enrich},
+		PluginPath: c.PluginPath,
 	}
 
 	return srv.Start(ctx)
