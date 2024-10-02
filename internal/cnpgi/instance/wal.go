@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -20,6 +21,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+)
+
+const (
+	// CheckEmptyWalArchiveFile is the name of the file in the PGDATA that,
+	// if present, requires the WAL archiver to check that the backup object
+	// store is empty.
+	CheckEmptyWalArchiveFile = ".check-empty-wal-archive"
 )
 
 // WALServiceImplementation is the implementation of the WAL Service
@@ -75,11 +83,20 @@ func (w WALServiceImplementation) Archive(
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
 		os.Environ())
-	if apierrors.IsForbidden(err) {
-		return nil, errors.New("backup credentials don't yet have access permissions. Will retry reconciliation loop")
+	if err != nil {
+		if apierrors.IsForbidden(err) {
+			return nil, errors.New("backup credentials don't yet have access permissions. Will retry reconciliation loop")
+		}
+		return nil, err
 	}
 
-	arch, err := archiver.New(ctx, envArchive, w.SpoolDirectory, w.PGDataPath, w.PGWALPath)
+	arch, err := archiver.New(
+		ctx,
+		envArchive,
+		w.SpoolDirectory,
+		w.PGDataPath,
+		path.Join(w.PGDataPath, CheckEmptyWalArchiveFile),
+	)
 	if err != nil {
 		return nil, err
 	}
