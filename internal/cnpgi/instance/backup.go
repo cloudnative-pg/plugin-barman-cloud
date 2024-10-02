@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"os"
+	"strconv"
 
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
@@ -14,6 +15,8 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // BackupServiceImplementation is the implementation
@@ -110,6 +113,11 @@ func (b BackupServiceImplementation) Backup(
 		TablespaceMapFile: nil,
 		InstanceId:        b.InstanceName,
 		Online:            true,
-		Metadata:          nil,
+		Metadata: map[string]string{
+			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
+			"version":     metadata.Data.Version,
+			"name":        metadata.Data.Name,
+			"displayName": metadata.Data.DisplayName,
+		},
 	}, nil
 }
