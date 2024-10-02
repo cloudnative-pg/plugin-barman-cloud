@@ -62,8 +62,7 @@ func main() {
 	}
 
 	if err := mgr.Add(&instance.CNPGI{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("cnpg-i"),
+		Client: mgr.GetClient(),
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,

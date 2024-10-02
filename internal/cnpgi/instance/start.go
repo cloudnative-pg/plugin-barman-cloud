@@ -7,14 +7,12 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
 	"google.golang.org/grpc"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
 	Client              client.Client
-	Recorder            record.EventRecorder
 	WALConfigurationKey client.ObjectKey
 	ClusterObjectKey    client.ObjectKey
 	PGDataPath          string
@@ -44,7 +42,6 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		})
 		backup.RegisterBackupServer(server, BackupServiceImplementation{
 			Client:       c.Client,
-			Recorder:     c.Recorder,
 			InstanceName: c.InstanceName,
 		})
 		return nil

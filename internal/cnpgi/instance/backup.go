@@ -13,7 +13,6 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,7 +20,6 @@ import (
 // of the Backup CNPG capability
 type BackupServiceImplementation struct {
 	Client       client.Client
-	Recorder     record.EventRecorder
 	InstanceName string
 	backup.UnimplementedBackupServer
 }
@@ -92,12 +90,6 @@ func (b BackupServiceImplementation) Backup(
 	); err != nil {
 		return nil, err
 	}
-
-	contextLogger.Info("Backup completed")
-	b.Recorder.Event(backupObj, "Normal", "Completed", "Backup completed")
-
-	// Set the status to completed
-	backupObj.Status.SetAsCompleted()
 
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx, backupObj.Status.BackupName, backupObj.Status.ServerName, cluster, env)
