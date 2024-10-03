@@ -12,17 +12,12 @@ import (
 
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
-	Client              client.Client
-	WALConfigurationKey client.ObjectKey
-	ClusterObjectKey    client.ObjectKey
-	PGDataPath          string
-	PGWALPath           string
-	SpoolDirectory      string
-	ServerCertPath      string
-	ServerKeyPath       string
-	ClientCertPath      string
-	// mutually exclusive with pluginPath
-	ServerAddress string
+	Client           client.Client
+	BarmanObjectKey  client.ObjectKey
+	ClusterObjectKey client.ObjectKey
+	PGDataPath       string
+	PGWALPath        string
+	SpoolDirectory   string
 	// mutually exclusive with serverAddress
 	PluginPath   string
 	InstanceName string
@@ -32,7 +27,7 @@ type CNPGI struct {
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, WALServiceImplementation{
-			BarmanObjectKey:  c.WALConfigurationKey,
+			BarmanObjectKey:  c.BarmanObjectKey,
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
 			Client:           c.Client,
@@ -49,15 +44,11 @@ func (c *CNPGI) Start(ctx context.Context) error {
 
 	srv := http.Server{
 		IdentityImpl: IdentityImplementation{
-			Client:              c.Client,
-			WALConfigurationKey: c.WALConfigurationKey,
+			Client:          c.Client,
+			BarmanObjectKey: c.BarmanObjectKey,
 		},
-		Enrichers:      []http.ServerEnricher{enrich},
-		ServerCertPath: c.ServerCertPath,
-		ServerKeyPath:  c.ServerKeyPath,
-		ClientCertPath: c.ClientCertPath,
-		ServerAddress:  c.ServerAddress,
-		PluginPath:     c.PluginPath,
+		Enrichers:  []http.ServerEnricher{enrich},
+		PluginPath: c.PluginPath,
 	}
 
 	return srv.Start(ctx)

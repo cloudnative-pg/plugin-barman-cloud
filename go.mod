@@ -6,11 +6,10 @@ require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241001084914-829808376542
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241001135556-db88a95a39eb
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241002070940-e5495e9c5ed6
 	github.com/cloudnative-pg/machinery v0.0.0-20241001075747-34c8797af80f
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	google.golang.org/grpc v1.67.1
@@ -80,6 +79,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/snorwin/jsonpatch v1.5.0 // indirect
+	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

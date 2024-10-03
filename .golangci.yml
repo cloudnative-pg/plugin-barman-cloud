@@ -131,4 +131,4 @@ issues:
     - test
   exclude-files:
     - zz_generated.*
-    - internal/controller/suite_test.go
+    - internal/operator/controller/suite_test.go

@@ -7,6 +7,8 @@ spec:
 
   plugins:
   - name: barman-cloud.cloudnative-pg.io
+    parameters:
+      barmanObjectName: minio-store
 
   storage:
     size: 1Gi

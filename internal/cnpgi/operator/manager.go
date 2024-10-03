@@ -14,22 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package manager contains the implementation of the ObjectStore controller manager
-package manager
+package operator
 
 import (
 	"context"
 	"crypto/tls"
-	"flag"
 
 	// +kubebuilder:scaffold:imports
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,29 +41,20 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
+	utilruntime.Must(cnpgv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
 // Start starts the manager
 func Start(ctx context.Context) error {
+	setupLog := log.FromContext(ctx)
+
 	var tlsOpts []func(*tls.Config)
-
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
-
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -148,6 +138,18 @@ func Start(ctx context.Context) error {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		return err
+	}
+
+	if err := mgr.Add(&CNPGI{
+		Client:         mgr.GetClient(),
+		PluginPath:     viper.GetString("plugin-path"),
+		ServerCertPath: viper.GetString("server-cert"),
+		ServerKeyPath:  viper.GetString("server-key"),
+		ClientCertPath: viper.GetString("client-cert"),
+		ServerAddress:  viper.GetString("server-address"),
+	}); err != nil {
+		setupLog.Error(err, "unable to create CNPGI runnable")
 		return err
 	}
 

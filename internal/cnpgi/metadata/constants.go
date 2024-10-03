@@ -4,7 +4,7 @@ import "github.com/cloudnative-pg/cnpg-i/pkg/identity"
 
 // PluginName is the name of the plugin from the instance manager
 // Point-of-view
-const PluginName = "instance.barman-cloud.cloudnative-pg.io"
+const PluginName = "barman-cloud.cloudnative-pg.io"
 
 // Data is the metadata of this plugin.
 var Data = identity.GetPluginMetadataResponse{

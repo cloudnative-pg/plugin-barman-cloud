@@ -1,107 +1,58 @@
-// Package main is the implementation of the CNPG-i PostgreSQL sidecar
+// Package main is the entrypoint of operator plugin
 package main
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/cloudnative-pg/machinery/pkg/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/instance"
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
-	// +kubebuilder:scaffold:scheme
-}
-
 func main() {
-	setupLog.Info("Starting barman cloud instance plugin")
-	namespace := mustGetEnv("NAMESPACE")
-	boName := mustGetEnv("BARMAN_OBJECT_NAME")
-	clusterName := mustGetEnv("CLUSTER_NAME")
-	instanceName := mustGetEnv("INSTANCE_NAME")
+	cobra.EnableTraverseRunHooks = true
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&barmancloudv1.ObjectStore{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", boName),
-					Namespaces: map[string]cache.Config{
-						namespace: {},
-					},
-				},
-				&cnpgv1.Cluster{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", clusterName),
-					Namespaces: map[string]cache.Config{
-						namespace: {},
-					},
-				},
-			},
+	logFlags := &log.Flags{}
+	rootCmd := &cobra.Command{
+		Use:   "instance",
+		Short: "Starts the Barman Cloud CNPG-i sidecar plugin",
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+			logFlags.ConfigureLogging()
+			return nil
 		},
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			requiredSettings := []string{
+				"namespace",
+				"barman-object-name",
+				"cluster-name",
+				"pod-name",
+				"spool-directory",
+			}
 
-	if err := mgr.Add(&instance.CNPGI{
-		Client: mgr.GetClient(),
-		ClusterObjectKey: client.ObjectKey{
-			Namespace: namespace,
-			Name:      clusterName,
+			for _, k := range requiredSettings {
+				if len(viper.GetString(k)) == 0 {
+					return fmt.Errorf("missing required %s setting", k)
+				}
+			}
+
+			return instance.Start(cmd.Context())
 		},
-		WALConfigurationKey: client.ObjectKey{
-			Namespace: namespace,
-			Name:      boName,
-		},
-		InstanceName: instanceName,
-		// TODO: improve
-		PGDataPath:     mustGetEnv("PGDATA"),
-		PGWALPath:      mustGetEnv("PGWAL"),
-		SpoolDirectory: mustGetEnv("SPOOL_DIRECTORY"),
-		ServerCertPath: mustGetEnv("SERVER_CERT"),
-		ServerKeyPath:  mustGetEnv("SERVER_KEY"),
-		ClientCertPath: mustGetEnv("CLIENT_CERT"),
-		ServerAddress:  mustGetEnv("SERVER_ADDRESS"),
-		PluginPath:     mustGetEnv("PLUGIN_PATH"),
-	}); err != nil {
-		setupLog.Error(err, "unable to create CNPGI runnable")
-		os.Exit(1)
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
-}
+	logFlags.AddFlags(rootCmd.PersistentFlags())
 
-func mustGetEnv(envName string) string {
-	value := os.Getenv(envName)
-	if value == "" {
-		setupLog.Error(
-			errors.New("missing required env variable"),
-			"while fetching env variables",
-			"name",
-			envName,
-		)
+	_ = viper.BindEnv("namespace", "NAMESPACE")
+	_ = viper.BindEnv("barman-object-name", "BARMAN_OBJECT_NAME")
+	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
+	_ = viper.BindEnv("pod-name", "POD_NAME")
+	_ = viper.BindEnv("pgdata", "PGDATA")
+	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
-	return value
 }
