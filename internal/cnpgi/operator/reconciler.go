@@ -2,19 +2,21 @@ package operator
 
 import (
 	"context"
-	"fmt"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
 
 // ReconcilerImplementation implements the Reconciler capability
@@ -45,6 +47,8 @@ func (r ReconcilerImplementation) Pre(
 	ctx context.Context,
 	request *reconciler.ReconcilerHooksRequest,
 ) (*reconciler.ReconcilerHooksResult, error) {
+	contextLogger := log.FromContext(ctx)
+
 	reconciledKind, err := object.GetKind(request.GetResourceDefinition())
 	if err != nil {
 		return nil, err
@@ -60,12 +64,28 @@ func (r ReconcilerImplementation) Pre(
 		return nil, err
 	}
 
+	contextLogger = contextLogger.WithValues("name", cluster.Name, "namespace", cluster.Namespace)
+	ctx = log.IntoContext(ctx, contextLogger)
+
 	pluginConfiguration, err := config.NewFromCluster(cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := r.ensureRole(ctx, cluster, pluginConfiguration.BarmanObjectName); err != nil {
+	var barmanObject barmancloudv1.ObjectStore
+	if err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: cluster.Namespace,
+		Name:      pluginConfiguration.BarmanObjectName,
+	}, &barmanObject); err != nil {
+		if apierrs.IsNotFound(err) {
+			contextLogger.Info("Not found barman object configuration, requeuing")
+			return &reconciler.ReconcilerHooksResult{
+				Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+			}, nil
+		}
+	}
+
+	if err := r.ensureRole(ctx, cluster, &barmanObject); err != nil {
 		return nil, err
 	}
 
@@ -91,21 +111,50 @@ func (r ReconcilerImplementation) Post(
 func (r ReconcilerImplementation) ensureRole(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
-	barmanObjectName string,
+	barmanObject *barmancloudv1.ObjectStore,
 ) error {
+	contextLogger := log.FromContext(ctx)
+	newRole := specs.BuildRole(cluster, barmanObject)
+
 	var role rbacv1.Role
 	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      getRBACName(cluster.Name),
+		Namespace: newRole.Namespace,
+		Name:      newRole.Name,
 	}, &role); err != nil {
-		if apierrs.IsNotFound(err) {
-			return r.createRole(ctx, cluster, barmanObjectName)
+		if !apierrs.IsNotFound(err) {
+			return err
 		}
-		return err
+
+		contextLogger.Info(
+			"Creating role",
+			"name", newRole.Name,
+			"namespace", newRole.Namespace,
+		)
+
+		if err := ctrl.SetControllerReference(
+			cluster,
+			newRole,
+			r.Client.Scheme(),
+		); err != nil {
+			return err
+		}
+
+		return r.Client.Create(ctx, newRole)
 	}
 
-	// TODO: patch existing role
-	return nil
+	if equality.Semantic.DeepEqual(newRole.Rules, role.Rules) {
+		// There's no need to hit the API server again
+		return nil
+	}
+
+	contextLogger.Info(
+		"Patching role",
+		"name", newRole.Name,
+		"namespace", newRole.Namespace,
+		"rules", newRole.Rules,
+	)
+
+	return r.Client.Patch(ctx, newRole, client.MergeFrom(&role))
 }
 
 func (r ReconcilerImplementation) ensureRoleBinding(
@@ -115,7 +164,7 @@ func (r ReconcilerImplementation) ensureRoleBinding(
 	var role rbacv1.RoleBinding
 	if err := r.Client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
-		Name:      getRBACName(cluster.Name),
+		Name:      specs.GetRBACName(cluster.Name),
 	}, &role); err != nil {
 		if apierrs.IsNotFound(err) {
 			return r.createRoleBinding(ctx, cluster)
@@ -123,90 +172,18 @@ func (r ReconcilerImplementation) ensureRoleBinding(
 		return err
 	}
 
-	// TODO: patch existing role binding
+	// TODO: this assumes role bindings never change.
+	// Is that true? Should we relax this assumption?
 	return nil
-}
-
-func (r ReconcilerImplementation) createRole(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-	barmanObjectName string,
-) error {
-	role := buildRole(cluster, barmanObjectName)
-	if err := ctrl.SetControllerReference(cluster, role, r.Client.Scheme()); err != nil {
-		return err
-	}
-	return r.Client.Create(ctx, role)
 }
 
 func (r ReconcilerImplementation) createRoleBinding(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 ) error {
-	roleBinding := buildRoleBinding(cluster)
+	roleBinding := specs.BuildRoleBinding(cluster)
 	if err := ctrl.SetControllerReference(cluster, roleBinding, r.Client.Scheme()); err != nil {
 		return err
 	}
 	return r.Client.Create(ctx, roleBinding)
-}
-
-func buildRole(
-	cluster *cnpgv1.Cluster,
-	barmanObjectName string,
-) *rbacv1.Role {
-	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      getRBACName(cluster.Name),
-		},
-
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{
-					"barmancloud.cnpg.io",
-				},
-				Verbs: []string{
-					"get",
-					"watch",
-					"list",
-				},
-				Resources: []string{
-					"objectstores",
-				},
-				ResourceNames: []string{
-					barmanObjectName,
-				},
-			},
-		},
-	}
-}
-
-func buildRoleBinding(
-	cluster *cnpgv1.Cluster,
-) *rbacv1.RoleBinding {
-	return &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      getRBACName(cluster.Name),
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				APIGroup:  "",
-				Name:      cluster.Name,
-				Namespace: cluster.Namespace,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "Role",
-			Name:     getRBACName(cluster.Name),
-		},
-	}
-}
-
-// getRBACName returns the name of the RBAC entities for the
-// barman cloud plugin
-func getRBACName(clusterName string) string {
-	return fmt.Sprintf("%s-barman", clusterName)
 }
