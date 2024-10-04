@@ -45,7 +45,7 @@ LABEL summary="$SUMMARY" \
       name="CloudNativePG Barman plugin sidecar" \
       vendor="CloudNativePG Contributors" \
       url="https://cloudnative-pg.io/" \
-      version="$VERSION" \
+      version="" \
       release="1"
 
 COPY --from=pythonbuilder /new-usr/* /usr/

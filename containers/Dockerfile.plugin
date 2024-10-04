@@ -38,7 +38,7 @@ LABEL summary="$SUMMARY" \
       name="CloudNativePG Barman plugin" \
       vendor="CloudNativePG Contributors" \
       url="https://cloudnative-pg.io/" \
-      version="$VERSION" \
+      version="" \
       release="1"
 
 WORKDIR /
