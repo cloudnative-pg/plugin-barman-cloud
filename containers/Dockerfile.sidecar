@@ -24,3 +24,4 @@ FROM gcr.io/distroless/python3:debug
 COPY --from=pythonbuilder /new-usr/* /usr/
 COPY --from=gobuilder /build/instance /usr/local/bin/instance
 USER 26:26
+ENTRYPOINT ["/usr/local/bin/instance"]
