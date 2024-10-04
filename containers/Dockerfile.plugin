@@ -27,6 +27,20 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
+
+ENV SUMMARY="CloudNativePG Barman plugin" \
+    DESCRIPTION="Container image that provides the barman-cloud plugin" \
+
+LABEL summary="$SUMMARY" \
+      description="$DESCRIPTION" \
+      io.k8s.display-name="$SUMMARY" \
+      io.k8s.description="$DESCRIPTION" \
+      name="CloudNativePG Barman plugin" \
+      vendor="CloudNativePG Contributors" \
+      url="https://cloudnative-pg.io/" \
+      version="$VERSION" \
+      release="1"
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
