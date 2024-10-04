@@ -1,0 +1,12 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: backup-example
+spec:
+  method: plugin
+
+  cluster:
+    name: cluster-example
+
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
