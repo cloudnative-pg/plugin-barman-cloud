@@ -1,0 +1,26 @@
+FROM python:3.12.7-slim AS pythonbuilder
+RUN apt-get update && \
+    apt-get install -y postgresql-common build-essential && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y libpq-dev && \
+    pip install barman[azure,cloud,google,snappy]==3.11.1 setuptools
+# Prepare a new /usr/ directory with the files we'll need in the final image
+RUN mkdir /new-usr/ && \
+    cp -r --parents /usr/local/lib/ /new-usr/ && \
+    cp -r --parents /usr/lib/*-linux-gnu/ /new-usr/ && \
+    cp -r --parents /usr/local/bin/ /new-usr/
+
+
+FROM --platform=$BUILDPLATFORM golang:1.23.1 AS gobuilder
+ENV CGO_ENABLED=0
+COPY .. /src
+ARG TARGETOS
+ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -C /src -o /build/instance /src/cmd/instance/main.go
+
+
+FROM gcr.io/distroless/python3:debug
+COPY --from=pythonbuilder /new-usr/* /usr/
+COPY --from=gobuilder /build/instance /usr/local/bin/instance
+USER 26:26
