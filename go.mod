@@ -7,7 +7,7 @@ require (
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241001084914-829808376542
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
 	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241002070940-e5495e9c5ed6
-	github.com/cloudnative-pg/machinery v0.0.0-20241001075747-34c8797af80f
+	github.com/cloudnative-pg/machinery v0.0.0-20241007093555-1e197af1f392
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/spf13/cobra v1.8.1

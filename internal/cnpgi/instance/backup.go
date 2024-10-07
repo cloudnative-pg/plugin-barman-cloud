@@ -11,10 +11,10 @@ import (
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
-	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	pgTime "github.com/cloudnative-pg/machinery/pkg/postgres/time"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -99,7 +99,7 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
-	backupName := fmt.Sprintf("backup-%v", utils.ToCompactISO8601(time.Now()))
+	backupName := fmt.Sprintf("backup-%v", pgTime.ToCompactISO8601(time.Now()))
 
 	if err = backupCmd.Take(
 		ctx,
