@@ -2,6 +2,7 @@ package instance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -66,8 +67,11 @@ func (b BackupServiceImplementation) Backup(
 ) (*backup.BackupResult, error) {
 	contextLogger := log.FromContext(ctx)
 
+	contextLogger.Info("Starting backup")
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := b.Client.Get(ctx, b.BarmanObjectKey, &objectStore); err != nil {
+		contextLogger.Error(err, "while getting object store", "key", b.BarmanObjectKey)
 		return nil, err
 	}
 
@@ -78,6 +82,7 @@ func (b BackupServiceImplementation) Backup(
 
 	capabilities, err := barmanCapabilities.CurrentCapabilities()
 	if err != nil {
+		contextLogger.Error(err, "while getting capabilities")
 		return nil, err
 	}
 	backupCmd := barmanBackup.NewBackupCommand(
@@ -96,6 +101,7 @@ func (b BackupServiceImplementation) Backup(
 		&objectStore.Spec.Configuration,
 		mergeEnv(osEnvironment, caBundleEnvironment))
 	if err != nil {
+		contextLogger.Error(err, "while setting backup cloud credentials")
 		return nil, err
 	}
 
@@ -104,42 +110,69 @@ func (b BackupServiceImplementation) Backup(
 	if err = backupCmd.Take(
 		ctx,
 		backupName,
-		b.InstanceName,
+		objectStore.Name,
 		env,
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
 	); err != nil {
+		contextLogger.Error(err, "while taking backup")
 		return nil, err
 	}
 
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx,
 		backupName,
-		b.InstanceName,
+		objectStore.Name,
 		barmanCloudExecutor{},
 		env)
 	if err != nil {
+		contextLogger.Error(err, "while getting executed backup info")
 		return nil, err
 	}
 
+	cred, err := json.Marshal(objectStore.Spec.Configuration.BarmanCredentials)
+	if err != nil {
+		contextLogger.Error(err, "while marshalling credentials")
+		return nil, err
+	}
+
+	var endpointCA *backup.KeyName
+	if objectStore.Spec.Configuration.EndpointCA != nil {
+		endpointCA = &backup.KeyName{
+			Name: objectStore.Spec.Configuration.EndpointCA.Name,
+			Key:  objectStore.Spec.Configuration.EndpointCA.Key,
+		}
+	}
+
+	var encryption string
+	if objectStore.Spec.Configuration.Data != nil {
+		encryption = string(objectStore.Spec.Configuration.Data.Encryption)
+	}
+
+	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
 	return &backup.BackupResult{
-		BackupId:          executedBackupInfo.ID,
-		BackupName:        executedBackupInfo.BackupName,
-		StartedAt:         metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
-		StoppedAt:         metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
-		BeginWal:          executedBackupInfo.BeginWal,
-		EndWal:            executedBackupInfo.EndWal,
-		BeginLsn:          executedBackupInfo.BeginLSN,
-		EndLsn:            executedBackupInfo.EndLSN,
-		BackupLabelFile:   nil,
-		TablespaceMapFile: nil,
-		InstanceId:        b.InstanceName,
-		Online:            true,
+		BackupId:   executedBackupInfo.ID,
+		BackupName: executedBackupInfo.BackupName,
+		StartedAt:  metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
+		StoppedAt:  metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
+		BeginWal:   executedBackupInfo.BeginWal,
+		EndWal:     executedBackupInfo.EndWal,
+		BeginLsn:   executedBackupInfo.BeginLSN,
+		EndLsn:     executedBackupInfo.EndLSN,
+		InstanceId: b.InstanceName,
+		Online:     true,
 		Metadata: map[string]string{
 			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
 			"version":     metadata.Data.Version,
 			"name":        metadata.Data.Name,
 			"displayName": metadata.Data.DisplayName,
+			// TODO: is it safe?
+			"credentials": string(cred),
 		},
+		ServerName:      objectStore.Name,
+		EndpointUrl:     objectStore.Spec.Configuration.EndpointURL,
+		DestinationPath: objectStore.Spec.Configuration.DestinationPath,
+		EndpointCa:      endpointCA,
+		Encryption:      encryption,
 	}, nil
 }

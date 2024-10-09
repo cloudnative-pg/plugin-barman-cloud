@@ -7,12 +7,13 @@ import (
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
+	"github.com/cloudnative-pg/machinery/pkg/log"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
@@ -48,7 +49,7 @@ func (r ReconcilerImplementation) Pre(
 	request *reconciler.ReconcilerHooksRequest,
 ) (*reconciler.ReconcilerHooksResult, error) {
 	contextLogger := log.FromContext(ctx)
-
+	contextLogger.Info("Pre hook reconciliation start")
 	reconciledKind, err := object.GetKind(request.GetResourceDefinition())
 	if err != nil {
 		return nil, err
@@ -59,40 +60,68 @@ func (r ReconcilerImplementation) Pre(
 		}, nil
 	}
 
-	cluster, err := decoder.DecodeClusterJSON(request.GetResourceDefinition())
-	if err != nil {
+	contextLogger.Debug("parsing cluster definition")
+	var cluster cnpgv1.Cluster
+	if err := decoder.DecodeObject(
+		request.GetResourceDefinition(),
+		&cluster,
+		cnpgv1.GroupVersion.WithKind("Cluster")); err != nil {
 		return nil, err
 	}
 
 	contextLogger = contextLogger.WithValues("name", cluster.Name, "namespace", cluster.Namespace)
 	ctx = log.IntoContext(ctx, contextLogger)
 
-	pluginConfiguration, err := config.NewFromCluster(cluster)
-	if err != nil {
-		return nil, err
-	}
+	pluginConfiguration := config.NewFromCluster(&cluster)
 
-	var barmanObject barmancloudv1.ObjectStore
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      pluginConfiguration.BarmanObjectName,
-	}, &barmanObject); err != nil {
-		if apierrs.IsNotFound(err) {
-			contextLogger.Info("Not found barman object configuration, requeuing")
-			return &reconciler.ReconcilerHooksResult{
-				Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
-			}, nil
+	contextLogger.Debug("parsing barman object configuration")
+	var barmanObject *barmancloudv1.ObjectStore
+	// this could be empty during recoveries
+	if pluginConfiguration.BarmanObjectName != "" {
+		barmanObject = &barmancloudv1.ObjectStore{}
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      pluginConfiguration.BarmanObjectName,
+		}, barmanObject); err != nil {
+			if apierrs.IsNotFound(err) {
+				contextLogger.Info("barman object configuration not found, requeuing")
+				return &reconciler.ReconcilerHooksResult{
+					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+				}, nil
+			}
+
+			return nil, err
 		}
 	}
 
-	if err := r.ensureRole(ctx, cluster, &barmanObject); err != nil {
+	var additionalSecretNames []string
+	if cluster.UsePluginForBootstrapRecoveryBackup() {
+		var backup cnpgv1.Backup
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Spec.Bootstrap.Recovery.Backup.Name,
+		}, &backup); err != nil {
+			return nil, err
+		}
+		credentials, err := common.GetCredentialsFromBackup(&backup)
+		if err != nil {
+			return nil, err
+		}
+		additionalSecretNames = append(additionalSecretNames, specs.CollectSecretNamesFromCredentials(&credentials)...)
+
+		if backup.Status.EndpointCA != nil {
+			additionalSecretNames = append(additionalSecretNames, backup.Status.EndpointCA.Name)
+		}
+	}
+	if err := r.ensureRole(ctx, &cluster, barmanObject, additionalSecretNames); err != nil {
 		return nil, err
 	}
 
-	if err := r.ensureRoleBinding(ctx, cluster); err != nil {
+	if err := r.ensureRoleBinding(ctx, &cluster); err != nil {
 		return nil, err
 	}
 
+	contextLogger.Info("Pre hook reconciliation completed")
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
 	}, nil
@@ -112,9 +141,10 @@ func (r ReconcilerImplementation) ensureRole(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	barmanObject *barmancloudv1.ObjectStore,
+	additionalSecretNames []string,
 ) error {
 	contextLogger := log.FromContext(ctx)
-	newRole := specs.BuildRole(cluster, barmanObject)
+	newRole := specs.BuildRole(cluster, barmanObject, additionalSecretNames)
 
 	var role rbacv1.Role
 	if err := r.Client.Get(ctx, client.ObjectKey{
