@@ -143,6 +143,7 @@ func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 	}
 
 	opts, err := barmanCommand.CloudWalRestoreOptions(ctx, &api.BarmanObjectStoreConfiguration{
+		// TODO: replace with the new backup field when its merged
 		BarmanCredentials: backup.Status.BarmanCredentials,
 		EndpointCA:        backup.Status.EndpointCA,
 		EndpointURL:       backup.Status.EndpointURL,
