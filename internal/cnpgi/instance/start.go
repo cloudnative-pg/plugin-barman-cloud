@@ -35,7 +35,12 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			PGDataPath:       c.PGDataPath,
 			PGWALPath:        c.PGWALPath,
 		})
-		backup.RegisterBackupServer(server, BackupServiceImplementation{})
+		backup.RegisterBackupServer(server, BackupServiceImplementation{
+			Client:           c.Client,
+			BarmanObjectKey:  c.BarmanObjectKey,
+			ClusterObjectKey: c.ClusterObjectKey,
+			InstanceName:     c.InstanceName,
+		})
 		return nil
 	}
 

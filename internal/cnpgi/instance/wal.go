@@ -124,9 +124,8 @@ func (w WALServiceImplementation) Restore(
 	contextLogger := log.FromContext(ctx)
 	startTime := time.Now()
 
-	var cluster *cnpgv1.Cluster
-
-	if err := w.Client.Get(ctx, w.ClusterObjectKey, cluster); err != nil {
+	var cluster cnpgv1.Cluster
+	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
 		return nil, err
 	}
 
@@ -152,7 +151,7 @@ func (w WALServiceImplementation) Restore(
 	if err != nil {
 		return nil, fmt.Errorf("while getting recover credentials: %w", err)
 	}
-	mergeEnv(env, credentialsEnv)
+	env = mergeEnv(env, credentialsEnv)
 
 	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, objectStore.Name)
 	if err != nil {
@@ -178,7 +177,7 @@ func (w WALServiceImplementation) Restore(
 	}
 
 	// We skip this step if streaming connection is not available
-	if isStreamingAvailable(cluster, w.InstanceName) {
+	if isStreamingAvailable(&cluster, w.InstanceName) {
 		if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
 			return nil, err
 		}
@@ -213,7 +212,7 @@ func (w WALServiceImplementation) Restore(
 
 	// We skip this step if streaming connection is not available
 	endOfWALStream := isEndOfWALStream(walStatus)
-	if isStreamingAvailable(cluster, w.InstanceName) && endOfWALStream {
+	if isStreamingAvailable(&cluster, w.InstanceName) && endOfWALStream {
 		contextLogger.Info(
 			"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
 
@@ -262,18 +261,29 @@ func (w WALServiceImplementation) SetFirstRequired(
 }
 
 // mergeEnv merges all the values inside incomingEnv into env.
-func mergeEnv(env []string, incomingEnv []string) {
+func mergeEnv(env []string, incomingEnv []string) []string {
+	result := make([]string, len(env), len(env)+len(incomingEnv))
+	copy(result, env)
+
 	for _, incomingItem := range incomingEnv {
 		incomingKV := strings.SplitAfterN(incomingItem, "=", 2)
 		if len(incomingKV) != 2 {
 			continue
 		}
-		for idx, item := range env {
+
+		found := false
+		for idx, item := range result {
 			if strings.HasPrefix(item, incomingKV[0]) {
-				env[idx] = incomingItem
+				result[idx] = incomingItem
+				found = true
 			}
 		}
+		if !found {
+			result = append(result, incomingItem)
+		}
 	}
+
+	return result
 }
 
 // TODO: refactor.
