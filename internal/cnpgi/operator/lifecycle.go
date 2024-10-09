@@ -3,16 +3,20 @@ package operator
 import (
 	"context"
 	"errors"
-
+	"fmt"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	"github.com/spf13/viper"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+	"github.com/spf13/viper"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 )
+
+// PgWalVolumePgWalPath is the path of pg_wal directory inside the WAL volume when present
+const PgWalVolumePgWalPath = "/var/lib/postgresql/wal/pg_wal"
 
 // LifecycleImplementation is the implementation of the lifecycle handler
 type LifecycleImplementation struct {
@@ -38,6 +42,15 @@ func (impl LifecycleImplementation) GetCapabilities(
 					},
 				},
 			},
+			{
+				Group: batchv1.GroupName,
+				Kind:  "Job",
+				OperationTypes: []*lifecycle.OperatorOperationType{
+					{
+						Type: lifecycle.OperatorOperationType_TYPE_CREATE,
+					},
+				},
+			},
 		},
 	}, nil
 }
@@ -47,12 +60,52 @@ func (impl LifecycleImplementation) LifecycleHook(
 	ctx context.Context,
 	request *lifecycle.OperatorLifecycleRequest,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
-	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle")
-
 	operation := request.GetOperationType().GetType().Enum()
 	if operation == nil {
 		return nil, errors.New("no operation set")
 	}
+
+	kind, err := object.GetKind(request.GetObjectDefinition())
+	if err != nil {
+		return nil, err
+	}
+
+	switch kind {
+	case "Pod":
+		return reconcilePod(ctx, request)
+	case "Job":
+	default:
+		return nil, fmt.Errorf("unsupported kind: %s", kind)
+	}
+}
+
+func reconcileJob(ctx context.Context,
+	request *lifecycle.OperatorLifecycleRequest,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle")
+
+	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
+	if err != nil {
+		return nil, err
+	}
+
+	var job batchv1.Job
+	if err := decoder.DecodeObject(
+		request.GetObjectDefinition(),
+		&job,
+		batchv1.SchemeGroupVersion.WithKind("Job"),
+	); err != nil {
+		return nil, err
+	}
+
+	job.Spec.Template.Spec
+}
+
+func reconcilePod(
+	ctx context.Context,
+	request *lifecycle.OperatorLifecycleRequest,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle")
 
 	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
 	if err != nil {
@@ -73,18 +126,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 	err = object.InjectPluginSidecar(mutatedPod, &corev1.Container{
 		Name:  "plugin-barman-cloud",
 		Image: viper.GetString("sidecar-image"),
-		Env: []corev1.EnvVar{
-			{
-				Name:  "BARMAN_OBJECT_NAME",
-				Value: pluginConfiguration.BarmanObjectName,
-			},
-			{
-				// TODO: should we really use this one?
-				// should we mount an emptyDir volume just for that?
-				Name:  "SPOOL_DIRECTORY",
-				Value: "/controller/wal-restore-spool",
-			},
-		},
+		Env:   getEnvs(pluginConfiguration, cluster),
 	}, true)
 	if err != nil {
 		return nil, err
@@ -99,4 +141,28 @@ func (impl LifecycleImplementation) LifecycleHook(
 	return &lifecycle.OperatorLifecycleResponse{
 		JsonPatch: patch,
 	}, nil
+}
+
+func getEnvs(plgConf *config.PluginConfiguration, cluster *cnpgv1.Cluster) []corev1.EnvVar {
+	envs := []corev1.EnvVar{
+		{
+			Name:  "BARMAN_OBJECT_NAME",
+			Value: plgConf.BarmanObjectName,
+		},
+		{
+			// TODO: should we really use this one?
+			// should we mount an emptyDir volume just for that?
+			Name:  "SPOOL_DIRECTORY",
+			Value: "/controller/wal-restore-spool",
+		},
+	}
+
+	if cluster.ShouldCreateWalArchiveVolume() {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "PGWAL",
+			Value: PgWalVolumePgWalPath,
+		})
+	}
+
+	return envs
 }

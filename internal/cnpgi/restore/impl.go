@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path"
+
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
@@ -15,10 +19,9 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	"os"
-	"os/exec"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 const (
@@ -31,12 +34,13 @@ const (
 )
 
 type JobHookImpl struct {
-	Cli                 client.Client
-	Namespace           string
-	SpoolDirectory      string
-	EmptyWALArchiveFile string
-	PgData              string
-	PgWal               string
+	Cli                   client.Client
+	Namespace             string
+	SpoolDirectory        string
+	EmptyWALArchiveFile   string
+	PgData                string
+	PgWal                 string
+	BackupBarmanObjectKey client.ObjectKey
 }
 
 type restoreDataReq struct {
@@ -44,8 +48,7 @@ type restoreDataReq struct {
 	BackupName  string
 }
 
-type RestoreDataRes struct {
-}
+type RestoreDataRes struct{}
 
 func (impl JobHookImpl) RestoreDirectories(ctx context.Context, req restoreDataReq) (*RestoreDataRes, error) {
 	var cluster cnpgv1.Cluster
@@ -165,15 +168,20 @@ func (impl *JobHookImpl) checkBackupDestination(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 ) error {
-	if !cluster.Spec.Backup.IsBarmanBackupConfigured() {
+	if impl.BackupBarmanObjectKey.Name != "" {
 		return nil
+	}
+
+	var barmanObj barmancloudv1.ObjectStore
+	if err := impl.Cli.Get(ctx, impl.BackupBarmanObjectKey, &barmanObj); err != nil {
+		return err
 	}
 
 	// Get environment from cache
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(ctx,
 		impl.Cli,
-		cluster.Namespace,
-		cluster.Spec.Backup.BarmanObjectStore,
+		barmanObj.Namespace,
+		&barmanObj.Spec.Configuration,
 		os.Environ())
 	if err != nil {
 		return fmt.Errorf("can't get credentials for cluster %v: %w", cluster.Name, err)
@@ -196,7 +204,7 @@ func (impl *JobHookImpl) checkBackupDestination(
 
 	// Get WAL archive options
 	checkWalOptions, err := walArchiver.BarmanCloudCheckWalArchiveOptions(
-		ctx, cluster.Spec.Backup.BarmanObjectStore, cluster.Name)
+		ctx, &barmanObj.Spec.Configuration, barmanObj.Name)
 	if err != nil {
 		log.Error(err, "while getting barman-cloud-wal-archive options")
 		return err
