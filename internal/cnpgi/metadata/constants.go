@@ -6,6 +6,13 @@ import "github.com/cloudnative-pg/cnpg-i/pkg/identity"
 // Point-of-view
 const PluginName = "barman-cloud.cloudnative-pg.io"
 
+const (
+	// CheckEmptyWalArchiveFile is the name of the file in the PGDATA that,
+	// if present, requires the WAL archiver to check that the backup object
+	// store is empty.
+	CheckEmptyWalArchiveFile = ".check-empty-wal-archive"
+)
+
 // Data is the metadata of this plugin.
 var Data = identity.GetPluginMetadataResponse{
 	Name:          PluginName,
