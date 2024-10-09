@@ -3,7 +3,7 @@ package operator
 import (
 	"context"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
@@ -67,8 +67,8 @@ func (r ReconcilerImplementation) Pre(
 	contextLogger = contextLogger.WithValues("name", cluster.Name, "namespace", cluster.Namespace)
 	ctx = log.IntoContext(ctx, contextLogger)
 
-	pluginConfiguration, err := config.NewFromCluster(cluster)
-	if err != nil {
+	pluginConfiguration := config.NewFromCluster(cluster)
+	if err := pluginConfiguration.ValidateBarmanObjectName(); err != nil {
 		return nil, err
 	}
 

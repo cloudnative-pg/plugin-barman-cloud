@@ -2,6 +2,7 @@ package instance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -122,6 +123,10 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
+	cred, err := json.Marshal(objectStore.Spec.Configuration.BarmanCredentials)
+	if err != nil {
+		return nil, err
+	}
 	return &backup.BackupResult{
 		BackupId:          executedBackupInfo.ID,
 		BackupName:        executedBackupInfo.BackupName,
@@ -140,6 +145,8 @@ func (b BackupServiceImplementation) Backup(
 			"version":     metadata.Data.Version,
 			"name":        metadata.Data.Name,
 			"displayName": metadata.Data.DisplayName,
+			// TODO: is it safe?
+			"credentials": string(cred),
 		},
 	}, nil
 }

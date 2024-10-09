@@ -3,7 +3,7 @@ package config
 import (
 	"strings"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/common"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
@@ -46,26 +46,42 @@ func (e *ConfigurationError) IsEmpty() bool {
 // PluginConfiguration is the configuration of the plugin
 type PluginConfiguration struct {
 	BarmanObjectName string
+	BackupObjectName string
 }
 
 // NewFromCluster extracts the configuration from the cluster
-func NewFromCluster(cluster *cnpgv1.Cluster) (*PluginConfiguration, error) {
+func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	helper := common.NewPlugin(
 		*cluster,
 		metadata.PluginName,
 	)
 
 	result := &PluginConfiguration{
+		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
+		// used for the restore
+		BackupObjectName: helper.Parameters["backupObjectName"],
 	}
 
+	return result
+}
+
+// ValidateBarmanObjectName checks if the barmanObjectName is set
+func (p *PluginConfiguration) ValidateBarmanObjectName() error {
 	err := NewConfigurationError()
-	if len(result.BarmanObjectName) == 0 {
-		err = err.WithMessage("Missing barmanObjectName parameter")
+	if len(p.BarmanObjectName) != 0 {
+		return nil
 	}
 
-	if err.IsEmpty() {
-		return result, nil
+	return err.WithMessage("Missing barmanObjectName parameter")
+}
+
+// ValidateBackupObjectName checks if the backupObjectName is set
+func (p *PluginConfiguration) ValidateBackupObjectName() error {
+	err := NewConfigurationError()
+	if len(p.BackupObjectName) != 0 {
+		return nil
 	}
-	return result, err
+
+	return err.WithMessage("Missing backupObjectName parameter")
 }

@@ -1,4 +1,4 @@
-// Package main is the entrypoint of instance plugin
+// Package main is the entrypoint of restore capabilities
 package main
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/instance"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/restore"
 )
 
 func main() {
@@ -26,7 +26,6 @@ func main() {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			requiredSettings := []string{
 				"namespace",
-				"barman-object-name",
 				"cluster-name",
 				"pod-name",
 				"spool-directory",
@@ -38,14 +37,15 @@ func main() {
 				}
 			}
 
-			return instance.Start(cmd.Context())
+			return restore.Start(cmd.Context())
 		},
 	}
 
 	logFlags.AddFlags(rootCmd.PersistentFlags())
 
 	_ = viper.BindEnv("namespace", "NAMESPACE")
-	_ = viper.BindEnv("barman-object-name", "BARMAN_OBJECT_NAME")
+	_ = viper.BindEnv("backup-name-to-restore", "BACKUP_NAME")
+	_ = viper.BindEnv("barman-object-to-backup-data", "BARMAN_OBJECT_NAME")
 	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
