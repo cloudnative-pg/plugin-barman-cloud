@@ -1,9 +1,8 @@
-package instance
+package restore
 
 import (
 	"context"
 	"os"
-	"path"
 
 	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/spf13/viper"
@@ -33,27 +32,37 @@ func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
 	namespace := viper.GetString("namespace")
-	boName := viper.GetString("barman-object-name")
+	boNameForBackups := viper.GetString("barman-object-to-backup-data")
 	clusterName := viper.GetString("cluster-name")
-	podName := viper.GetString("pod-name")
+	backupToRestoreName := viper.GetString("backup-name-to-restore")
+
+	objs := map[client.Object]cache.ByObject{
+		&cnpgv1.Cluster{}: {
+			Field: fields.OneTermEqualSelector("metadata.name", clusterName),
+			Namespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		},
+		&cnpgv1.Backup{}: {
+			Field: fields.OneTermEqualSelector("metadata.name", backupToRestoreName),
+			Namespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		},
+	}
+	if boNameForBackups != "" {
+		objs[&barmancloudv1.ObjectStore{}] = cache.ByObject{
+			Field: fields.OneTermEqualSelector("metadata.name", boNameForBackups),
+			Namespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		}
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&barmancloudv1.ObjectStore{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", boName),
-					Namespaces: map[string]cache.Config{
-						namespace: {},
-					},
-				},
-				&cnpgv1.Cluster{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", clusterName),
-					Namespaces: map[string]cache.Config{
-						namespace: {},
-					},
-				},
-			},
+			ByObject: objs,
 		},
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -69,21 +78,22 @@ func Start(ctx context.Context) error {
 	}
 
 	if err := mgr.Add(&CNPGI{
-		Client: mgr.GetClient(),
+		PluginPath:     viper.GetString("plugin-path"),
+		SpoolDirectory: viper.GetString("spool-directory"),
+		BackupBarmanObjectKey: client.ObjectKey{
+			Namespace: namespace,
+			Name:      backupToRestoreName,
+		},
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		BarmanObjectKey: client.ObjectKey{
+		BackupObjectKey: client.ObjectKey{
 			Namespace: namespace,
-			Name:      boName,
+			Name:      boNameForBackups,
 		},
-		InstanceName: podName,
-		// TODO: improve
-		PGDataPath:     viper.GetString("pgdata"),
-		PGWALPath:      path.Join(viper.GetString("pgdata"), "pg_wal"),
-		SpoolDirectory: viper.GetString("spool-directory"),
-		PluginPath:     viper.GetString("plugin-path"),
+		Client:     mgr.GetClient(),
+		PGDataPath: viper.GetString("pgdata"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
 		return err
