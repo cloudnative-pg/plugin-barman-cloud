@@ -67,8 +67,8 @@ func (r ReconcilerImplementation) Pre(
 	contextLogger = contextLogger.WithValues("name", cluster.Name, "namespace", cluster.Namespace)
 	ctx = log.IntoContext(ctx, contextLogger)
 
-	pluginConfiguration, err := config.NewFromCluster(cluster)
-	if err != nil {
+	pluginConfiguration := config.NewFromCluster(cluster)
+	if err := pluginConfiguration.ValidateBarmanObjectName(); err != nil {
 		return nil, err
 	}
 

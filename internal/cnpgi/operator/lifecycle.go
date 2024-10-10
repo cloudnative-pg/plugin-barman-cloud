@@ -73,10 +73,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, err
 	}
 
-	pluginConfiguration, err := config.NewFromCluster(cluster)
-	if err != nil {
-		return nil, err
-	}
+	pluginConfiguration := config.NewFromCluster(cluster)
 
 	switch kind {
 	case "Pod":
@@ -93,6 +90,9 @@ func reconcileJob(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
+	if err := pluginConfiguration.ValidateBackupObjectName(); err != nil {
+		return nil, err
+	}
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -132,6 +132,10 @@ func reconcilePod(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
+	if err := pluginConfiguration.ValidateBarmanObjectName(); err != nil {
+		return nil, err
+	}
+
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
 		return nil, err
@@ -166,6 +170,10 @@ func reconcilePodSpec(
 		{
 			Name:  "BARMAN_OBJECT_NAME",
 			Value: cfg.BarmanObjectName,
+		},
+		{
+			Name:  "BACKUP_OBJECT_NAME",
+			Value: cfg.BackupObjectName,
 		},
 		{
 			// TODO: should we really use this one?

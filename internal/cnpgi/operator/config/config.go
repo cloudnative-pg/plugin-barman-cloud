@@ -46,26 +46,32 @@ func (e *ConfigurationError) IsEmpty() bool {
 // PluginConfiguration is the configuration of the plugin
 type PluginConfiguration struct {
 	BarmanObjectName string
+	BackupObjectName string
 }
 
 // NewFromCluster extracts the configuration from the cluster
-func NewFromCluster(cluster *cnpgv1.Cluster) (*PluginConfiguration, error) {
+func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	helper := common.NewPlugin(
 		*cluster,
 		metadata.PluginName,
 	)
 
 	result := &PluginConfiguration{
+		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
+		// used for the restore
+		BackupObjectName: helper.Parameters["backupObjectName"],
 	}
 
+	return result
+}
+
+func (*PluginConfiguration) ValidateBarmanObjectName() error {
 	err := NewConfigurationError()
-	if len(result.BarmanObjectName) == 0 {
-		err = err.WithMessage("Missing barmanObjectName parameter")
-	}
+	return err.WithMessage("Missing barmanObjectName parameter")
+}
 
-	if err.IsEmpty() {
-		return result, nil
-	}
-	return result, err
+func (*PluginConfiguration) ValidateBackupObjectName() error {
+	err := NewConfigurationError()
+	return err.WithMessage("Missing backupObjectName parameter")
 }
