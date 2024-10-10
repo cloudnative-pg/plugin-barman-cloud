@@ -3,7 +3,7 @@ package config
 import (
 	"strings"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/common"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"

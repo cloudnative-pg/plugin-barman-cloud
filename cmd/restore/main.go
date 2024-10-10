@@ -8,6 +8,8 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/restore"
 )
 
 func main() {
@@ -42,11 +44,11 @@ func main() {
 	logFlags.AddFlags(rootCmd.PersistentFlags())
 
 	_ = viper.BindEnv("namespace", "NAMESPACE")
-	_ = viper.BindEnv("barman-object-name", "BARMAN_OBJECT_NAME")
+	_ = viper.BindEnv("backup-name-to-restore", "BACKUP_NAME")
+	_ = viper.BindEnv("barman-object-to-backup-data", "BARMAN_OBJECT_NAME")
 	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
-	_ = viper.BindEnv("pgwal", "PGWAL")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
 
 	if err := rootCmd.Execute(); err != nil {

@@ -8,20 +8,22 @@ import (
 	"os/exec"
 	"path"
 
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
+	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore"
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 const (
@@ -33,26 +35,39 @@ const (
 	RecoveryTemporaryDirectory = ScratchDataDirectory + "/recovery"
 )
 
+// JobHookImpl is the implementation of the restore job hooks
 type JobHookImpl struct {
-	Cli                   client.Client
-	Namespace             string
-	SpoolDirectory        string
-	EmptyWALArchiveFile   string
-	PgData                string
-	PgWal                 string
+	restore.UnimplementedRestoreJobHooksServer
+	Client                client.Client
+	ClusterObjectKey      client.ObjectKey
+	BackupObjectKey       client.ObjectKey
 	BackupBarmanObjectKey client.ObjectKey
+	SpoolDirectory        string
+	PgDataPath            string
+	PgWalFolderToSymlink  string
 }
 
-type restoreDataReq struct {
-	ClusterName string
-	BackupName  string
+// GetCapabilities returns the capabilities of the restore job hooks
+func (impl JobHookImpl) GetCapabilities(
+	_ context.Context,
+	_ *restore.RestoreJobHooksCapabilitiesRequest,
+) (*restore.RestoreJobHooksCapabilitiesResult, error) {
+	return &restore.RestoreJobHooksCapabilitiesResult{
+		Capabilities: []*restore.RestoreJobHooksCapability{
+			{
+				Kind: restore.RestoreJobHooksCapability_KIND_RESTORE,
+			},
+		},
+	}, nil
 }
 
-type RestoreDataRes struct{}
-
-func (impl JobHookImpl) RestoreDirectories(ctx context.Context, req restoreDataReq) (*RestoreDataRes, error) {
+// Restore restores the cluster from a backup
+func (impl JobHookImpl) Restore(
+	ctx context.Context,
+	_ *restore.RestoreRequest,
+) (*restore.RestoreResponse, error) {
 	var cluster cnpgv1.Cluster
-	if err := impl.Cli.Get(ctx, client.ObjectKey{Namespace: impl.Namespace, Name: req.ClusterName}, &cluster); err != nil {
+	if err := impl.Client.Get(ctx, impl.ClusterObjectKey, &cluster); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +78,7 @@ func (impl JobHookImpl) RestoreDirectories(ctx context.Context, req restoreDataR
 	}
 
 	// If we need to download data from a backup, we do it
-	backup, env, err := impl.loadBackup(ctx, req.BackupName)
+	backup, env, err := impl.loadBackup(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +91,13 @@ func (impl JobHookImpl) RestoreDirectories(ctx context.Context, req restoreDataR
 		return nil, err
 	}
 
-	if _, err := impl.restoreCustomWalDir(ctx); err != nil {
-		return nil, err
+	if cluster.Spec.WalStorage != nil {
+		if _, err := impl.restoreCustomWalDir(ctx); err != nil {
+			return nil, err
+		}
 	}
 
-	return &RestoreDataRes{}, nil
+	return &restore.RestoreResponse{}, nil
 }
 
 // restoreDataDir restores PGDATA from an existing backup
@@ -99,7 +116,7 @@ func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backu
 		return err
 	}
 
-	options = append(options, impl.PgData)
+	options = append(options, impl.PgDataPath)
 
 	log.Info("Starting barman-cloud-restore",
 		"options", options)
@@ -173,13 +190,13 @@ func (impl *JobHookImpl) checkBackupDestination(
 	}
 
 	var barmanObj barmancloudv1.ObjectStore
-	if err := impl.Cli.Get(ctx, impl.BackupBarmanObjectKey, &barmanObj); err != nil {
+	if err := impl.Client.Get(ctx, impl.BackupBarmanObjectKey, &barmanObj); err != nil {
 		return err
 	}
 
 	// Get environment from cache
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(ctx,
-		impl.Cli,
+		impl.Client,
 		barmanObj.Namespace,
 		&barmanObj.Spec.Configuration,
 		os.Environ())
@@ -196,8 +213,8 @@ func (impl *JobHookImpl) checkBackupDestination(
 		ctx,
 		env,
 		impl.SpoolDirectory,
-		impl.PgData,
-		path.Join(impl.PgData, impl.EmptyWALArchiveFile))
+		impl.PgDataPath,
+		path.Join(impl.PgDataPath, metadata.CheckEmptyWalArchiveFile))
 	if err != nil {
 		return fmt.Errorf("while creating the archiver: %w", err)
 	}
@@ -220,21 +237,17 @@ func (impl *JobHookImpl) checkBackupDestination(
 
 func (impl JobHookImpl) loadBackup(
 	ctx context.Context,
-	backupName string,
 ) (*cnpgv1.Backup, []string, error) {
 	var backup cnpgv1.Backup
-	err := impl.Cli.Get(
-		ctx,
-		client.ObjectKey{Namespace: impl.Namespace, Name: backupName},
-		&backup)
+	err := impl.Client.Get(ctx, impl.BackupObjectKey, &backup)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
 		ctx,
-		impl.Cli,
-		impl.Namespace,
+		impl.Client,
+		impl.BackupObjectKey.Namespace,
 		&api.BarmanObjectStoreConfiguration{
 			BarmanCredentials: backup.Status.BarmanCredentials,
 			EndpointCA:        backup.Status.EndpointCA,
@@ -256,20 +269,16 @@ func (impl JobHookImpl) loadBackup(
 func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 	const pgWalDirectory = "pg_wal"
 
-	if impl.PgWal == "" {
-		return false, nil
-	}
-
 	contextLogger := log.FromContext(ctx)
-	pgDataWal := path.Join(impl.PgData, pgWalDirectory)
+	pgDataWal := path.Join(impl.PgDataPath, pgWalDirectory)
 
 	// if the link is already present we have nothing to do.
-	if linkInfo, _ := os.Readlink(pgDataWal); linkInfo == impl.PgWal {
+	if linkInfo, _ := os.Readlink(pgDataWal); linkInfo == impl.PgWalFolderToSymlink {
 		contextLogger.Info("symlink to the WAL volume already present, skipping the custom wal dir restore")
 		return false, nil
 	}
 
-	if err := fileutils.EnsureDirectoryExists(impl.PgWal); err != nil {
+	if err := fileutils.EnsureDirectoryExists(impl.PgWalFolderToSymlink); err != nil {
 		return false, err
 	}
 
@@ -278,7 +287,7 @@ func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if err := fileutils.MoveDirectoryContent(pgDataWal, impl.PgWal); err != nil {
+	if err := fileutils.MoveDirectoryContent(pgDataWal, impl.PgWalFolderToSymlink); err != nil {
 		return false, err
 	}
 
@@ -286,5 +295,5 @@ func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	return true, os.Symlink(impl.PgWal, pgDataWal)
+	return true, os.Symlink(impl.PgWalFolderToSymlink, pgDataWal)
 }

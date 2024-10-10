@@ -3,7 +3,7 @@ package operator
 import (
 	"context"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"

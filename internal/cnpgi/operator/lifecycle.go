@@ -4,19 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 	"github.com/spf13/viper"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-)
 
-// PgWalVolumePgWalPath is the path of pg_wal directory inside the WAL volume when present
-const PgWalVolumePgWalPath = "/var/lib/postgresql/wal/pg_wal"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+)
 
 // LifecycleImplementation is the implementation of the lifecycle handler
 type LifecycleImplementation struct {
@@ -70,49 +68,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, err
 	}
 
-	switch kind {
-	case "Pod":
-		return reconcilePod(ctx, request)
-	case "Job":
-	default:
-		return nil, fmt.Errorf("unsupported kind: %s", kind)
-	}
-}
-
-func reconcileJob(ctx context.Context,
-	request *lifecycle.OperatorLifecycleRequest,
-) (*lifecycle.OperatorLifecycleResponse, error) {
-	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle")
-
 	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
-	if err != nil {
-		return nil, err
-	}
-
-	var job batchv1.Job
-	if err := decoder.DecodeObject(
-		request.GetObjectDefinition(),
-		&job,
-		batchv1.SchemeGroupVersion.WithKind("Job"),
-	); err != nil {
-		return nil, err
-	}
-
-	job.Spec.Template.Spec
-}
-
-func reconcilePod(
-	ctx context.Context,
-	request *lifecycle.OperatorLifecycleRequest,
-) (*lifecycle.OperatorLifecycleResponse, error) {
-	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle")
-
-	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
-	if err != nil {
-		return nil, err
-	}
-
-	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +78,72 @@ func reconcilePod(
 		return nil, err
 	}
 
-	mutatedPod := pod.DeepCopy()
-	err = object.InjectPluginSidecar(mutatedPod, &corev1.Container{
-		Name:  "plugin-barman-cloud",
-		Image: viper.GetString("sidecar-image"),
-		Env:   getEnvs(pluginConfiguration, cluster),
-	}, true)
+	switch kind {
+	case "Pod":
+		return reconcilePod(ctx, request, pluginConfiguration)
+	case "Job":
+		return reconcileJob(ctx, request, pluginConfiguration)
+	default:
+		return nil, fmt.Errorf("unsupported kind: %s", kind)
+	}
+}
+
+func reconcileJob(
+	ctx context.Context,
+	request *lifecycle.OperatorLifecycleRequest,
+	pluginConfiguration *config.PluginConfiguration,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	var job batchv1.Job
+	if err := decoder.DecodeObject(
+		request.GetObjectDefinition(),
+		&job,
+		batchv1.SchemeGroupVersion.WithKind("Job"),
+	); err != nil {
+		return nil, err
+	}
+
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
+		WithValues("jobName", job.Name)
+
+	mutatedJob := job.DeepCopy()
+
+	if err := reconcilePodSpec(
+		pluginConfiguration,
+		&job.Spec.Template.Spec,
+		// TODO: fill the restore command and variables
+		corev1.Container{},
+	); err != nil {
+		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
+	}
+
+	patch, err := object.CreatePatch(mutatedJob, &job)
 	if err != nil {
 		return nil, err
+	}
+
+	contextLogger.Debug("generated patch", "content", string(patch))
+	return &lifecycle.OperatorLifecycleResponse{
+		JsonPatch: patch,
+	}, nil
+}
+
+func reconcilePod(
+	ctx context.Context,
+	request *lifecycle.OperatorLifecycleRequest,
+	pluginConfiguration *config.PluginConfiguration,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
+	if err != nil {
+		return nil, err
+	}
+
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
+		WithValues("podName", pod.Name)
+
+	mutatedPod := pod.DeepCopy()
+
+	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, corev1.Container{}); err != nil {
+		return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)
@@ -143,11 +157,15 @@ func reconcilePod(
 	}, nil
 }
 
-func getEnvs(plgConf *config.PluginConfiguration, cluster *cnpgv1.Cluster) []corev1.EnvVar {
+func reconcilePodSpec(
+	cfg *config.PluginConfiguration,
+	spec *corev1.PodSpec,
+	sidecarConfig corev1.Container,
+) error {
 	envs := []corev1.EnvVar{
 		{
 			Name:  "BARMAN_OBJECT_NAME",
-			Value: plgConf.BarmanObjectName,
+			Value: cfg.BarmanObjectName,
 		},
 		{
 			// TODO: should we really use this one?
@@ -157,12 +175,26 @@ func getEnvs(plgConf *config.PluginConfiguration, cluster *cnpgv1.Cluster) []cor
 		},
 	}
 
-	if cluster.ShouldCreateWalArchiveVolume() {
-		envs = append(envs, corev1.EnvVar{
-			Name:  "PGWAL",
-			Value: PgWalVolumePgWalPath,
-		})
+	// fixed values
+	sidecarConfig.Name = "plugin-barman-cloud"
+	sidecarConfig.Image = viper.GetString("sidecar-image")
+	// merge the default envs if they aren't already set
+	for _, env := range envs {
+		found := false
+		for _, existingEnv := range sidecarConfig.Env {
+			if existingEnv.Name == env.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sidecarConfig.Env = append(sidecarConfig.Env, env)
+		}
 	}
 
-	return envs
+	if err := object.InjectPluginSidecarSpec(spec, &sidecarConfig, true); err != nil {
+		return err
+	}
+
+	return nil
 }

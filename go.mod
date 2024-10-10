@@ -3,10 +3,11 @@ module github.com/cloudnative-pg/plugin-barman-cloud
 go 1.22.0
 
 require (
+	github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241001084914-829808376542
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20240924030516-c5636170f248
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241002070940-e5495e9c5ed6
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20241010104958-bc0c3fc9dc91
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241009153808-2f1f20869d5c
 	github.com/cloudnative-pg/machinery v0.0.0-20241007093555-1e197af1f392
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
@@ -109,7 +110,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
