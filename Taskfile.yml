@@ -130,7 +130,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_KUSTOMIZE_SHA: c5e98557642c03370029ccde338fe7f27746bafc
+      DAGGER_KUSTOMIZE_SHA: 14ff058bbf8e1ced23cfeca1a68b1635e0e414bb
     cmds:
       - >
         dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
