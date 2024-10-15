@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
@@ -93,6 +94,7 @@ func reconcileJob(
 	if err := pluginConfiguration.ValidateBackupObjectName(); err != nil {
 		return nil, err
 	}
+
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -105,13 +107,19 @@ func reconcileJob(
 	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
 		WithValues("jobName", job.Name)
 
+	if job.Spec.Template.Labels[utils.JobRoleLabelName] != "full-recovery" {
+		contextLogger.Debug("job is not a recovery job, skipping")
+		return nil, nil
+	}
+
 	mutatedJob := job.DeepCopy()
 
 	if err := reconcilePodSpec(
 		pluginConfiguration,
 		&job.Spec.Template.Spec,
-		// TODO: fill the restore command and variables
-		corev1.Container{},
+		corev1.Container{
+			Args: []string{"restore"},
+		},
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
 	}
@@ -146,7 +154,9 @@ func reconcilePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, corev1.Container{}); err != nil {
+	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, corev1.Container{
+		Args: []string{"instance"},
+	}); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 	}
 

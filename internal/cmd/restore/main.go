@@ -1,28 +1,21 @@
-// Package main is the entrypoint of restore capabilities
-package main
+// Package restore is the entrypoint of restore capabilities
+package restore
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/restore"
 )
 
-func main() {
+func NewCmd() *cobra.Command {
 	cobra.EnableTraverseRunHooks = true
 
-	logFlags := &log.Flags{}
-	rootCmd := &cobra.Command{
-		Use:   "instance",
-		Short: "Starts the Barman Cloud CNPG-i sidecar plugin",
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
-			logFlags.ConfigureLogging()
-			return nil
-		},
+	cmd := &cobra.Command{
+		Use:   "restore",
+		Short: "Starts the Barman Cloud CNPG-I sidecar plugin",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			requiredSettings := []string{
 				"namespace",
@@ -41,8 +34,6 @@ func main() {
 		},
 	}
 
-	logFlags.AddFlags(rootCmd.PersistentFlags())
-
 	_ = viper.BindEnv("namespace", "NAMESPACE")
 	_ = viper.BindEnv("backup-name-to-restore", "BACKUP_NAME")
 	_ = viper.BindEnv("barman-object-to-backup-data", "BARMAN_OBJECT_NAME")
@@ -51,8 +42,5 @@ func main() {
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	return cmd
 }
