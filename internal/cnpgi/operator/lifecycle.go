@@ -117,6 +117,7 @@ func reconcileJob(
 	if err := reconcilePodSpec(
 		pluginConfiguration,
 		&job.Spec.Template.Spec,
+		"full-recovery",
 		corev1.Container{
 			Args: []string{"restore"},
 		},
@@ -154,7 +155,7 @@ func reconcilePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, corev1.Container{
+	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, "postgres", corev1.Container{
 		Args: []string{"instance"},
 	}); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
@@ -174,6 +175,7 @@ func reconcilePod(
 func reconcilePodSpec(
 	cfg *config.PluginConfiguration,
 	spec *corev1.PodSpec,
+	mainContainerName string,
 	sidecarConfig corev1.Container,
 ) error {
 	envs := []corev1.EnvVar{
@@ -210,7 +212,7 @@ func reconcilePodSpec(
 		}
 	}
 
-	if err := object.InjectPluginSidecarSpec(spec, &sidecarConfig, true); err != nil {
+	if err := object.InjectPluginSidecarPodSpec(spec, &sidecarConfig, mainContainerName, true); err != nil {
 		return err
 	}
 

@@ -9,7 +9,7 @@ require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241014102936-8e97ddeb9571
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20241014092310-893a97833686
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241009153808-2f1f20869d5c
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241015102801-d3f7e185ba6b
 	github.com/cloudnative-pg/machinery v0.0.0-20241010122207-5ac7af31ef72
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2

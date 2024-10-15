@@ -1,0 +1,153 @@
+package operator
+
+import (
+	"encoding/json"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+)
+
+var _ = Describe("LifecycleImplementation", func() {
+	var (
+		lifecycleImpl       LifecycleImplementation
+		pluginConfiguration *config.PluginConfiguration
+		jobTypeMeta         = metav1.TypeMeta{
+			Kind:       "Job",
+			APIVersion: "batch/v1",
+		}
+		podTypeMeta = metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		}
+	)
+
+	BeforeEach(func() {
+		pluginConfiguration = &config.PluginConfiguration{
+			BarmanObjectName: "barman-object",
+			BackupObjectName: "backup-object",
+		}
+	})
+
+	Describe("GetCapabilities", func() {
+		It("returns the correct capabilities", func(ctx SpecContext) {
+			response, err := lifecycleImpl.GetCapabilities(ctx, &lifecycle.OperatorLifecycleCapabilitiesRequest{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.LifecycleCapabilities).To(HaveLen(2))
+		})
+	})
+
+	Describe("LifecycleHook", func() {
+		It("returns an error if object definition is invalid", func(ctx SpecContext) {
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: []byte("invalid-json"),
+			}
+			response, err := lifecycleImpl.LifecycleHook(ctx, request)
+			Expect(err).To(HaveOccurred())
+			Expect(response).To(BeNil())
+		})
+	})
+
+	Describe("reconcileJob", func() {
+		It("returns a patch for a valid recovery job", func(ctx SpecContext) {
+			job := &batchv1.Job{
+				TypeMeta: jobTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test-job",
+					Labels: map[string]string{},
+				},
+				Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							utils.JobRoleLabelName: "full-recovery",
+						},
+					},
+					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "full-recovery"}}},
+				}},
+			}
+			jobJSON, _ := json.Marshal(job)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: jobJSON,
+			}
+
+			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+		})
+
+		It("skips non-recovery jobs", func(ctx SpecContext) {
+			job := &batchv1.Job{
+				TypeMeta: jobTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-job",
+					Labels: map[string]string{
+						"job-role": "non-recovery",
+					},
+				},
+			}
+			jobJSON, _ := json.Marshal(job)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: jobJSON,
+			}
+
+			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).To(BeNil())
+		})
+
+		It("returns an error for invalid job definition", func(ctx SpecContext) {
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: []byte("invalid-json"),
+			}
+
+			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			Expect(err).To(HaveOccurred())
+			Expect(response).To(BeNil())
+		})
+	})
+
+	Describe("reconcilePod", func() {
+		It("returns a patch for a valid pod", func(ctx SpecContext) {
+			pod := &corev1.Pod{
+				TypeMeta: podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+				},
+				Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcilePod(ctx, request, pluginConfiguration)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+			var patch []map[string]interface{}
+			err = json.Unmarshal(response.JsonPatch, &patch)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(patch).To(ContainElement(HaveKeyWithValue("op", "add")))
+			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/containers/1")))
+			Expect(patch).To(ContainElement(HaveKeyWithValue("value", HaveKeyWithValue("name", "plugin-barman-cloud"))))
+		})
+
+		It("returns an error for invalid pod definition", func(ctx SpecContext) {
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: []byte("invalid-json"),
+			}
+
+			response, err := reconcilePod(ctx, request, pluginConfiguration)
+			Expect(err).To(HaveOccurred())
+			Expect(response).To(BeNil())
+		})
+	})
+})
