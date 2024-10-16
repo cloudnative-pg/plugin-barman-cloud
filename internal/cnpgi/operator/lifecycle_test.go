@@ -112,6 +112,35 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
+
+		It("should not error out if backup object name is not set and the job isn't full recovery",
+			func(ctx SpecContext) {
+				job := &batchv1.Job{
+					TypeMeta: jobTypeMeta,
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "test-job",
+						Labels: map[string]string{},
+					},
+					Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								utils.JobRoleLabelName: "non-recovery",
+							},
+						},
+						Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "non-recovery"}}},
+					}},
+				}
+				jobJSON, _ := json.Marshal(job)
+				request := &lifecycle.OperatorLifecycleRequest{
+					ObjectDefinition: jobJSON,
+				}
+
+				pluginConfiguration.BackupObjectName = ""
+
+				response, err := reconcileJob(ctx, request, pluginConfiguration)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response).To(BeNil())
+			})
 	})
 
 	Describe("reconcilePod", func() {

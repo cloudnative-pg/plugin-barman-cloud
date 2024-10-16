@@ -91,10 +91,6 @@ func reconcileJob(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
-	if err := pluginConfiguration.ValidateBackupObjectName(); err != nil {
-		return nil, err
-	}
-
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -110,6 +106,10 @@ func reconcileJob(
 	if job.Spec.Template.Labels[utils.JobRoleLabelName] != "full-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
 		return nil, nil
+	}
+
+	if err := pluginConfiguration.ValidateBackupObjectName(); err != nil {
+		return nil, err
 	}
 
 	mutatedJob := job.DeepCopy()
