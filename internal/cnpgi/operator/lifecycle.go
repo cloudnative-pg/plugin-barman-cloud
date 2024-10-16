@@ -85,6 +85,9 @@ func (impl LifecycleImplementation) LifecycleHook(
 				Value: "/controller/wal-restore-spool",
 			},
 		},
+		Command: []string{
+			"/usr/local/bin/instance",
+		},
 	}, true)
 	if err != nil {
 		return nil, err
