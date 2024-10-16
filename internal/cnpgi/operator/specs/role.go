@@ -3,7 +3,7 @@ package specs
 import (
 	"fmt"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

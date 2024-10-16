@@ -3,9 +3,7 @@ package config
 import (
 	"strings"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
-	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/common"
-
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -51,7 +49,7 @@ type PluginConfiguration struct {
 
 // NewFromCluster extracts the configuration from the cluster
 func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
-	helper := common.NewPlugin(
+	helper := NewPlugin(
 		*cluster,
 		metadata.PluginName,
 	)
@@ -59,8 +57,6 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	result := &PluginConfiguration{
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
-		// used for the restore
-		BackupObjectName: helper.Parameters["backupObjectName"],
 	}
 
 	return result
@@ -76,12 +72,25 @@ func (p *PluginConfiguration) ValidateBarmanObjectName() error {
 	return err.WithMessage("Missing barmanObjectName parameter")
 }
 
-// ValidateBackupObjectName checks if the backupObjectName is set
-func (p *PluginConfiguration) ValidateBackupObjectName() error {
-	err := NewConfigurationError()
-	if len(p.BackupObjectName) != 0 {
-		return nil
+// Plugin represents a plugin with its associated cluster and parameters.
+type Plugin struct {
+	Cluster *cnpgv1.Cluster
+	// Parameters are the configuration parameters of this plugin
+	Parameters  map[string]string
+	PluginIndex int
+}
+
+// NewPlugin creates a new Plugin instance for the given cluster and plugin name.
+func NewPlugin(cluster cnpgv1.Cluster, pluginName string) *Plugin {
+	result := &Plugin{Cluster: &cluster}
+
+	result.PluginIndex = -1
+	for idx, cfg := range result.Cluster.Spec.Plugins {
+		if cfg.Name == pluginName {
+			result.PluginIndex = idx
+			result.Parameters = cfg.Parameters
+		}
 	}
 
-	return err.WithMessage("Missing backupObjectName parameter")
+	return result
 }

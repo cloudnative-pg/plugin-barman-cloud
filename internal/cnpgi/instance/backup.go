@@ -67,8 +67,11 @@ func (b BackupServiceImplementation) Backup(
 ) (*backup.BackupResult, error) {
 	contextLogger := log.FromContext(ctx)
 
+	contextLogger.Info("Starting backup")
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := b.Client.Get(ctx, b.BarmanObjectKey, &objectStore); err != nil {
+		contextLogger.Error(err, "while getting object store", "key", b.BarmanObjectKey)
 		return nil, err
 	}
 
@@ -79,6 +82,7 @@ func (b BackupServiceImplementation) Backup(
 
 	capabilities, err := barmanCapabilities.CurrentCapabilities()
 	if err != nil {
+		contextLogger.Error(err, "while getting capabilities")
 		return nil, err
 	}
 	backupCmd := barmanBackup.NewBackupCommand(
@@ -97,6 +101,7 @@ func (b BackupServiceImplementation) Backup(
 		&objectStore.Spec.Configuration,
 		mergeEnv(osEnvironment, caBundleEnvironment))
 	if err != nil {
+		contextLogger.Error(err, "while setting backup cloud credentials")
 		return nil, err
 	}
 
@@ -110,6 +115,7 @@ func (b BackupServiceImplementation) Backup(
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
 	); err != nil {
+		contextLogger.Error(err, "while taking backup")
 		return nil, err
 	}
 
@@ -120,13 +126,18 @@ func (b BackupServiceImplementation) Backup(
 		barmanCloudExecutor{},
 		env)
 	if err != nil {
+		contextLogger.Error(err, "while getting executed backup info")
 		return nil, err
 	}
 
 	cred, err := json.Marshal(objectStore.Spec.Configuration.BarmanCredentials)
 	if err != nil {
+		contextLogger.Error(err, "while marshalling credentials")
 		return nil, err
 	}
+
+	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
+
 	return &backup.BackupResult{
 		BackupId:          executedBackupInfo.ID,
 		BackupName:        executedBackupInfo.BackupName,

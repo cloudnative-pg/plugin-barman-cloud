@@ -3,7 +3,7 @@ package operator
 import (
 	"context"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
@@ -59,15 +59,18 @@ func (r ReconcilerImplementation) Pre(
 		}, nil
 	}
 
-	cluster, err := decoder.DecodeClusterJSON(request.GetResourceDefinition())
-	if err != nil {
+	var cluster cnpgv1.Cluster
+	if err := decoder.DecodeObject(
+		request.GetResourceDefinition(),
+		&cluster,
+		cnpgv1.GroupVersion.WithKind("Cluster")); err != nil {
 		return nil, err
 	}
 
 	contextLogger = contextLogger.WithValues("name", cluster.Name, "namespace", cluster.Namespace)
 	ctx = log.IntoContext(ctx, contextLogger)
 
-	pluginConfiguration := config.NewFromCluster(cluster)
+	pluginConfiguration := config.NewFromCluster(&cluster)
 	if err := pluginConfiguration.ValidateBarmanObjectName(); err != nil {
 		return nil, err
 	}
@@ -85,11 +88,11 @@ func (r ReconcilerImplementation) Pre(
 		}
 	}
 
-	if err := r.ensureRole(ctx, cluster, &barmanObject); err != nil {
+	if err := r.ensureRole(ctx, &cluster, &barmanObject); err != nil {
 		return nil, err
 	}
 
-	if err := r.ensureRoleBinding(ctx, cluster); err != nil {
+	if err := r.ensureRoleBinding(ctx, &cluster); err != nil {
 		return nil, err
 	}
 

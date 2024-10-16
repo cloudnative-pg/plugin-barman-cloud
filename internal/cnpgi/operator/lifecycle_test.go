@@ -2,8 +2,10 @@ package operator
 
 import (
 	"encoding/json"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 
@@ -18,6 +20,7 @@ var _ = Describe("LifecycleImplementation", func() {
 	var (
 		lifecycleImpl       LifecycleImplementation
 		pluginConfiguration *config.PluginConfiguration
+		cluster             *cnpgv1.Cluster
 		jobTypeMeta         = metav1.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
@@ -31,7 +34,20 @@ var _ = Describe("LifecycleImplementation", func() {
 	BeforeEach(func() {
 		pluginConfiguration = &config.PluginConfiguration{
 			BarmanObjectName: "barman-object",
-			BackupObjectName: "backup-object",
+		}
+		cluster = &cnpgv1.Cluster{
+			Spec: cnpgv1.ClusterSpec{
+				Bootstrap: &cnpgv1.BootstrapConfiguration{
+					Recovery: &cnpgv1.BootstrapRecovery{
+						Backup: &cnpgv1.BackupSource{
+							LocalObjectReference: cnpgv1.LocalObjectReference{
+								Name: "backup-object",
+							},
+							UsePlugin: ptr.To(true),
+						},
+					},
+				},
+			},
 		}
 	})
 
@@ -77,7 +93,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: jobJSON,
 			}
 
-			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			response, err := reconcileJob(ctx, cluster, request, pluginConfiguration)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.JsonPatch).NotTo(BeEmpty())
@@ -98,7 +114,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: jobJSON,
 			}
 
-			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			response, err := reconcileJob(ctx, cluster, request, pluginConfiguration)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
@@ -108,7 +124,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: []byte("invalid-json"),
 			}
 
-			response, err := reconcileJob(ctx, request, pluginConfiguration)
+			response, err := reconcileJob(ctx, cluster, request, pluginConfiguration)
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
@@ -137,7 +153,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 				pluginConfiguration.BackupObjectName = ""
 
-				response, err := reconcileJob(ctx, request, pluginConfiguration)
+				response, err := reconcileJob(ctx, cluster, request, pluginConfiguration)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response).To(BeNil())
 			})
@@ -157,7 +173,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: podJSON,
 			}
 
-			response, err := reconcilePod(ctx, request, pluginConfiguration)
+			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.JsonPatch).NotTo(BeEmpty())
@@ -174,7 +190,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: []byte("invalid-json"),
 			}
 
-			response, err := reconcilePod(ctx, request, pluginConfiguration)
+			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration)
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
@@ -70,18 +70,22 @@ func (impl LifecycleImplementation) LifecycleHook(
 		return nil, err
 	}
 
-	cluster, err := decoder.DecodeClusterJSON(request.GetClusterDefinition())
-	if err != nil {
+	var cluster cnpgv1.Cluster
+	if err := decoder.DecodeObject(
+		request.GetClusterDefinition(),
+		&cluster,
+		cnpgv1.GroupVersion.WithKind("Cluster"),
+	); err != nil {
 		return nil, err
 	}
 
-	pluginConfiguration := config.NewFromCluster(cluster)
+	pluginConfiguration := config.NewFromCluster(&cluster)
 
 	switch kind {
 	case "Pod":
-		return reconcilePod(ctx, cluster, request, pluginConfiguration)
+		return reconcilePod(ctx, &cluster, request, pluginConfiguration)
 	case "Job":
-		return reconcileJob(ctx, cluster, request, pluginConfiguration)
+		return reconcileJob(ctx, &cluster, request, pluginConfiguration)
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", kind)
 	}
@@ -93,6 +97,12 @@ func reconcileJob(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
+	if !cluster.GetBootstrapRecoveryBackupUsePlugin() {
+		return nil, nil
+	}
+
+	backupSource := cluster.Spec.Bootstrap.Recovery.Backup
+
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -110,10 +120,6 @@ func reconcileJob(
 		return nil, nil
 	}
 
-	if err := pluginConfiguration.ValidateBackupObjectName(); err != nil {
-		return nil, err
-	}
-
 	mutatedJob := job.DeepCopy()
 
 	if err := reconcilePodSpec(
@@ -123,6 +129,12 @@ func reconcileJob(
 		"full-recovery",
 		corev1.Container{
 			Args: []string{"restore"},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "BACKUP_OBJECT_NAME",
+					Value: backupSource.Name,
+				},
+			},
 		},
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
@@ -195,10 +207,6 @@ func reconcilePodSpec(
 		{
 			Name:  "BARMAN_OBJECT_NAME",
 			Value: cfg.BarmanObjectName,
-		},
-		{
-			Name:  "BACKUP_OBJECT_NAME",
-			Value: cfg.BackupObjectName,
 		},
 		{
 			// TODO: should we really use this one?

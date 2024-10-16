@@ -1,0 +1,20 @@
+metadata:
+  name: cluster-restore
+spec:
+  instances: 3
+  imagePullPolicy: IfNotPresent
+
+  bootstrap:
+    recovery:
+      backup:
+        name: backup-example
+        usePlugin: true
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: minio-store
+        backupName: backup-example
+
+  storage:
+    size: 1Gi
