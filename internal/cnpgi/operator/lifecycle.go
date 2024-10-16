@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
@@ -78,9 +79,9 @@ func (impl LifecycleImplementation) LifecycleHook(
 
 	switch kind {
 	case "Pod":
-		return reconcilePod(ctx, request, pluginConfiguration)
+		return reconcilePod(ctx, cluster, request, pluginConfiguration)
 	case "Job":
-		return reconcileJob(ctx, request, pluginConfiguration)
+		return reconcileJob(ctx, cluster, request, pluginConfiguration)
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", kind)
 	}
@@ -88,6 +89,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 
 func reconcileJob(
 	ctx context.Context,
+	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
@@ -116,6 +118,7 @@ func reconcileJob(
 
 	if err := reconcilePodSpec(
 		pluginConfiguration,
+		cluster,
 		&job.Spec.Template.Spec,
 		"full-recovery",
 		corev1.Container{
@@ -138,6 +141,7 @@ func reconcileJob(
 
 func reconcilePod(
 	ctx context.Context,
+	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
@@ -155,7 +159,7 @@ func reconcilePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if err := reconcilePodSpec(pluginConfiguration, &mutatedPod.Spec, "postgres", corev1.Container{
+	if err := reconcilePodSpec(pluginConfiguration, cluster, &mutatedPod.Spec, "postgres", corev1.Container{
 		Args: []string{"instance"},
 	}); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
@@ -174,11 +178,20 @@ func reconcilePod(
 
 func reconcilePodSpec(
 	cfg *config.PluginConfiguration,
+	cluster *cnpgv1.Cluster,
 	spec *corev1.PodSpec,
 	mainContainerName string,
 	sidecarConfig corev1.Container,
 ) error {
 	envs := []corev1.EnvVar{
+		{
+			Name:  "NAMESPACE",
+			Value: cluster.Namespace,
+		},
+		{
+			Name:  "CLUSTER_NAME",
+			Value: cluster.Name,
+		},
 		{
 			Name:  "BARMAN_OBJECT_NAME",
 			Value: cfg.BarmanObjectName,
@@ -198,6 +211,27 @@ func reconcilePodSpec(
 	// fixed values
 	sidecarConfig.Name = "plugin-barman-cloud"
 	sidecarConfig.Image = viper.GetString("sidecar-image")
+	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
+
+	// merge the main container envs if they aren't already set
+	for _, container := range spec.Containers {
+		if container.Name == mainContainerName {
+			for _, env := range container.Env {
+				found := false
+				for _, existingEnv := range sidecarConfig.Env {
+					if existingEnv.Name == env.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					sidecarConfig.Env = append(sidecarConfig.Env, env)
+				}
+			}
+			break
+		}
+	}
+
 	// merge the default envs if they aren't already set
 	for _, env := range envs {
 		found := false

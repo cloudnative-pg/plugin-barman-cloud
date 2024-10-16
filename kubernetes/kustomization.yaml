@@ -11,6 +11,7 @@ resources:
 - ../config/rbac
 images:
 - name: plugin-barman-cloud
+  # result of kind load docker-image
   newName: docker.io/library/plugin-barman-cloud
 secretGenerator:
 - literals:
