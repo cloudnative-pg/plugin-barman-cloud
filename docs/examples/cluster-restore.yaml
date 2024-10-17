@@ -16,7 +16,6 @@ spec:
     - name: barman-cloud.cloudnative-pg.io
       parameters:
         barmanObjectName: minio-store
-        backupName: backup-example
 
   storage:
     size: 1Gi

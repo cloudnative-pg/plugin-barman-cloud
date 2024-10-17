@@ -139,7 +139,7 @@ func reconcileJob(
 			Args: []string{"restore"},
 			Env: []corev1.EnvVar{
 				{
-					Name:  "BACKUP_OBJECT_NAME",
+					Name:  "BACKUP_TO_RESTORE",
 					Value: backupSource.Name,
 				},
 			},

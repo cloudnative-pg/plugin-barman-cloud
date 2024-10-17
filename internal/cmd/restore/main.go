@@ -35,8 +35,8 @@ func NewCmd() *cobra.Command {
 	}
 
 	_ = viper.BindEnv("namespace", "NAMESPACE")
-	_ = viper.BindEnv("backup-name-to-restore", "BACKUP_NAME")
-	_ = viper.BindEnv("barman-object-to-backup-data", "BARMAN_OBJECT_NAME")
+	_ = viper.BindEnv("backup-to-restore", "BACKUP_TO_RESTORE")
+	_ = viper.BindEnv("barman-archive-configuration", "BARMAN_OBJECT_NAME")
 	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")

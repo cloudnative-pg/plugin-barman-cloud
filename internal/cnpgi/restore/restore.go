@@ -40,13 +40,13 @@ const (
 // JobHookImpl is the implementation of the restore job hooks
 type JobHookImpl struct {
 	restore.UnimplementedRestoreJobHooksServer
-	Client                client.Client
-	ClusterObjectKey      client.ObjectKey
-	BackupObjectKey       client.ObjectKey
-	BackupBarmanObjectKey client.ObjectKey
-	SpoolDirectory        string
-	PgDataPath            string
-	PgWalFolderToSymlink  string
+	Client               client.Client
+	ClusterObjectKey     client.ObjectKey
+	BackupToRestore      client.ObjectKey
+	ArchiveConfiguration client.ObjectKey
+	SpoolDirectory       string
+	PgDataPath           string
+	PgWalFolderToSymlink string
 }
 
 // GetCapabilities returns the capabilities of the restore job hooks
@@ -68,6 +68,7 @@ func (impl JobHookImpl) Restore(
 	ctx context.Context,
 	_ *restore.RestoreRequest,
 ) (*restore.RestoreResponse, error) {
+	// todo make it part of the request if possible
 	var cluster cnpgv1.Cluster
 	if err := impl.Client.Get(ctx, impl.ClusterObjectKey, &cluster); err != nil {
 		return nil, err
@@ -202,12 +203,12 @@ func (impl *JobHookImpl) checkBackupDestination(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 ) error {
-	if impl.BackupBarmanObjectKey.Name != "" {
+	if impl.ArchiveConfiguration.Name == "" {
 		return nil
 	}
 
 	var barmanObj barmancloudv1.ObjectStore
-	if err := impl.Client.Get(ctx, impl.BackupBarmanObjectKey, &barmanObj); err != nil {
+	if err := impl.Client.Get(ctx, impl.ArchiveConfiguration, &barmanObj); err != nil {
 		return err
 	}
 
@@ -256,7 +257,7 @@ func (impl JobHookImpl) loadBackup(
 	ctx context.Context,
 ) (*cnpgv1.Backup, []string, error) {
 	var backup cnpgv1.Backup
-	err := impl.Client.Get(ctx, impl.BackupObjectKey, &backup)
+	err := impl.Client.Get(ctx, impl.BackupToRestore, &backup)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -268,7 +269,7 @@ func (impl JobHookImpl) loadBackup(
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
 		ctx,
 		impl.Client,
-		impl.BackupObjectKey.Namespace,
+		impl.BackupToRestore.Namespace,
 		&api.BarmanObjectStoreConfiguration{
 			BarmanCredentials: creds,
 			EndpointCA:        backup.Status.EndpointCA,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -32,9 +32,9 @@ func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
 	namespace := viper.GetString("namespace")
-	boNameForBackups := viper.GetString("barman-object-to-backup-data")
+	archiveConfiguration := viper.GetString("barman-archive-configuration")
 	clusterName := viper.GetString("cluster-name")
-	backupToRestoreName := viper.GetString("backup-name-to-restore")
+	backupToRestoreName := viper.GetString("backup-to-restore")
 
 	objs := map[client.Object]cache.ByObject{
 		&cnpgv1.Cluster{}: {
@@ -50,9 +50,9 @@ func Start(ctx context.Context) error {
 			},
 		},
 	}
-	if boNameForBackups != "" {
+	if archiveConfiguration != "" {
 		objs[&barmancloudv1.ObjectStore{}] = cache.ByObject{
-			Field: fields.OneTermEqualSelector("metadata.name", boNameForBackups),
+			Field: fields.OneTermEqualSelector("metadata.name", archiveConfiguration),
 			Namespaces: map[string]cache.Config{
 				namespace: {},
 			},
@@ -80,17 +80,17 @@ func Start(ctx context.Context) error {
 	if err := mgr.Add(&CNPGI{
 		PluginPath:     viper.GetString("plugin-path"),
 		SpoolDirectory: viper.GetString("spool-directory"),
-		BackupBarmanObjectKey: client.ObjectKey{
+		ArchiveConfiguration: client.ObjectKey{
 			Namespace: namespace,
-			Name:      backupToRestoreName,
+			Name:      archiveConfiguration,
 		},
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		BackupObjectKey: client.ObjectKey{
+		BackupToRestoreObjectKey: client.ObjectKey{
 			Namespace: namespace,
-			Name:      boNameForBackups,
+			Name:      backupToRestoreName,
 		},
 		Client:     mgr.GetClient(),
 		PGDataPath: viper.GetString("pgdata"),
