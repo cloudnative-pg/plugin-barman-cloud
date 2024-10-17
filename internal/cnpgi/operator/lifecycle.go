@@ -102,7 +102,7 @@ func reconcileJob(
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	contextLogger := log.FromContext(ctx).WithName("lifecycle")
-	if !cluster.GetBootstrapRecoveryBackupUsePlugin() {
+	if !cluster.UsePluginForBootstrapRecoveryBackup() {
 		contextLogger.Debug("cluster does not use the plugin for recovery, skipping")
 		return nil, nil
 	}

@@ -2,9 +2,10 @@ package restore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"os"
 	"os/exec"
 	"path"
@@ -66,31 +67,34 @@ func (impl JobHookImpl) GetCapabilities(
 // Restore restores the cluster from a backup
 func (impl JobHookImpl) Restore(
 	ctx context.Context,
-	_ *restore.RestoreRequest,
+	req *restore.RestoreRequest,
 ) (*restore.RestoreResponse, error) {
-	// todo make it part of the request if possible
 	var cluster cnpgv1.Cluster
-	if err := impl.Client.Get(ctx, impl.ClusterObjectKey, &cluster); err != nil {
+	if err := decoder.DecodeObject(req.GetClusterDefinition(), &cluster, cnpgv1.GroupVersion.WithKind("Cluster")); err != nil {
 		return nil, err
 	}
-
 	// Before starting the restore we check if the archive destination is safe to use
 	// otherwise, we stop creating the cluster
 	if err := impl.checkBackupDestination(ctx, &cluster); err != nil {
 		return nil, err
 	}
 
-	// If we need to download data from a backup, we do it
-	backup, env, err := impl.loadBackup(ctx)
+	var backup cnpgv1.Backup
+
+	if err := decoder.DecodeObject(req.GetBackupDefinition(), &backup, cnpgv1.GroupVersion.WithKind("Backup")); err != nil {
+		return nil, err
+	}
+
+	env, err := impl.getBarmanEnvFromBackup(ctx, &backup)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := impl.ensureArchiveContainsLastCheckpointRedoWAL(ctx, &cluster, env, backup); err != nil {
+	if err := impl.ensureArchiveContainsLastCheckpointRedoWAL(ctx, &cluster, env, &backup); err != nil {
 		return nil, err
 	}
 
-	if err := impl.restoreDataDir(ctx, backup, env); err != nil {
+	if err := impl.restoreDataDir(ctx, &backup, env); err != nil {
 		return nil, err
 	}
 
@@ -100,7 +104,7 @@ func (impl JobHookImpl) Restore(
 		}
 	}
 
-	config, err := getRestoreWalConfig(ctx, backup)
+	config, err := getRestoreWalConfig(ctx, &backup)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +126,7 @@ func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backu
 	options = append(options, backup.Status.ServerName)
 	options = append(options, backup.Status.BackupID)
 
-	creds, err := getCredentials(backup)
+	creds, err := common.GetCredentialsFromBackup(backup)
 	if err != nil {
 		return err
 	}
@@ -177,7 +181,7 @@ func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 		return err
 	}
 
-	creds, err := getCredentials(backup)
+	creds, err := common.GetCredentialsFromBackup(backup)
 	if err != nil {
 		return err
 	}
@@ -253,18 +257,13 @@ func (impl *JobHookImpl) checkBackupDestination(
 	return nil
 }
 
-func (impl JobHookImpl) loadBackup(
+func (impl JobHookImpl) getBarmanEnvFromBackup(
 	ctx context.Context,
-) (*cnpgv1.Backup, []string, error) {
-	var backup cnpgv1.Backup
-	err := impl.Client.Get(ctx, impl.BackupToRestore, &backup)
+	backup *cnpgv1.Backup,
+) ([]string, error) {
+	creds, err := common.GetCredentialsFromBackup(backup)
 	if err != nil {
-		return nil, nil, err
-	}
-
-	creds, err := getCredentials(&backup)
-	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
 		ctx,
@@ -279,11 +278,11 @@ func (impl JobHookImpl) loadBackup(
 		},
 		os.Environ())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.Info("Recovering existing backup", "backup", backup)
-	return &backup, env, nil
+	return env, nil
 }
 
 // restoreCustomWalDir moves the current pg_wal data to the specified custom wal dir and applies the symlink
@@ -333,7 +332,7 @@ func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, er
 	cmd = append(cmd, backup.Status.DestinationPath)
 	cmd = append(cmd, backup.Status.ServerName)
 
-	creds, err := getCredentials(backup)
+	creds, err := common.GetCredentialsFromBackup(backup)
 	if err != nil {
 		return "", err
 	}
@@ -351,15 +350,4 @@ func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, er
 		strings.Join(cmd, " "))
 
 	return recoveryFileContents, nil
-}
-
-func getCredentials(backup *cnpgv1.Backup) (api.BarmanCredentials, error) {
-	rawCred := backup.Status.PluginMetadata["credentials"]
-
-	var creds api.BarmanCredentials
-	if err := json.Unmarshal([]byte(rawCred), &creds); err != nil {
-		return api.BarmanCredentials{}, fmt.Errorf("while unmarshaling credentials: %w", err)
-	}
-
-	return creds, nil
 }
