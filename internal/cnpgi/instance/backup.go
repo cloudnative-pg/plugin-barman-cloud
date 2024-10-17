@@ -110,7 +110,7 @@ func (b BackupServiceImplementation) Backup(
 	if err = backupCmd.Take(
 		ctx,
 		backupName,
-		b.InstanceName,
+		objectStore.Name,
 		env,
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
@@ -122,7 +122,7 @@ func (b BackupServiceImplementation) Backup(
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx,
 		backupName,
-		b.InstanceName,
+		objectStore.Name,
 		barmanCloudExecutor{},
 		env)
 	if err != nil {
