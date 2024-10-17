@@ -21,7 +21,7 @@ import (
 	"crypto/tls"
 
 	// +kubebuilder:scaffold:imports
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"

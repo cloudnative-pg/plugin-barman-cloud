@@ -60,6 +60,8 @@ func (impl LifecycleImplementation) LifecycleHook(
 	ctx context.Context,
 	request *lifecycle.OperatorLifecycleRequest,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
+	contextLogger := log.FromContext(ctx).WithName("lifecycle")
+	contextLogger.Info("Lifecycle hook reconciliation start")
 	operation := request.GetOperationType().GetType().Enum()
 	if operation == nil {
 		return nil, errors.New("no operation set")
@@ -83,8 +85,10 @@ func (impl LifecycleImplementation) LifecycleHook(
 
 	switch kind {
 	case "Pod":
+		contextLogger.Info("Reconciling pod")
 		return reconcilePod(ctx, &cluster, request, pluginConfiguration)
 	case "Job":
+		contextLogger.Info("Reconciling job")
 		return reconcileJob(ctx, &cluster, request, pluginConfiguration)
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", kind)
@@ -97,7 +101,9 @@ func reconcileJob(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
+	contextLogger := log.FromContext(ctx).WithName("lifecycle")
 	if !cluster.GetBootstrapRecoveryBackupUsePlugin() {
+		contextLogger.Debug("cluster does not use the plugin for recovery, skipping")
 		return nil, nil
 	}
 
@@ -109,11 +115,13 @@ func reconcileJob(
 		&job,
 		batchv1.SchemeGroupVersion.WithKind("Job"),
 	); err != nil {
+		contextLogger.Error(err, "failed to decode job")
 		return nil, err
 	}
 
-	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
+	contextLogger = log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
 		WithValues("jobName", job.Name)
+	contextLogger.Debug("starting job reconciliation")
 
 	if job.Spec.Template.Labels[utils.JobRoleLabelName] != "full-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
@@ -125,7 +133,7 @@ func reconcileJob(
 	if err := reconcilePodSpec(
 		pluginConfiguration,
 		cluster,
-		&job.Spec.Template.Spec,
+		&mutatedJob.Spec.Template.Spec,
 		"full-recovery",
 		corev1.Container{
 			Args: []string{"restore"},

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -44,7 +45,6 @@ func (e *ConfigurationError) IsEmpty() bool {
 // PluginConfiguration is the configuration of the plugin
 type PluginConfiguration struct {
 	BarmanObjectName string
-	BackupObjectName string
 }
 
 // NewFromCluster extracts the configuration from the cluster

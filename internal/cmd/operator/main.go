@@ -3,12 +3,14 @@ package operator
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator"
 )
 
+// NewCmd creates a new operator command
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "operator",

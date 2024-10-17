@@ -10,14 +10,13 @@ import (
 	"path"
 	"strings"
 
-	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
-	cnpgv1func "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
@@ -112,7 +111,7 @@ func (impl JobHookImpl) Restore(
 }
 
 // restoreDataDir restores PGDATA from an existing backup
-func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1func.Backup, env []string) error {
+func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backup, env []string) error {
 	var options []string
 
 	if backup.Status.EndpointURL != "" {
@@ -156,7 +155,7 @@ func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	env []string,
-	backup *cnpgv1func.Backup,
+	backup *cnpgv1.Backup,
 ) error {
 	// it's the full path of the file that will temporarily contain the LastCheckpointRedoWAL
 	const testWALPath = RecoveryTemporaryDirectory + "/test.wal"
@@ -255,8 +254,8 @@ func (impl *JobHookImpl) checkBackupDestination(
 
 func (impl JobHookImpl) loadBackup(
 	ctx context.Context,
-) (*cnpgv1func.Backup, []string, error) {
-	var backup cnpgv1func.Backup
+) (*cnpgv1.Backup, []string, error) {
+	var backup cnpgv1.Backup
 	err := impl.Client.Get(ctx, impl.BackupObjectKey, &backup)
 	if err != nil {
 		return nil, nil, err
@@ -323,7 +322,7 @@ func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 // getRestoreWalConfig obtains the content to append to `custom.conf` allowing PostgreSQL
 // to complete the WAL recovery from the object storage and then start
 // as a new primary
-func getRestoreWalConfig(ctx context.Context, backup *cnpgv1func.Backup) (string, error) {
+func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, error) {
 	var err error
 
 	cmd := []string{barmanCapabilities.BarmanCloudWalRestore}
@@ -353,7 +352,7 @@ func getRestoreWalConfig(ctx context.Context, backup *cnpgv1func.Backup) (string
 	return recoveryFileContents, nil
 }
 
-func getCredentials(backup *cnpgv1func.Backup) (api.BarmanCredentials, error) {
+func getCredentials(backup *cnpgv1.Backup) (api.BarmanCredentials, error) {
 	rawCred := backup.Status.PluginMetadata["credentials"]
 
 	var creds api.BarmanCredentials

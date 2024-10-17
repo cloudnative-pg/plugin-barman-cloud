@@ -2,18 +2,19 @@ package operator
 
 import (
 	"encoding/json"
+
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
+	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
-
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("LifecycleImplementation", func() {
@@ -150,8 +151,6 @@ var _ = Describe("LifecycleImplementation", func() {
 				request := &lifecycle.OperatorLifecycleRequest{
 					ObjectDefinition: jobJSON,
 				}
-
-				pluginConfiguration.BackupObjectName = ""
 
 				response, err := reconcileJob(ctx, cluster, request, pluginConfiguration)
 				Expect(err).NotTo(HaveOccurred())

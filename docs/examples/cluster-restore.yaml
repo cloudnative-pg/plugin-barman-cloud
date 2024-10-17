@@ -1,3 +1,5 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
 metadata:
   name: cluster-restore
 spec:
@@ -7,7 +9,7 @@ spec:
   bootstrap:
     recovery:
       backup:
-        name: backup-example
+        name: backup-example-2
         usePlugin: true
 
   plugins:

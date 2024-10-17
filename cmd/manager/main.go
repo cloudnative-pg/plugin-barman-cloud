@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/instance"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/operator"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/restore"
 	"os"
+
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/cobra"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/instance"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/operator"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/restore"
 )
 
 func main() {
