@@ -3,7 +3,6 @@ package operator
 import (
 	"context"
 
-	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
@@ -95,7 +94,7 @@ func (r ReconcilerImplementation) Pre(
 		}
 	}
 
-	var credentials []barmanapi.BarmanCredentials
+	var additionalSecretNames []string
 	if cluster.UsePluginForBootstrapRecoveryBackup() {
 		var backup cnpgv1.Backup
 		if err := r.Client.Get(ctx, client.ObjectKey{
@@ -104,13 +103,17 @@ func (r ReconcilerImplementation) Pre(
 		}, &backup); err != nil {
 			return nil, err
 		}
-		credential, err := common.GetCredentialsFromBackup(&backup)
+		credentials, err := common.GetCredentialsFromBackup(&backup)
 		if err != nil {
 			return nil, err
 		}
-		credentials = append(credentials, credential)
+		additionalSecretNames = append(additionalSecretNames, specs.CollectSecretNamesFromCredentials(&credentials)...)
+
+		if backup.Status.EndpointCA != nil {
+			additionalSecretNames = append(additionalSecretNames, backup.Status.EndpointCA.Name)
+		}
 	}
-	if err := r.ensureRole(ctx, &cluster, barmanObject, credentials); err != nil {
+	if err := r.ensureRole(ctx, &cluster, barmanObject, additionalSecretNames); err != nil {
 		return nil, err
 	}
 
@@ -138,10 +141,10 @@ func (r ReconcilerImplementation) ensureRole(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	barmanObject *barmancloudv1.ObjectStore,
-	credentials []barmanapi.BarmanCredentials,
+	additionalSecretNames []string,
 ) error {
 	contextLogger := log.FromContext(ctx)
-	newRole := specs.BuildRole(cluster, barmanObject, credentials)
+	newRole := specs.BuildRole(cluster, barmanObject, additionalSecretNames)
 
 	var role rbacv1.Role
 	if err := r.Client.Get(ctx, client.ObjectKey{

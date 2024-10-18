@@ -271,8 +271,8 @@ func (impl JobHookImpl) getBarmanEnvFromBackup(
 		impl.BackupToRestore.Namespace,
 		&api.BarmanObjectStoreConfiguration{
 			BarmanCredentials: creds,
-			EndpointCA:        backup.Status.EndpointCA,
 			EndpointURL:       backup.Status.EndpointURL,
+			EndpointCA:        backup.Status.EndpointCA,
 			DestinationPath:   backup.Status.DestinationPath,
 			ServerName:        backup.Status.ServerName,
 		},

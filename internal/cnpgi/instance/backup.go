@@ -136,22 +136,31 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
-	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
+	var endpointCA *backup.KeyName
+	if objectStore.Spec.Configuration.EndpointCA != nil {
+		endpointCA = &backup.KeyName{
+			Name: objectStore.Spec.Configuration.EndpointCA.Name,
+			Key:  objectStore.Spec.Configuration.EndpointCA.Key,
+		}
+	}
 
+	var encryption string
+	if objectStore.Spec.Configuration.Data != nil {
+		encryption = string(objectStore.Spec.Configuration.Data.Encryption)
+	}
+
+	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
 	return &backup.BackupResult{
-		BackupId:          executedBackupInfo.ID,
-		BackupName:        executedBackupInfo.BackupName,
-		StartedAt:         metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
-		StoppedAt:         metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
-		BeginWal:          executedBackupInfo.BeginWal,
-		EndWal:            executedBackupInfo.EndWal,
-		BeginLsn:          executedBackupInfo.BeginLSN,
-		EndLsn:            executedBackupInfo.EndLSN,
-		BackupLabelFile:   nil,
-		TablespaceMapFile: nil,
-		InstanceId:        b.InstanceName,
-		Online:            true,
-		ServerName:        objectStore.Name,
+		BackupId:   executedBackupInfo.ID,
+		BackupName: executedBackupInfo.BackupName,
+		StartedAt:  metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
+		StoppedAt:  metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
+		BeginWal:   executedBackupInfo.BeginWal,
+		EndWal:     executedBackupInfo.EndWal,
+		BeginLsn:   executedBackupInfo.BeginLSN,
+		EndLsn:     executedBackupInfo.EndLSN,
+		InstanceId: b.InstanceName,
+		Online:     true,
 		Metadata: map[string]string{
 			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
 			"version":     metadata.Data.Version,
@@ -160,5 +169,10 @@ func (b BackupServiceImplementation) Backup(
 			// TODO: is it safe?
 			"credentials": string(cred),
 		},
+		ServerName:      objectStore.Name,
+		EndpointUrl:     objectStore.Spec.Configuration.EndpointURL,
+		DestinationPath: objectStore.Spec.Configuration.DestinationPath,
+		EndpointCa:      endpointCA,
+		Encryption:      encryption,
 	}, nil
 }

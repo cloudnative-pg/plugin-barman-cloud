@@ -2,7 +2,6 @@ package specs
 
 import (
 	"fmt"
-	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	"github.com/cloudnative-pg/machinery/pkg/stringset"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -16,7 +15,7 @@ import (
 func BuildRole(
 	cluster *cnpgv1.Cluster,
 	barmanObject *barmancloudv1.ObjectStore,
-	credentials []barmanapi.BarmanCredentials,
+	additionalSecretNames []string,
 ) *rbacv1.Role {
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
@@ -47,15 +46,13 @@ func BuildRole(
 			},
 		})
 
-		for _, secret := range collectSecretNamesFromCredentials(&barmanObject.Spec.Configuration.BarmanCredentials) {
+		for _, secret := range CollectSecretNamesFromCredentials(&barmanObject.Spec.Configuration.BarmanCredentials) {
 			secretsSet.Put(secret)
 		}
 	}
 
-	for _, credential := range credentials {
-		for _, secret := range collectSecretNamesFromCredentials(&credential) {
-			secretsSet.Put(secret)
-		}
+	for _, secret := range additionalSecretNames {
+		secretsSet.Put(secret)
 	}
 
 	role.Rules = append(role.Rules, rbacv1.PolicyRule{

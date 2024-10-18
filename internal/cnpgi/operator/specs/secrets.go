@@ -5,7 +5,8 @@ import (
 	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
 )
 
-func collectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCredentials) []string {
+// CollectSecretNamesFromCredentials collects the names of the secrets
+func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCredentials) []string {
 	var references []*machineryapi.SecretKeySelector
 	if barmanCredentials.AWS != nil {
 		references = append(
