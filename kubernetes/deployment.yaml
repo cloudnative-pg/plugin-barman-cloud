@@ -18,6 +18,7 @@ spec:
       serviceAccountName: plugin-barman-cloud
       containers:
       - image: plugin-barman-cloud:latest
+        imagePullPolicy: IfNotPresent
         name: barman-cloud
         ports:
         - containerPort: 9090
@@ -29,11 +30,13 @@ spec:
               key: SIDECAR_IMAGE
               name: plugin-barman-cloud
         args:
+        - operator
         - --server-cert=/server/tls.crt
         - --server-key=/server/tls.key
         - --client-cert=/client/tls.crt
         - --server-address=:9090
         - --leader-elect
+        - --log-level=debug
         volumeMounts:
         - mountPath: /server
           name: server
