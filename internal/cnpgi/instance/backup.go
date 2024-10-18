@@ -151,6 +151,7 @@ func (b BackupServiceImplementation) Backup(
 		TablespaceMapFile: nil,
 		InstanceId:        b.InstanceName,
 		Online:            true,
+		ServerName:        objectStore.Name,
 		Metadata: map[string]string{
 			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
 			"version":     metadata.Data.Version,

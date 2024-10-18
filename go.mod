@@ -5,10 +5,9 @@ go 1.23
 toolchain go1.23.1
 
 require (
-	github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241017151552-20297270038b
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20241017140813-c7644f8a796f
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20241018100232-1122a7373e31
 	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241017094517-76870f5660ef
 	github.com/cloudnative-pg/machinery v0.0.0-20241010122207-5ac7af31ef72
 	github.com/onsi/ginkgo/v2 v2.20.2
@@ -31,6 +30,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect

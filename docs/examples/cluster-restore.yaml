@@ -9,7 +9,7 @@ spec:
   bootstrap:
     recovery:
       backup:
-        name: backup-example-2
+        name: backup-example
         usePlugin: true
 
   plugins:
