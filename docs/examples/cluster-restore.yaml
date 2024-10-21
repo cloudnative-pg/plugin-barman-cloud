@@ -1,0 +1,21 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-restore
+spec:
+  instances: 3
+  imagePullPolicy: IfNotPresent
+
+  bootstrap:
+    recovery:
+      backup:
+        name: backup-example
+        usePlugin: true
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+#      parameters:
+#        barmanObjectName: minio-store
+
+  storage:
+    size: 1Gi

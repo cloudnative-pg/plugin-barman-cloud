@@ -21,13 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-)
-
-const (
-	// CheckEmptyWalArchiveFile is the name of the file in the PGDATA that,
-	// if present, requires the WAL archiver to check that the backup object
-	// store is empty.
-	CheckEmptyWalArchiveFile = ".check-empty-wal-archive"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // WALServiceImplementation is the implementation of the WAL Service
@@ -95,7 +89,7 @@ func (w WALServiceImplementation) Archive(
 		envArchive,
 		w.SpoolDirectory,
 		w.PGDataPath,
-		path.Join(w.PGDataPath, CheckEmptyWalArchiveFile),
+		path.Join(w.PGDataPath, metadata.CheckEmptyWalArchiveFile),
 	)
 	if err != nil {
 		return nil, err
