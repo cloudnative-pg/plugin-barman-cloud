@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"os"
 	"os/exec"
 	"path"
@@ -19,6 +17,7 @@ import (
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
+	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
@@ -26,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -71,7 +71,11 @@ func (impl JobHookImpl) Restore(
 ) (*restore.RestoreResponse, error) {
 	contextLogger := log.FromContext(ctx)
 	var cluster cnpgv1.Cluster
-	if err := decoder.DecodeObject(req.GetClusterDefinition(), &cluster, cnpgv1.GroupVersion.WithKind("Cluster")); err != nil {
+	if err := decoder.DecodeObject(
+		req.GetClusterDefinition(),
+		&cluster,
+		cnpgv1.GroupVersion.WithKind("Cluster"),
+	); err != nil {
 		return nil, err
 	}
 	// Before starting the restore we check if the archive destination is safe to use
@@ -82,7 +86,11 @@ func (impl JobHookImpl) Restore(
 
 	var backup cnpgv1.Backup
 
-	if err := decoder.DecodeObject(req.GetBackupDefinition(), &backup, cnpgv1.GroupVersion.WithKind("Backup")); err != nil {
+	if err := decoder.DecodeObject(
+		req.GetBackupDefinition(),
+		&backup,
+		cnpgv1.GroupVersion.WithKind("Backup"),
+	); err != nil {
 		return nil, err
 	}
 
