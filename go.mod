@@ -7,7 +7,7 @@ toolchain go1.23.1
 require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20240924124724-92831d48562a
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241017151552-20297270038b
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20241018104538-7f169c24d7a8
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20241021130537-c4a74d755f0a
 	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241017094517-76870f5660ef
 	github.com/cloudnative-pg/machinery v0.0.0-20241010122207-5ac7af31ef72
 	github.com/onsi/ginkgo/v2 v2.20.2
