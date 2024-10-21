@@ -8,6 +8,7 @@ import (
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 )
 
+// GetCredentialsFromBackup extracts the Barman credentials from the backup
 func GetCredentialsFromBackup(backup *cnpgv1.Backup) (barmanapi.BarmanCredentials, error) {
 	rawCred := backup.Status.PluginMetadata["credentials"]
 
