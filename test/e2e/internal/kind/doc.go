@@ -14,17 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
-
-import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-)
-
-// const namespace = "plugin-barman-cloud-system"
-
-var _ = Describe("controller", Ordered, func() {
-	It("passes", func() {
-		Expect(true).To(BeTrue())
-	})
-})
+// Package kind provides utilities for ensuring the presence and correct version of the Kind binary,
+// as well as functions for installing and managing the Kind binary in a local project.
+package kind
