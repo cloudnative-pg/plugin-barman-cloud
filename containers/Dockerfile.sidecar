@@ -8,7 +8,7 @@
 # pip will build everything inside /usr/ since this is the case
 # we should build and then copy every file into a destination that will
 # then copy into the distroless container
-FROM python:3.12.7-slim AS pythonbuilder
+FROM python:3.12-slim AS pythonbuilder
 RUN apt-get update && \
     apt-get install -y postgresql-common build-essential && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 # Joint process
 # Now we put everything that was build from the origin into our
 # distroless container
-FROM gcr.io/distroless/python3:debug
+FROM gcr.io/distroless/python3-debian12:nonroot
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
     DESCRIPTION="Container image that provides the barman-cloud sidecar"
