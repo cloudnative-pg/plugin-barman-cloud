@@ -1,5 +1,5 @@
 # Sidecar
-# The container needs to provides and build two components:
+# The container needs to provide and build two components:
 # * barman-cloud
 # * instance plugin
 # Both components are built before going into a distroless container
@@ -16,7 +16,7 @@ RUN apt-get update && \
     pip install barman[azure,cloud,google,snappy]==3.11.1 setuptools
 # Prepare a new /usr/ directory with the files we'll need in the final image
 RUN mkdir /new-usr/ && \
-    cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ \
+    cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
     /new-usr/
 
 # Build instance
@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 FROM gcr.io/distroless/python3:debug
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
-    DESCRIPTION="Container image that provides the barman-cloud sidecar" \
+    DESCRIPTION="Container image that provides the barman-cloud sidecar"
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \
