@@ -336,7 +336,15 @@ func InjectPluginSidecarPodSpec(
 		if spec.Containers[i].Name == mainContainerName {
 			volumeMounts = spec.Containers[i].VolumeMounts
 			mainContainerFound = true
-		} else if spec.Containers[i].Name == sidecar.Name {
+		}
+	}
+
+	if !mainContainerFound {
+		return errors.New("main container not found")
+	}
+
+	for i := range spec.InitContainers {
+		if spec.InitContainers[i].Name == sidecar.Name {
 			sidecarContainerFound = true
 		}
 	}
@@ -344,10 +352,6 @@ func InjectPluginSidecarPodSpec(
 	if sidecarContainerFound {
 		// The sidecar container was already added
 		return nil
-	}
-
-	if !mainContainerFound {
-		return errors.New("main container not found")
 	}
 
 	// Do not modify the passed sidecar definition
