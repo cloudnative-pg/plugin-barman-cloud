@@ -127,12 +127,12 @@ tasks:
       - >
         dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64,linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
         dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64,linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
   manifest:

@@ -27,8 +27,7 @@ ENV CGO_ENABLED=0
 COPY .. /src
 ARG TARGETOS
 ARG TARGETARCH
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -C /src -o /build/instance /src/cmd/instance/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -C /src -o /build/instance /src/cmd/instance/main.go
 
 # Joint process
 # Now we put everything that was build from the origin into our
