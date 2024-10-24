@@ -17,7 +17,7 @@ tasks:
     desc: Run spellcheck
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+      DAGGER_SPELLCHECK_SHA: 43d78311e8d9f7f3985a103fdd7dab26bf9c5735
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -31,7 +31,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+      DAGGER_COMMITLINT_SHA: 43d78311e8d9f7f3985a103fdd7dab26bf9c5735
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -41,7 +41,7 @@ tasks:
     desc: Check for uncommitted changes
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: 5f99d3a96134f1a4cca9384b7367f0c8c23abd63
+      DAGGER_UNCOMMITTED_SHA: 43d78311e8d9f7f3985a103fdd7dab26bf9c5735
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
