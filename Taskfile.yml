@@ -66,15 +66,31 @@ tasks:
     sources:
       - ./**/*.go
 
-  build-image:
-    desc: Build a container image for the plugin
+  build-plugin-image:
+    desc: Build the operator container image for the plugin
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: d7438770bfab8844a89c2923b9e2942e78de5239
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        build --dir . --platform linux/amd64 image > /dev/null
+        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64 image > /dev/null
+
+  build-sidecar-image:
+    desc: Build the sidecar container image for the plugin
+    env:
+      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
+      DAGGER_DOCKER_SHA: d7438770bfab8844a89c2923b9e2942e78de5239
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 image > /dev/null
+
+  build-images:
+    desc: Build the container images for the plugin
+    deps:
+      - build-plugin-image
+      - build-sidecar-image
 
   ci:
     desc: Run the CI pipeline
@@ -84,7 +100,7 @@ tasks:
       - uncommitted
       - lint
       - go-test
-      - build-image
+      - build-images
 
   publish:
     desc: Build and publish a container image for the plugin
@@ -99,7 +115,8 @@ tasks:
         - REGISTRY_USER
         - REGISTRY_PASSWORD
     vars:
-      IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      PLUGIN_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
@@ -110,8 +127,13 @@ tasks:
       - >
         dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --platform linux/amd64
-        publish --ref {{.IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
+        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64 --platform linux/arm64
+        publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
+      - >
+        dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
+        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 --platform linux/arm64
+        publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
   manifest:
     desc: Update the image in the Kustomization

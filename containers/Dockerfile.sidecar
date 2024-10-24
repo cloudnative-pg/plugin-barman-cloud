@@ -1,0 +1,54 @@
+# Sidecar
+# The container needs to provide and build two components:
+# * barman-cloud
+# * instance plugin
+# Both components are built before going into a distroless container
+
+# Build barman-cloud
+# pip will build everything inside /usr/ since this is the case
+# we should build and then copy every file into a destination that will
+# then copy into the distroless container
+FROM python:3.12-slim AS pythonbuilder
+RUN apt-get update && \
+    apt-get install -y postgresql-common build-essential && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y libpq-dev && \
+    pip install barman[azure,cloud,google,snappy]==3.11.1 setuptools
+# Prepare a new /usr/ directory with the files we'll need in the final image
+RUN mkdir /new-usr/ && \
+    cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
+    /new-usr/
+
+# Build instance
+# This step builds a simple instance app that will manage and handle
+# the barman-cloud commands inside the sidecar
+FROM --platform=$BUILDPLATFORM golang:1.23.1 AS gobuilder
+ENV CGO_ENABLED=0
+COPY .. /src
+ARG TARGETOS
+ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH go build -C /src -o /build/instance /src/cmd/instance/main.go
+
+# Joint process
+# Now we put everything that was build from the origin into our
+# distroless container
+FROM gcr.io/distroless/python3-debian12:nonroot
+
+ENV SUMMARY="CloudNativePG Barman plugin" \
+    DESCRIPTION="Container image that provides the barman-cloud sidecar"
+
+LABEL summary="$SUMMARY" \
+      description="$DESCRIPTION" \
+      io.k8s.display-name="$SUMMARY" \
+      io.k8s.description="$DESCRIPTION" \
+      name="CloudNativePG Barman plugin sidecar" \
+      vendor="CloudNativePG Contributors" \
+      url="https://cloudnative-pg.io/" \
+      version="" \
+      release="1"
+
+COPY --from=pythonbuilder /new-usr/* /usr/
+COPY --from=gobuilder /build/instance /usr/local/bin/instance
+USER 26:26
+ENTRYPOINT ["/usr/local/bin/instance"]
