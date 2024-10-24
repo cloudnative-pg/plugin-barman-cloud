@@ -70,7 +70,7 @@ tasks:
     desc: Build the operator container image for the plugin
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: d7438770bfab8844a89c2923b9e2942e78de5239
+      DAGGER_DOCKER_SHA: 4778f39b9cf56e0242c124000a563f9486dafa4b
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
@@ -80,7 +80,7 @@ tasks:
     desc: Build the sidecar container image for the plugin
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: d7438770bfab8844a89c2923b9e2942e78de5239
+      DAGGER_DOCKER_SHA: 4778f39b9cf56e0242c124000a563f9486dafa4b
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
@@ -122,7 +122,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: d7438770bfab8844a89c2923b9e2942e78de5239
+      DAGGER_DOCKER_SHA: 4778f39b9cf56e0242c124000a563f9486dafa4b
     cmds:
       - >
         dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
