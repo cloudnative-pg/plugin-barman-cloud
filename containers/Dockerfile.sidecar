@@ -22,7 +22,7 @@ RUN mkdir /new-usr/ && \
 # Build instance
 # This step builds a simple instance app that will manage and handle
 # the barman-cloud commands inside the sidecar
-FROM --platform=$BUILDPLATFORM golang:1.23.1 AS gobuilder
+FROM --platform=$BUILDPLATFORM golang:1.23.2 AS gobuilder
 ENV CGO_ENABLED=0
 COPY .. /src
 ARG TARGETOS
