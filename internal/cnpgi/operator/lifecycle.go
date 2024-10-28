@@ -231,8 +231,8 @@ func reconcilePodSpec(
 	sidecarConfig.Name = "plugin-barman-cloud"
 	sidecarConfig.Image = viper.GetString("sidecar-image")
 	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
-	sidecarConfig.Command= []string{
-		"/usr/local/bin/instance",
+	sidecarConfig.Command = []string{
+		"/manager",
 	}
 
 	// merge the main container envs if they aren't already set
