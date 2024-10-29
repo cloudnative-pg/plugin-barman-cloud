@@ -17,16 +17,19 @@ limitations under the License.
 package kustomize
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"log"
 
 	"gopkg.in/yaml.v3"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
+	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
@@ -39,18 +42,10 @@ type ApplyKustomizationOptions struct {
 // ApplyKustomizationOption is a functional option for ApplyKustomization
 type ApplyKustomizationOption func(*ApplyKustomizationOptions)
 
-// WithIgnoreExistingResources sets the ignore existing option
-func WithIgnoreExistingResources(ignore bool) ApplyKustomizationOption {
-	return func(opts *ApplyKustomizationOptions) {
-		opts.IgnoreExistingResources = ignore
-	}
-}
-
 // ApplyKustomization builds the kustomization and creates the resources
 func ApplyKustomization(
 	ctx context.Context,
 	cl client.Client,
-	scheme *runtime.Scheme,
 	kustomization *types.Kustomization,
 	options ...ApplyKustomizationOption,
 ) error {
@@ -85,34 +80,60 @@ func ApplyKustomization(
 		return fmt.Errorf("failed to run kustomize: %w", err)
 	}
 
-	codecs := serializer.NewCodecFactory(scheme)
-	deserializer := codecs.UniversalDeserializer()
+	return applyResourceMap(ctx, cl, resourceMap)
+}
 
-	// Apply the resources
-	for _, res := range resourceMap.Resources() {
-		resJSON, err := res.MarshalJSON()
-		if err != nil {
-			return fmt.Errorf("failed to convert resource map to yaml: %w", err)
+func applyResourceMap(ctx context.Context, cl client.Client, resourceMap resmap.ResMap) error {
+	yamlBytes, err := resourceMap.AsYaml()
+	if err != nil {
+		return fmt.Errorf("failed to convert resources to YAML: %w", err)
+	}
+	r := bytes.NewReader(yamlBytes)
+	dec := yaml.NewDecoder(r)
+	for {
+		// parse the YAML doc
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		err := dec.Decode(obj.Object)
+		if errors.Is(err, io.EOF) {
+			break
 		}
-
-		obj, _, err := deserializer.Decode(resJSON, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to decode resource: %w", err)
+			return fmt.Errorf("could not decode object: %w", err)
 		}
-		// TODO: review
-		unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-		if err != nil {
-			return fmt.Errorf("failed to convert object to unstructured: %w", err)
+		if obj.Object == nil {
+			continue
 		}
-		u := &unstructured.Unstructured{Object: unstructuredObj}
-
-		if err := cl.Create(ctx, u); err != nil {
-			if errors.IsAlreadyExists(err) && opts.IgnoreExistingResources {
-				continue
-			}
-			return fmt.Errorf("failed to apply resource: %w", err)
+		if err := applyResource(ctx, cl, obj); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+func applyResource(ctx context.Context, cl client.Client, obj *unstructured.Unstructured) error {
+	if err := cl.Create(ctx, obj); err != nil {
+		if apimachineryerrors.IsAlreadyExists(err) {
+			// If the resource already exists, retrieve the existing resource
+			existing := &unstructured.Unstructured{}
+			existing.SetGroupVersionKind(obj.GroupVersionKind())
+			key := client.ObjectKey{
+				Namespace: obj.GetNamespace(),
+				Name:      obj.GetName(),
+			}
+			if err := cl.Get(ctx, key, existing); err != nil {
+				log.Fatalf("Error getting existing resource: %v", err)
+			}
+
+			// Update the existing resource with the new data
+			obj.SetResourceVersion(existing.GetResourceVersion())
+			err = cl.Update(ctx, obj)
+			if err != nil {
+				return fmt.Errorf("error updating resource: %v", err)
+			}
+		} else {
+			return fmt.Errorf("error creating resource: %v", err)
+		}
+	}
 	return nil
 }

@@ -94,11 +94,7 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 		Fail(fmt.Sprintf("failed to add cert-manager.io/v1 to scheme: %v", err))
 	}
 
-	if err := kustomize.ApplyKustomization(ctx,
-		cl,
-		scheme,
-		barmanCloudKustomization,
-		kustomize.WithIgnoreExistingResources(false)); err != nil {
+	if err := kustomize.ApplyKustomization(ctx, cl, barmanCloudKustomization); err != nil {
 		Fail(fmt.Sprintf("failed to apply kustomization: %v", err))
 	}
 	const defaultTimeout = 1 * time.Minute

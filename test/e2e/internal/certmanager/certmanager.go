@@ -21,12 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	types2 "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/types"
@@ -84,13 +78,7 @@ func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error
 	}
 
 	// Add all the resources defined in the cert-manager manifests
-	scheme, err := setupScheme()
-	if err != nil {
-		return err
-	}
-
-	if err := kustomize.ApplyKustomization(ctx, cl, scheme, kustomization,
-		kustomize.WithIgnoreExistingResources(options.IgnoreExistResources)); err != nil {
+	if err := kustomize.ApplyKustomization(ctx, cl, kustomization); err != nil {
 		return fmt.Errorf("failed to apply kustomization: %w", err)
 	}
 
@@ -115,25 +103,4 @@ func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error
 	}
 
 	return nil
-}
-
-func setupScheme() (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
-	if err := corev1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add core/v1 to scheme: %w", err)
-	}
-	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add apiextensions/v1 to scheme: %w", err)
-	}
-	if err := admissionregistrationv1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add admissionregistration/v1 to scheme: %w", err)
-	}
-	if err := rbacv1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add rbac/v1 to scheme: %w", err)
-	}
-	if err := appsv1.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add apps/v1 to scheme: %w", err)
-	}
-
-	return scheme, nil
 }
