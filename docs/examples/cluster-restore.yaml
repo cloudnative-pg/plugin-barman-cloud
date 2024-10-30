@@ -8,14 +8,15 @@ spec:
 
   bootstrap:
     recovery:
-      backup:
-        name: backup-example
-        usePlugin: true
+      source: source
 
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-#      parameters:
-#        barmanObjectName: minio-store
+  externalClusters:
+  - name: source
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: minio-store
+        serverName: cluster-example
 
   storage:
     size: 1Gi

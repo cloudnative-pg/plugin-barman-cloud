@@ -9,7 +9,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
@@ -34,17 +33,31 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	BeforeEach(func() {
 		pluginConfiguration = &config.PluginConfiguration{
-			BarmanObjectName: "barman-object",
+			BarmanObjectName: "minio-store-dest",
 		}
 		cluster = &cnpgv1.Cluster{
 			Spec: cnpgv1.ClusterSpec{
 				Bootstrap: &cnpgv1.BootstrapConfiguration{
 					Recovery: &cnpgv1.BootstrapRecovery{
-						Backup: &cnpgv1.BackupSource{
-							LocalObjectReference: cnpgv1.LocalObjectReference{
-								Name: "backup-object",
+						Source: "origin-server",
+					},
+				},
+				ExternalClusters: []cnpgv1.ExternalCluster{
+					{
+						Name: "origin-server",
+						PluginConfiguration: &cnpgv1.PluginConfiguration{
+							Name: "barman-cloud.cloudnative-pg.io",
+							Parameters: map[string]string{
+								"barmanObjectName": "minio-store-source",
 							},
-							UsePlugin: ptr.To(true),
+						},
+					},
+				},
+				Plugins: cnpgv1.PluginConfigurationList{
+					{
+						Name: "barman-cloud.cloudnative-pg.io",
+						Parameters: map[string]string{
+							"barmanObjectName": "minio-store-dest",
 						},
 					},
 				},
@@ -180,8 +193,9 @@ var _ = Describe("LifecycleImplementation", func() {
 			err = json.Unmarshal(response.JsonPatch, &patch)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(patch).To(ContainElement(HaveKeyWithValue("op", "add")))
-			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/containers/1")))
-			Expect(patch).To(ContainElement(HaveKeyWithValue("value", HaveKeyWithValue("name", "plugin-barman-cloud"))))
+			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/initContainers")))
+			Expect(patch).To(ContainElement(
+				HaveKey("value")))
 		})
 
 		It("returns an error for invalid pod definition", func(ctx SpecContext) {

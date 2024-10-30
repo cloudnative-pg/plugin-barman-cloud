@@ -14,7 +14,7 @@ import (
 // BuildRole builds the Role object for this cluster
 func BuildRole(
 	cluster *cnpgv1.Cluster,
-	barmanObject *barmancloudv1.ObjectStore,
+	barmanObjects []barmancloudv1.ObjectStore,
 	additionalSecretNames []string,
 ) *rbacv1.Role {
 	role := &rbacv1.Role{
@@ -27,8 +27,7 @@ func BuildRole(
 	}
 
 	secretsSet := stringset.New()
-	// TODO: we should handle removals too?
-	if barmanObject != nil {
+	for _, barmanObject := range barmanObjects {
 		role.Rules = append(role.Rules, rbacv1.PolicyRule{
 			APIGroups: []string{
 				"barmancloud.cnpg.io",

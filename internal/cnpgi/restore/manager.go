@@ -32,9 +32,7 @@ func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
 	namespace := viper.GetString("namespace")
-	archiveConfiguration := viper.GetString("barman-archive-configuration")
 	clusterName := viper.GetString("cluster-name")
-	backupToRestoreName := viper.GetString("backup-to-restore")
 
 	objs := map[client.Object]cache.ByObject{
 		&cnpgv1.Cluster{}: {
@@ -43,20 +41,6 @@ func Start(ctx context.Context) error {
 				namespace: {},
 			},
 		},
-		&cnpgv1.Backup{}: {
-			Field: fields.OneTermEqualSelector("metadata.name", backupToRestoreName),
-			Namespaces: map[string]cache.Config{
-				namespace: {},
-			},
-		},
-	}
-	if archiveConfiguration != "" {
-		objs[&barmancloudv1.ObjectStore{}] = cache.ByObject{
-			Field: fields.OneTermEqualSelector("metadata.name", archiveConfiguration),
-			Namespaces: map[string]cache.Config{
-				namespace: {},
-			},
-		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -68,6 +52,7 @@ func Start(ctx context.Context) error {
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
 					&corev1.Secret{},
+					&barmancloudv1.ObjectStore{},
 				},
 			},
 		},
@@ -80,17 +65,9 @@ func Start(ctx context.Context) error {
 	if err := mgr.Add(&CNPGI{
 		PluginPath:     viper.GetString("plugin-path"),
 		SpoolDirectory: viper.GetString("spool-directory"),
-		ArchiveConfiguration: client.ObjectKey{
-			Namespace: namespace,
-			Name:      archiveConfiguration,
-		},
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
-		},
-		BackupToRestoreObjectKey: client.ObjectKey{
-			Namespace: namespace,
-			Name:      backupToRestoreName,
 		},
 		Client:     mgr.GetClient(),
 		PGDataPath: viper.GetString("pgdata"),

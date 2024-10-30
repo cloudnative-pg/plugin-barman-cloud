@@ -11,13 +11,11 @@ import (
 
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
-	PluginPath               string
-	SpoolDirectory           string
-	ArchiveConfiguration     client.ObjectKey
-	ClusterObjectKey         client.ObjectKey
-	BackupToRestoreObjectKey client.ObjectKey
-	Client                   client.Client
-	PGDataPath               string
+	PluginPath       string
+	SpoolDirectory   string
+	ClusterObjectKey client.ObjectKey
+	Client           client.Client
+	PGDataPath       string
 }
 
 // Start starts the GRPC service
@@ -29,11 +27,9 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		restore.RegisterRestoreJobHooksServer(server, &JobHookImpl{
 			Client:               c.Client,
 			ClusterObjectKey:     c.ClusterObjectKey,
-			BackupToRestore:      c.BackupToRestoreObjectKey,
 			SpoolDirectory:       c.SpoolDirectory,
 			PgDataPath:           c.PGDataPath,
 			PgWalFolderToSymlink: PgWalVolumePgWalPath,
-			ArchiveConfiguration: c.ArchiveConfiguration,
 		})
 		return nil
 	}

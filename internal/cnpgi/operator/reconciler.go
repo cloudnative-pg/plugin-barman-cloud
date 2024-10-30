@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
@@ -75,14 +75,16 @@ func (r ReconcilerImplementation) Pre(
 	pluginConfiguration := config.NewFromCluster(&cluster)
 
 	contextLogger.Debug("parsing barman object configuration")
-	var barmanObject *barmancloudv1.ObjectStore
+
+	var barmanObjects []barmancloudv1.ObjectStore
+
 	// this could be empty during recoveries
 	if pluginConfiguration.BarmanObjectName != "" {
-		barmanObject = &barmancloudv1.ObjectStore{}
+		var barmanObject barmancloudv1.ObjectStore
 		if err := r.Client.Get(ctx, client.ObjectKey{
 			Namespace: cluster.Namespace,
 			Name:      pluginConfiguration.BarmanObjectName,
-		}, barmanObject); err != nil {
+		}, &barmanObject); err != nil {
 			if apierrs.IsNotFound(err) {
 				contextLogger.Info("barman object configuration not found, requeuing")
 				return &reconciler.ReconcilerHooksResult{
@@ -92,28 +94,23 @@ func (r ReconcilerImplementation) Pre(
 
 			return nil, err
 		}
+
+		barmanObjects = append(barmanObjects, barmanObject)
+	}
+
+	if barmanObject, err := r.getRecoveryBarmanObject(ctx, &cluster); err != nil {
+		if apierrs.IsNotFound(err) {
+			contextLogger.Info("barman recovery object configuration not found, requeuing")
+			return &reconciler.ReconcilerHooksResult{
+				Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+			}, nil
+		}
+	} else if barmanObject != nil {
+		barmanObjects = append(barmanObjects, *barmanObject)
 	}
 
 	var additionalSecretNames []string
-	if cluster.UsePluginForBootstrapRecoveryBackup() {
-		var backup cnpgv1.Backup
-		if err := r.Client.Get(ctx, client.ObjectKey{
-			Namespace: cluster.Namespace,
-			Name:      cluster.Spec.Bootstrap.Recovery.Backup.Name,
-		}, &backup); err != nil {
-			return nil, err
-		}
-		credentials, err := common.GetCredentialsFromBackup(&backup)
-		if err != nil {
-			return nil, err
-		}
-		additionalSecretNames = append(additionalSecretNames, specs.CollectSecretNamesFromCredentials(&credentials)...)
-
-		if backup.Status.EndpointCA != nil {
-			additionalSecretNames = append(additionalSecretNames, backup.Status.EndpointCA.Name)
-		}
-	}
-	if err := r.ensureRole(ctx, &cluster, barmanObject, additionalSecretNames); err != nil {
+	if err := r.ensureRole(ctx, &cluster, barmanObjects, additionalSecretNames); err != nil {
 		return nil, err
 	}
 
@@ -125,6 +122,30 @@ func (r ReconcilerImplementation) Pre(
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
 	}, nil
+}
+
+func (r ReconcilerImplementation) getRecoveryBarmanObject(
+	ctx context.Context,
+	cluster *cnpgv1.Cluster,
+) (*barmancloudv1.ObjectStore, error) {
+	recoveryConfig := cluster.GetRecoverySourcePlugin()
+	if recoveryConfig != nil && recoveryConfig.Name == metadata.PluginName {
+		// TODO: refactor -> cnpg-i-machinery should be able to help us on getting
+		// the configuration for a recovery plugin
+		if recoveryObjectStore, ok := recoveryConfig.Parameters["barmanObjectName"]; ok {
+			var barmanObject barmancloudv1.ObjectStore
+			if err := r.Client.Get(ctx, client.ObjectKey{
+				Namespace: cluster.Namespace,
+				Name:      recoveryObjectStore,
+			}, &barmanObject); err != nil {
+				return nil, err
+			}
+
+			return &barmanObject, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // Post implements the reconciler interface
@@ -140,11 +161,11 @@ func (r ReconcilerImplementation) Post(
 func (r ReconcilerImplementation) ensureRole(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
-	barmanObject *barmancloudv1.ObjectStore,
+	barmanObjects []barmancloudv1.ObjectStore,
 	additionalSecretNames []string,
 ) error {
 	contextLogger := log.FromContext(ctx)
-	newRole := specs.BuildRole(cluster, barmanObject, additionalSecretNames)
+	newRole := specs.BuildRole(cluster, barmanObjects, additionalSecretNames)
 
 	var role rbacv1.Role
 	if err := r.Client.Get(ctx, client.ObjectKey{

@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
@@ -103,12 +104,10 @@ func reconcileJob(
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	contextLogger := log.FromContext(ctx).WithName("lifecycle")
-	if !cluster.UsePluginForBootstrapRecoveryBackup() {
-		contextLogger.Debug("cluster does not use the plugin for recovery, skipping")
+	if pluginConfig := cluster.GetRecoverySourcePlugin(); pluginConfig == nil || pluginConfig.Name != metadata.PluginName {
+		contextLogger.Debug("cluster does not use the this plugin for recovery, skipping")
 		return nil, nil
 	}
-
-	backupSource := cluster.Spec.Bootstrap.Recovery.Backup
 
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
@@ -138,12 +137,6 @@ func reconcileJob(
 		"full-recovery",
 		corev1.Container{
 			Args: []string{"restore"},
-			Env: []corev1.EnvVar{
-				{
-					Name:  "BACKUP_TO_RESTORE",
-					Value: backupSource.Name,
-				},
-			},
 		},
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
@@ -231,9 +224,6 @@ func reconcilePodSpec(
 	sidecarConfig.Name = "plugin-barman-cloud"
 	sidecarConfig.Image = viper.GetString("sidecar-image")
 	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
-	sidecarConfig.Command = []string{
-		"/manager",
-	}
 
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {

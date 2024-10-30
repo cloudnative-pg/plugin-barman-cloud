@@ -12,6 +12,7 @@ import (
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
+	barmanCatalog "github.com/cloudnative-pg/barman-cloud/pkg/catalog"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
@@ -22,10 +23,11 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -44,7 +46,6 @@ type JobHookImpl struct {
 	Client               client.Client
 	ClusterObjectKey     client.ObjectKey
 	BackupToRestore      client.ObjectKey
-	ArchiveConfiguration client.ObjectKey
 	SpoolDirectory       string
 	PgDataPath           string
 	PgWalFolderToSymlink string
@@ -78,32 +79,70 @@ func (impl JobHookImpl) Restore(
 	); err != nil {
 		return nil, err
 	}
-	// Before starting the restore we check if the archive destination is safe to use
-	// otherwise, we stop creating the cluster
-	if err := impl.checkBackupDestination(ctx, &cluster); err != nil {
+
+	recoveryPluginConfiguration := cluster.GetRecoverySourcePlugin()
+
+	var recoveryObjectStore barmancloudv1.ObjectStore
+	if err := impl.Client.Get(ctx, types.NamespacedName{
+		Namespace: cluster.Namespace,
+		// TODO: refactor -> cnpg-i-machinery should be able to help us on getting
+		// the configuration for a recovery plugin
+		Name: recoveryPluginConfiguration.Parameters["barmanObjectName"],
+	}, &recoveryObjectStore); err != nil {
 		return nil, err
 	}
 
-	var backup cnpgv1.Backup
-
-	if err := decoder.DecodeObject(
-		req.GetBackupDefinition(),
-		&backup,
-		cnpgv1.GroupVersion.WithKind("Backup"),
-	); err != nil {
-		return nil, err
+	var targetObjectStoreName types.NamespacedName
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			targetObjectStoreName = types.NamespacedName{
+				Namespace: cluster.Namespace,
+				Name:      plugin.Parameters["barmanObjectName"],
+			}
+		}
 	}
 
-	env, err := impl.getBarmanEnvFromBackup(ctx, &backup)
+	var targetObjectStore barmancloudv1.ObjectStore
+	if targetObjectStoreName.Name != "" {
+		if err := impl.Client.Get(ctx, targetObjectStoreName, &targetObjectStore); err != nil {
+			return nil, err
+		}
+	}
+
+	// Before starting the restore we check if the archive destination is safe to use,
+	// otherwise we stop creating the cluster
+	if targetObjectStoreName.Name != "" {
+		if err := impl.checkBackupDestination(ctx, &cluster, &targetObjectStore.Spec.Configuration); err != nil {
+			return nil, err
+		}
+	}
+
+	// Detect the backup to recover
+	backup, env, err := loadBackupObjectFromExternalCluster(
+		ctx,
+		impl.Client,
+		&cluster,
+		&recoveryObjectStore.Spec.Configuration,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := impl.ensureArchiveContainsLastCheckpointRedoWAL(ctx, &cluster, env, &backup); err != nil {
+	if err := impl.ensureArchiveContainsLastCheckpointRedoWAL(
+		ctx,
+		env,
+		backup,
+		&recoveryObjectStore.Spec.Configuration,
+	); err != nil {
 		return nil, err
 	}
 
-	if err := impl.restoreDataDir(ctx, &backup, env); err != nil {
+	if err := impl.restoreDataDir(
+		ctx,
+		backup,
+		env,
+		&recoveryObjectStore.Spec.Configuration,
+	); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +152,7 @@ func (impl JobHookImpl) Restore(
 		}
 	}
 
-	config, err := getRestoreWalConfig(ctx, &backup)
+	config, err := getRestoreWalConfig(ctx, backup, &recoveryObjectStore.Spec.Configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +165,12 @@ func (impl JobHookImpl) Restore(
 }
 
 // restoreDataDir restores PGDATA from an existing backup
-func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backup, env []string) error {
+func (impl JobHookImpl) restoreDataDir(
+	ctx context.Context,
+	backup *cnpgv1.Backup,
+	env []string,
+	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
+) error {
 	var options []string
 
 	if backup.Status.EndpointURL != "" {
@@ -136,11 +180,7 @@ func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backu
 	options = append(options, backup.Status.ServerName)
 	options = append(options, backup.Status.BackupID)
 
-	creds, err := common.GetCredentialsFromBackup(backup)
-	if err != nil {
-		return err
-	}
-	options, err = barmanCommand.AppendCloudProviderOptionsFromBackup(ctx, options, creds)
+	options, err := barmanCommand.AppendCloudProviderOptionsFromConfiguration(ctx, options, barmanConfiguration)
 	if err != nil {
 		return err
 	}
@@ -168,9 +208,9 @@ func (impl JobHookImpl) restoreDataDir(ctx context.Context, backup *cnpgv1.Backu
 
 func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 	ctx context.Context,
-	cluster *cnpgv1.Cluster,
 	env []string,
 	backup *cnpgv1.Backup,
+	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
 ) error {
 	// it's the full path of the file that will temporarily contain the LastCheckpointRedoWAL
 	const testWALPath = RecoveryTemporaryDirectory + "/test.wal"
@@ -191,17 +231,7 @@ func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 		return err
 	}
 
-	creds, err := common.GetCredentialsFromBackup(backup)
-	if err != nil {
-		return err
-	}
-	opts, err := barmanCommand.CloudWalRestoreOptions(ctx, &api.BarmanObjectStoreConfiguration{
-		BarmanCredentials: creds,
-		EndpointCA:        backup.Status.EndpointCA,
-		EndpointURL:       backup.Status.EndpointURL,
-		DestinationPath:   backup.Status.DestinationPath,
-		ServerName:        backup.Status.ServerName,
-	}, cluster.Name)
+	opts, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, backup.Status.ServerName)
 	if err != nil {
 		return err
 	}
@@ -216,21 +246,13 @@ func (impl JobHookImpl) ensureArchiveContainsLastCheckpointRedoWAL(
 func (impl *JobHookImpl) checkBackupDestination(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
+	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
 ) error {
-	if impl.ArchiveConfiguration.Name == "" {
-		return nil
-	}
-
-	var barmanObj barmancloudv1.ObjectStore
-	if err := impl.Client.Get(ctx, impl.ArchiveConfiguration, &barmanObj); err != nil {
-		return err
-	}
-
 	// Get environment from cache
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(ctx,
 		impl.Client,
-		barmanObj.Namespace,
-		&barmanObj.Spec.Configuration,
+		cluster.Namespace,
+		barmanConfiguration,
 		os.Environ())
 	if err != nil {
 		return fmt.Errorf("can't get credentials for cluster %v: %w", cluster.Name, err)
@@ -251,9 +273,19 @@ func (impl *JobHookImpl) checkBackupDestination(
 		return fmt.Errorf("while creating the archiver: %w", err)
 	}
 
+	// TODO: refactor this code elsewhere
+	serverName := cluster.Name
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
+				serverName = pluginServerName
+			}
+		}
+	}
+
 	// Get WAL archive options
 	checkWalOptions, err := walArchiver.BarmanCloudCheckWalArchiveOptions(
-		ctx, &barmanObj.Spec.Configuration, barmanObj.Name)
+		ctx, barmanConfiguration, serverName)
 	if err != nil {
 		log.Error(err, "while getting barman-cloud-wal-archive options")
 		return err
@@ -265,34 +297,6 @@ func (impl *JobHookImpl) checkBackupDestination(
 	}
 
 	return nil
-}
-
-func (impl JobHookImpl) getBarmanEnvFromBackup(
-	ctx context.Context,
-	backup *cnpgv1.Backup,
-) ([]string, error) {
-	creds, err := common.GetCredentialsFromBackup(backup)
-	if err != nil {
-		return nil, err
-	}
-	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
-		ctx,
-		impl.Client,
-		impl.BackupToRestore.Namespace,
-		&api.BarmanObjectStoreConfiguration{
-			BarmanCredentials: creds,
-			EndpointURL:       backup.Status.EndpointURL,
-			EndpointCA:        backup.Status.EndpointCA,
-			DestinationPath:   backup.Status.DestinationPath,
-			ServerName:        backup.Status.ServerName,
-		},
-		os.Environ())
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info("Recovering existing backup", "backup", backup)
-	return env, nil
 }
 
 // restoreCustomWalDir moves the current pg_wal data to the specified custom wal dir and applies the symlink
@@ -332,7 +336,11 @@ func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 // getRestoreWalConfig obtains the content to append to `custom.conf` allowing PostgreSQL
 // to complete the WAL recovery from the object storage and then start
 // as a new primary
-func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, error) {
+func getRestoreWalConfig(
+	ctx context.Context,
+	backup *cnpgv1.Backup,
+	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
+) (string, error) {
 	var err error
 
 	cmd := []string{barmanCapabilities.BarmanCloudWalRestore}
@@ -342,12 +350,7 @@ func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, er
 	cmd = append(cmd, backup.Status.DestinationPath)
 	cmd = append(cmd, backup.Status.ServerName)
 
-	creds, err := common.GetCredentialsFromBackup(backup)
-	if err != nil {
-		return "", err
-	}
-
-	cmd, err = barmanCommand.AppendCloudProviderOptionsFromBackup(ctx, cmd, creds)
+	cmd, err = barmanCommand.AppendCloudProviderOptionsFromConfiguration(ctx, cmd, barmanConfiguration)
 	if err != nil {
 		return "", err
 	}
@@ -360,4 +363,97 @@ func getRestoreWalConfig(ctx context.Context, backup *cnpgv1.Backup) (string, er
 		strings.Join(cmd, " "))
 
 	return recoveryFileContents, nil
+}
+
+// loadBackupObjectFromExternalCluster generates an in-memory Backup structure given a reference to
+// an external cluster, loading the required information from the object store
+func loadBackupObjectFromExternalCluster(
+	ctx context.Context,
+	typedClient client.Client,
+	cluster *cnpgv1.Cluster,
+	recoveryObjectStore *api.BarmanObjectStoreConfiguration,
+) (*cnpgv1.Backup, []string, error) {
+	contextLogger := log.FromContext(ctx)
+	sourceName := cluster.Spec.Bootstrap.Recovery.Source
+
+	if sourceName == "" {
+		return nil, nil, fmt.Errorf("recovery source not specified")
+	}
+
+	server, found := cluster.ExternalCluster(sourceName)
+	if !found {
+		return nil, nil, fmt.Errorf("missing external cluster: %v", sourceName)
+	}
+
+	// TODO: document this, should this be in the helper?
+	var serverName string
+	if pluginServerName, ok := server.PluginConfiguration.Parameters["serverName"]; ok {
+		serverName = pluginServerName
+	} else {
+		serverName = server.Name
+	}
+
+	contextLogger.Info("Recovering from external cluster",
+		"sourceName", sourceName,
+		"serverName", serverName)
+
+	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
+		ctx,
+		typedClient,
+		cluster.Namespace,
+		recoveryObjectStore,
+		os.Environ())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	backupCatalog, err := barmanCommand.GetBackupList(ctx, recoveryObjectStore, serverName, env)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// We are now choosing the right backup to restore
+	var targetBackup *barmanCatalog.BarmanBackup
+	if cluster.Spec.Bootstrap.Recovery != nil &&
+		cluster.Spec.Bootstrap.Recovery.RecoveryTarget != nil {
+		targetBackup, err = backupCatalog.FindBackupInfo(
+			cluster.Spec.Bootstrap.Recovery.RecoveryTarget,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		targetBackup = backupCatalog.LatestBackupInfo()
+	}
+	if targetBackup == nil {
+		return nil, nil, fmt.Errorf("no target backup found")
+	}
+
+	contextLogger.Info("Target backup found", "backup", targetBackup)
+
+	return &cnpgv1.Backup{
+		Spec: cnpgv1.BackupSpec{
+			Cluster: cnpgv1.LocalObjectReference{
+				Name: serverName,
+			},
+		},
+		Status: cnpgv1.BackupStatus{
+			BarmanCredentials: recoveryObjectStore.BarmanCredentials,
+			EndpointCA:        recoveryObjectStore.EndpointCA,
+			EndpointURL:       recoveryObjectStore.EndpointURL,
+			DestinationPath:   recoveryObjectStore.DestinationPath,
+			ServerName:        serverName,
+			BackupID:          targetBackup.ID,
+			Phase:             cnpgv1.BackupPhaseCompleted,
+			StartedAt:         &metav1.Time{Time: targetBackup.BeginTime},
+			StoppedAt:         &metav1.Time{Time: targetBackup.EndTime},
+			BeginWal:          targetBackup.BeginWal,
+			EndWal:            targetBackup.EndWal,
+			BeginLSN:          targetBackup.BeginLSN,
+			EndLSN:            targetBackup.EndLSN,
+			Error:             targetBackup.Error,
+			CommandOutput:     "",
+			CommandError:      "",
+		},
+	}, env, nil
 }
