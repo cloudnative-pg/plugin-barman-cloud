@@ -107,3 +107,58 @@ func (e *ExtendedClient) RemoveSecret(key client.ObjectKey) {
 		}
 	}
 }
+
+func (e *ExtendedClient) Update(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.UpdateOption,
+) error {
+	if e.isCacheDisabled() {
+		return e.Client.Update(ctx, obj, opts...)
+	}
+
+	if _, ok := obj.(*corev1.Secret); !ok {
+		return e.Client.Update(ctx, obj, opts...)
+	}
+
+	e.RemoveSecret(client.ObjectKeyFromObject(obj))
+
+	return e.Client.Update(ctx, obj, opts...)
+}
+
+func (e *ExtendedClient) Delete(
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.DeleteOption,
+) error {
+	if e.isCacheDisabled() {
+		return e.Client.Delete(ctx, obj, opts...)
+	}
+
+	if _, ok := obj.(*corev1.Secret); !ok {
+		return e.Client.Delete(ctx, obj, opts...)
+	}
+
+	e.RemoveSecret(client.ObjectKeyFromObject(obj))
+
+	return e.Client.Delete(ctx, obj, opts...)
+}
+
+func (e *ExtendedClient) Patch(
+	ctx context.Context,
+	obj client.Object,
+	patch client.Patch,
+	opts ...client.PatchOption,
+) error {
+	if e.isCacheDisabled() {
+		return e.Client.Patch(ctx, obj, patch, opts...)
+	}
+
+	if _, ok := obj.(*corev1.Secret); !ok {
+		return e.Client.Patch(ctx, obj, patch, opts...)
+	}
+
+	e.RemoveSecret(client.ObjectKeyFromObject(obj))
+
+	return e.Client.Patch(ctx, obj, patch, opts...)
+}
