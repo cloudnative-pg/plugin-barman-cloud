@@ -18,18 +18,28 @@ type cachedSecret struct {
 type ExtendedClient struct {
 	client.Client
 	cachedSecrets []*cachedSecret
-	// add a mux to lock the operations on the cache
-	mux *sync.Mutex
+	mux           *sync.Mutex
+	ttl           int64
 }
 
 // NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation
-func NewExtendedClient(baseClient client.Client) client.Client {
+func NewExtendedClient(baseClient client.Client, ttl int64) client.Client {
 	return &ExtendedClient{
 		Client: baseClient,
+		ttl:    ttl,
 	}
 }
 
-func (e *ExtendedClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func (e *ExtendedClient) Get(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) error {
+	if e.isCacheDisabled() {
+		return e.Client.Get(ctx, key, obj, opts...)
+	}
+
 	if _, ok := obj.(*corev1.Secret); !ok {
 		return e.Client.Get(ctx, key, obj, opts...)
 	}
@@ -40,7 +50,7 @@ func (e *ExtendedClient) Get(ctx context.Context, key client.ObjectKey, obj clie
 	// check if in cache
 	for _, cache := range e.cachedSecrets {
 		if cache.secret.Namespace == key.Namespace && cache.secret.Name == key.Name {
-			if time.Now().Unix()-cache.fetchUnixTime < 180 {
+			if !e.isExpired(cache.fetchUnixTime) {
 				cache.secret.DeepCopyInto(obj.(*corev1.Secret))
 				return nil
 			}
@@ -52,27 +62,41 @@ func (e *ExtendedClient) Get(ctx context.Context, key client.ObjectKey, obj clie
 		return err
 	}
 
+	secret := obj.(*corev1.Secret)
+
 	// check if the secret is already in cache if so replace it
 	for _, cache := range e.cachedSecrets {
 		if cache.secret.Namespace == key.Namespace && cache.secret.Name == key.Name {
-			cache.secret = obj.(*corev1.Secret)
+			cache.secret = secret.DeepCopy()
 			cache.fetchUnixTime = time.Now().Unix()
 			return nil
 		}
 	}
 
-	if secret, ok := obj.(*corev1.Secret); ok {
-		e.cachedSecrets = append(e.cachedSecrets, &cachedSecret{
-			secret:        secret,
-			fetchUnixTime: time.Now().Unix(),
-		})
-	}
+	// otherwise add it to the cache
+	e.cachedSecrets = append(e.cachedSecrets, &cachedSecret{
+		secret:        secret.DeepCopy(),
+		fetchUnixTime: time.Now().Unix(),
+	})
 
 	return nil
 }
 
+func (e *ExtendedClient) isExpired(unixTime int64) bool {
+	return time.Now().Unix()-unixTime > e.ttl
+}
+
+func (e *ExtendedClient) isCacheDisabled() bool {
+	const noCache = 0
+	return e.ttl == noCache
+}
+
 // RemoveSecret ensures that a secret is not present in the cache
 func (e *ExtendedClient) RemoveSecret(key client.ObjectKey) {
+	if e.isCacheDisabled() {
+		return
+	}
+
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
