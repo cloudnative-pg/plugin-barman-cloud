@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	extendedclient "github.com/cloudnative-pg/plugin-barman-cloud/internal/client"
 )
 
 var scheme = runtime.NewScheme()
@@ -36,6 +37,7 @@ func Start(ctx context.Context) error {
 	boName := viper.GetString("barman-object-name")
 	clusterName := viper.GetString("cluster-name")
 	podName := viper.GetString("pod-name")
+	secretCacheTTL := viper.GetInt64("secret-cache-ttl")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -69,7 +71,7 @@ func Start(ctx context.Context) error {
 	}
 
 	if err := mgr.Add(&CNPGI{
-		Client: mgr.GetClient(),
+		Client: extendedclient.NewExtendedClient(mgr.GetClient(), secretCacheTTL),
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,

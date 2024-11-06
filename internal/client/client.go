@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -27,6 +28,7 @@ func NewExtendedClient(baseClient client.Client, ttl int64) client.Client {
 	return &ExtendedClient{
 		Client: baseClient,
 		ttl:    ttl,
+		mux:    &sync.Mutex{},
 	}
 }
 
@@ -36,6 +38,10 @@ func (e *ExtendedClient) Get(
 	obj client.Object,
 	opts ...client.GetOption,
 ) error {
+	contextLogger := log.FromContext(ctx).
+		WithName("extended_client").
+		WithValues("name", key.Name, "namespace", key.Namespace)
+
 	if e.isCacheDisabled() {
 		return e.Client.Get(ctx, key, obj, opts...)
 	}
@@ -47,37 +53,36 @@ func (e *ExtendedClient) Get(
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
+	expiredSecretIndex := -1
 	// check if in cache
-	for _, cache := range e.cachedSecrets {
-		if cache.secret.Namespace == key.Namespace && cache.secret.Name == key.Name {
-			if !e.isExpired(cache.fetchUnixTime) {
-				cache.secret.DeepCopyInto(obj.(*corev1.Secret))
-				return nil
-			}
+	for idx, cache := range e.cachedSecrets {
+		if cache.secret.Namespace != key.Namespace || cache.secret.Name != key.Name {
+			continue
+		}
+		if e.isExpired(cache.fetchUnixTime) {
+			contextLogger.Trace("secret found, but it is expired")
+			expiredSecretIndex = idx
 			break
 		}
+		contextLogger.Trace("secret found, loading it from cache")
+		cache.secret.DeepCopyInto(obj.(*corev1.Secret))
+		return nil
 	}
 
 	if err := e.Client.Get(ctx, key, obj); err != nil {
 		return err
 	}
 
-	secret := obj.(*corev1.Secret)
-
-	// check if the secret is already in cache if so replace it
-	for _, cache := range e.cachedSecrets {
-		if cache.secret.Namespace == key.Namespace && cache.secret.Name == key.Name {
-			cache.secret = secret.DeepCopy()
-			cache.fetchUnixTime = time.Now().Unix()
-			return nil
-		}
+	cs := &cachedSecret{
+		secret:        obj.(*corev1.Secret).DeepCopy(),
+		fetchUnixTime: time.Now().Unix(),
 	}
 
-	// otherwise add it to the cache
-	e.cachedSecrets = append(e.cachedSecrets, &cachedSecret{
-		secret:        secret.DeepCopy(),
-		fetchUnixTime: time.Now().Unix(),
-	})
+	if expiredSecretIndex != -1 {
+		e.cachedSecrets[expiredSecretIndex] = cs
+	} else {
+		e.cachedSecrets = append(e.cachedSecrets, cs)
+	}
 
 	return nil
 }
