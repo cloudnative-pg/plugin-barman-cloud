@@ -10,6 +10,7 @@ import (
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
@@ -19,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -66,8 +68,16 @@ func (b BackupServiceImplementation) Backup(
 ) (*backup.BackupResult, error) {
 	contextLogger := log.FromContext(ctx)
 
+	contextLogger.Info("Starting backup")
+
+	var cluster cnpgv1.Cluster
+	if err := b.Client.Get(ctx, b.ClusterObjectKey, &cluster); err != nil {
+		return nil, err
+	}
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := b.Client.Get(ctx, b.BarmanObjectKey, &objectStore); err != nil {
+		contextLogger.Error(err, "while getting object store", "key", b.BarmanObjectKey)
 		return nil, err
 	}
 
@@ -78,6 +88,7 @@ func (b BackupServiceImplementation) Backup(
 
 	capabilities, err := barmanCapabilities.CurrentCapabilities()
 	if err != nil {
+		contextLogger.Error(err, "while getting capabilities")
 		return nil, err
 	}
 	backupCmd := barmanBackup.NewBackupCommand(
@@ -88,15 +99,25 @@ func (b BackupServiceImplementation) Backup(
 	// We need to connect to PostgreSQL and to do that we need
 	// PGHOST (and the like) to be available
 	osEnvironment := os.Environ()
-	caBundleEnvironment := getRestoreCABundleEnv(&objectStore.Spec.Configuration)
+	caBundleEnvironment := common.GetRestoreCABundleEnv(&objectStore.Spec.Configuration)
 	env, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
 		b.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
-		mergeEnv(osEnvironment, caBundleEnvironment))
+		common.MergeEnv(osEnvironment, caBundleEnvironment))
 	if err != nil {
+		contextLogger.Error(err, "while setting backup cloud credentials")
 		return nil, err
+	}
+
+	serverName := cluster.Name
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
+				serverName = pluginServerName
+			}
+		}
 	}
 
 	backupName := fmt.Sprintf("backup-%v", pgTime.ToCompactISO8601(time.Now()))
@@ -104,37 +125,38 @@ func (b BackupServiceImplementation) Backup(
 	if err = backupCmd.Take(
 		ctx,
 		backupName,
-		b.InstanceName,
+		serverName,
 		env,
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
 	); err != nil {
+		contextLogger.Error(err, "while taking backup")
 		return nil, err
 	}
 
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx,
 		backupName,
-		b.InstanceName,
+		serverName,
 		barmanCloudExecutor{},
 		env)
 	if err != nil {
+		contextLogger.Error(err, "while getting executed backup info")
 		return nil, err
 	}
 
+	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
 	return &backup.BackupResult{
-		BackupId:          executedBackupInfo.ID,
-		BackupName:        executedBackupInfo.BackupName,
-		StartedAt:         metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
-		StoppedAt:         metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
-		BeginWal:          executedBackupInfo.BeginWal,
-		EndWal:            executedBackupInfo.EndWal,
-		BeginLsn:          executedBackupInfo.BeginLSN,
-		EndLsn:            executedBackupInfo.EndLSN,
-		BackupLabelFile:   nil,
-		TablespaceMapFile: nil,
-		InstanceId:        b.InstanceName,
-		Online:            true,
+		BackupId:   executedBackupInfo.ID,
+		BackupName: executedBackupInfo.BackupName,
+		StartedAt:  metav1.Time{Time: executedBackupInfo.BeginTime}.Unix(),
+		StoppedAt:  metav1.Time{Time: executedBackupInfo.EndTime}.Unix(),
+		BeginWal:   executedBackupInfo.BeginWal,
+		EndWal:     executedBackupInfo.EndWal,
+		BeginLsn:   executedBackupInfo.BeginLSN,
+		EndLsn:     executedBackupInfo.EndLSN,
+		InstanceId: b.InstanceName,
+		Online:     true,
 		Metadata: map[string]string{
 			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
 			"version":     metadata.Data.Version,

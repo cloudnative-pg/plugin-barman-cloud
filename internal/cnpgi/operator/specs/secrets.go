@@ -1,39 +1,35 @@
 package specs
 
 import (
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
-
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-func collectSecretNames(object *barmancloudv1.ObjectStore) []string {
-	if object == nil {
-		return nil
-	}
-
+// CollectSecretNamesFromCredentials collects the names of the secrets
+func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCredentials) []string {
 	var references []*machineryapi.SecretKeySelector
-	if object.Spec.Configuration.AWS != nil {
+	if barmanCredentials.AWS != nil {
 		references = append(
 			references,
-			object.Spec.Configuration.AWS.AccessKeyIDReference,
-			object.Spec.Configuration.AWS.SecretAccessKeyReference,
-			object.Spec.Configuration.AWS.RegionReference,
-			object.Spec.Configuration.AWS.SessionToken,
+			barmanCredentials.AWS.AccessKeyIDReference,
+			barmanCredentials.AWS.SecretAccessKeyReference,
+			barmanCredentials.AWS.RegionReference,
+			barmanCredentials.AWS.SessionToken,
 		)
 	}
-	if object.Spec.Configuration.Azure != nil {
+	if barmanCredentials.Azure != nil {
 		references = append(
 			references,
-			object.Spec.Configuration.Azure.ConnectionString,
-			object.Spec.Configuration.Azure.StorageAccount,
-			object.Spec.Configuration.Azure.StorageKey,
-			object.Spec.Configuration.Azure.StorageSasToken,
+			barmanCredentials.Azure.ConnectionString,
+			barmanCredentials.Azure.StorageAccount,
+			barmanCredentials.Azure.StorageKey,
+			barmanCredentials.Azure.StorageSasToken,
 		)
 	}
-	if object.Spec.Configuration.Google != nil {
+	if barmanCredentials.Google != nil {
 		references = append(
 			references,
-			object.Spec.Configuration.Google.ApplicationCredentials,
+			barmanCredentials.Google.ApplicationCredentials,
 		)
 	}
 

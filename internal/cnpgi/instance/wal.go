@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 	"time"
 
-	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	"github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
@@ -21,13 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-)
-
-const (
-	// CheckEmptyWalArchiveFile is the name of the file in the PGDATA that,
-	// if present, requires the WAL archiver to check that the backup object
-	// store is empty.
-	CheckEmptyWalArchiveFile = ".check-empty-wal-archive"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // WALServiceImplementation is the implementation of the WAL Service
@@ -72,6 +65,21 @@ func (w WALServiceImplementation) Archive(
 	ctx context.Context,
 	request *wal.WALArchiveRequest,
 ) (*wal.WALArchiveResult, error) {
+	var cluster cnpgv1.Cluster
+	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
+		return nil, err
+	}
+
+	// TODO: refactor this code elsewhere
+	serverName := cluster.Name
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
+				serverName = pluginServerName
+			}
+		}
+	}
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
 		return nil, err
@@ -95,13 +103,13 @@ func (w WALServiceImplementation) Archive(
 		envArchive,
 		w.SpoolDirectory,
 		w.PGDataPath,
-		path.Join(w.PGDataPath, CheckEmptyWalArchiveFile),
+		path.Join(w.PGDataPath, metadata.CheckEmptyWalArchiveFile),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, objectStore.Name)
+	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, serverName)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +125,7 @@ func (w WALServiceImplementation) Archive(
 }
 
 // Restore implements the WALService interface
+// nolint: gocognit
 func (w WALServiceImplementation) Restore(
 	ctx context.Context,
 	request *wal.WALRestoreRequest,
@@ -140,7 +149,7 @@ func (w WALServiceImplementation) Restore(
 
 	barmanConfiguration := &objectStore.Spec.Configuration
 
-	env := getRestoreCABundleEnv(barmanConfiguration)
+	env := common.GetRestoreCABundleEnv(barmanConfiguration)
 	credentialsEnv, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
 		w.Client,
@@ -151,9 +160,19 @@ func (w WALServiceImplementation) Restore(
 	if err != nil {
 		return nil, fmt.Errorf("while getting recover credentials: %w", err)
 	}
-	env = mergeEnv(env, credentialsEnv)
+	env = common.MergeEnv(env, credentialsEnv)
 
-	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, objectStore.Name)
+	// TODO: refactor this code elsewhere
+	serverName := cluster.Name
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
+				serverName = pluginServerName
+			}
+		}
+	}
+
+	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, serverName)
 	if err != nil {
 		return nil, fmt.Errorf("while getting barman-cloud-wal-restore options: %w", err)
 	}
@@ -258,68 +277,6 @@ func (w WALServiceImplementation) SetFirstRequired(
 ) (*wal.SetFirstRequiredResult, error) {
 	// TODO implement me
 	panic("implement me")
-}
-
-// mergeEnv merges all the values inside incomingEnv into env.
-func mergeEnv(env []string, incomingEnv []string) []string {
-	result := make([]string, len(env), len(env)+len(incomingEnv))
-	copy(result, env)
-
-	for _, incomingItem := range incomingEnv {
-		incomingKV := strings.SplitAfterN(incomingItem, "=", 2)
-		if len(incomingKV) != 2 {
-			continue
-		}
-
-		found := false
-		for idx, item := range result {
-			if strings.HasPrefix(item, incomingKV[0]) {
-				result[idx] = incomingItem
-				found = true
-			}
-		}
-		if !found {
-			result = append(result, incomingItem)
-		}
-	}
-
-	return result
-}
-
-// TODO: refactor.
-const (
-	// ScratchDataDirectory is the directory to be used for scratch data.
-	ScratchDataDirectory = "/controller"
-
-	// CertificatesDir location to store the certificates.
-	CertificatesDir = ScratchDataDirectory + "/certificates/"
-
-	// BarmanBackupEndpointCACertificateLocation is the location where the barman endpoint
-	// CA certificate is stored.
-	BarmanBackupEndpointCACertificateLocation = CertificatesDir + BarmanBackupEndpointCACertificateFileName
-
-	// BarmanBackupEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate for backups is stored.
-	BarmanBackupEndpointCACertificateFileName = "backup-" + BarmanEndpointCACertificateFileName
-
-	// BarmanRestoreEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate for restores is stored.
-	BarmanRestoreEndpointCACertificateFileName = "restore-" + BarmanEndpointCACertificateFileName
-
-	// BarmanEndpointCACertificateFileName is the name of the file in which the barman endpoint
-	// CA certificate is stored.
-	BarmanEndpointCACertificateFileName = "barman-ca.crt"
-)
-
-func getRestoreCABundleEnv(configuration *barmanapi.BarmanObjectStoreConfiguration) []string {
-	var env []string
-
-	if configuration.EndpointCA != nil && configuration.BarmanCredentials.AWS != nil {
-		env = append(env, fmt.Sprintf("AWS_CA_BUNDLE=%s", BarmanBackupEndpointCACertificateLocation))
-	} else if configuration.EndpointCA != nil && configuration.BarmanCredentials.Azure != nil {
-		env = append(env, fmt.Sprintf("REQUESTS_CA_BUNDLE=%s", BarmanBackupEndpointCACertificateLocation))
-	}
-	return env
 }
 
 // isStreamingAvailable checks if this pod can replicate via streaming connection.
