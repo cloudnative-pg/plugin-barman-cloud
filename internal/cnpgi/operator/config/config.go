@@ -62,8 +62,8 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	return result
 }
 
-// ValidateBarmanObjectName checks if the barmanObjectName is set
-func (p *PluginConfiguration) ValidateBarmanObjectName() error {
+// Validate checks if the barmanObjectName is set
+func (p *PluginConfiguration) Validate() error {
 	err := NewConfigurationError()
 	if len(p.BarmanObjectName) != 0 {
 		return nil

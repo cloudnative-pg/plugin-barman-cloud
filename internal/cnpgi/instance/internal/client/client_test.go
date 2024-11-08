@@ -1,20 +1,35 @@
 package client
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
+
+var scheme = buildScheme()
+
+func buildScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+
+	return scheme
+}
 
 var _ = Describe("ExtendedClient Get", func() {
 	var (
 		extendedClient *ExtendedClient
 		secretInClient *corev1.Secret
+		objectStore    *v1.ObjectStore
 	)
 
 	BeforeEach(func() {
@@ -24,8 +39,22 @@ var _ = Describe("ExtendedClient Get", func() {
 				Name:      "test-secret",
 			},
 		}
-		baseClient := fake.NewClientBuilder().WithObjects(secretInClient).Build()
-		extendedClient = NewExtendedClient(baseClient, 60).(*ExtendedClient)
+		objectStore = &v1.ObjectStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test-object-store",
+			},
+			Spec: v1.ObjectStoreSpec{
+				InstanceSidecarConfiguration: v1.InstanceSidecarConfiguration{
+					CacheTTL: ptr.To(60),
+				},
+			},
+		}
+
+		baseClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secretInClient, objectStore).Build()
+		extendedClient = NewExtendedClient(baseClient, client.ObjectKeyFromObject(objectStore)).(*ExtendedClient)
 	})
 
 	It("returns secret from cache if not expired", func(ctx SpecContext) {

@@ -2,10 +2,12 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -15,21 +17,36 @@ type cachedSecret struct {
 	fetchUnixTime int64
 }
 
-// ExtendedClient is an extended client that is capable of caching multiple secrets without relying on 'list and watch'
+// ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
 type ExtendedClient struct {
 	client.Client
-	cachedSecrets []*cachedSecret
-	mux           *sync.Mutex
-	ttl           int64
+	barmanObjectKey client.ObjectKey
+	cachedSecrets   []*cachedSecret
+	mux             *sync.Mutex
+	ttl             int
 }
 
 // NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation
-func NewExtendedClient(baseClient client.Client, ttl int64) client.Client {
+func NewExtendedClient(
+	baseClient client.Client,
+	objectStoreKey client.ObjectKey,
+) client.Client {
 	return &ExtendedClient{
-		Client: baseClient,
-		ttl:    ttl,
-		mux:    &sync.Mutex{},
+		Client:          baseClient,
+		barmanObjectKey: objectStoreKey,
+		mux:             &sync.Mutex{},
 	}
+}
+
+func (e *ExtendedClient) refreshTTL(ctx context.Context) error {
+	var object v1.ObjectStore
+	if err := e.Get(ctx, e.barmanObjectKey, &object); err != nil {
+		return fmt.Errorf("failed to get the object store while refreshing the TTL parameter: %w", err)
+	}
+
+	e.ttl = object.Spec.InstanceSidecarConfiguration.GetCacheTTL()
+
+	return nil
 }
 
 func (e *ExtendedClient) Get(
@@ -42,14 +59,21 @@ func (e *ExtendedClient) Get(
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
 
-	if e.isCacheDisabled() {
-		return e.Client.Get(ctx, key, obj, opts...)
-	}
-
 	if _, ok := obj.(*corev1.Secret); !ok {
+		contextLogger.Trace("not a secret, skipping")
 		return e.Client.Get(ctx, key, obj, opts...)
 	}
 
+	if err := e.refreshTTL(ctx); err != nil {
+		return err
+	}
+
+	if e.isCacheDisabled() {
+		contextLogger.Trace("cache is disabled")
+		return e.Client.Get(ctx, key, obj, opts...)
+	}
+
+	contextLogger.Trace("locking the cache")
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
@@ -64,7 +88,7 @@ func (e *ExtendedClient) Get(
 			expiredSecretIndex = idx
 			break
 		}
-		contextLogger.Trace("secret found, loading it from cache")
+		contextLogger.Debug("secret found, loading it from cache")
 		cache.secret.DeepCopyInto(obj.(*corev1.Secret))
 		return nil
 	}
@@ -78,6 +102,7 @@ func (e *ExtendedClient) Get(
 		fetchUnixTime: time.Now().Unix(),
 	}
 
+	contextLogger.Debug("setting secret in the cache")
 	if expiredSecretIndex != -1 {
 		e.cachedSecrets[expiredSecretIndex] = cs
 	} else {
@@ -88,7 +113,7 @@ func (e *ExtendedClient) Get(
 }
 
 func (e *ExtendedClient) isExpired(unixTime int64) bool {
-	return time.Now().Unix()-unixTime > e.ttl
+	return time.Now().Unix()-unixTime > int64(e.ttl)
 }
 
 func (e *ExtendedClient) isCacheDisabled() bool {

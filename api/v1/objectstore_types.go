@@ -21,14 +21,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
+type InstanceSidecarConfiguration struct {
+	// The expiration time of the cache entries not managed by the informers. Expressed in seconds.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=3600
+	// +kubebuilder:default=180
+	CacheTTL *int `json:"cacheTTL,omitempty"`
+}
+
+// GetCacheTTL returns the cache TTL value, defaulting to 180 seconds if not set.
+func (i InstanceSidecarConfiguration) GetCacheTTL() int {
+	if i.CacheTTL == nil {
+		return 180
+	}
+	return *i.CacheTTL
+}
 
 // ObjectStoreSpec defines the desired state of ObjectStore.
 type ObjectStoreSpec struct {
 	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
-	// TODO: we add here any exclusive fields for our plugin CRD
+	InstanceSidecarConfiguration InstanceSidecarConfiguration `json:"instanceSidecarConfiguration,omitempty"`
 }
 
 // ObjectStoreStatus defines the observed state of ObjectStore.

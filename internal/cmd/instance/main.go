@@ -40,7 +40,6 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
-	_ = viper.BindEnv("secret-cache-ttl", "SECRET_CACHE_TTL")
 
 	return cmd
 }
