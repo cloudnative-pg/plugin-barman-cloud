@@ -90,12 +90,12 @@ tasks:
           openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \
               -CAcreateserial -out server-cert.pem -extfile extfile.cnf &&
           popd
-    generates:
-        - certs/ca-key.pem
-        - certs/ca.pem
-        - certs/server-key.pem
-        - certs/server.csr
-        - certs/server-cert.pem
+    status:
+        - test -f certs/ca-key.pem
+        - test -f certs/ca.pem
+        - test -f certs/server-key.pem
+        - test -f certs/server.csr
+        - test -f certs/server-cert.pem
 
   start-build-network:
     desc: Create a docker network for image building used by the dagger engine and the registry
