@@ -43,6 +43,7 @@ func (i InstanceSidecarConfiguration) GetCacheTTL() int {
 type ObjectStoreSpec struct {
 	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
+	// +optional
 	InstanceSidecarConfiguration InstanceSidecarConfiguration `json:"instanceSidecarConfiguration,omitempty"`
 }
 
@@ -54,13 +55,16 @@ type ObjectStoreStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +genclient
+// +kubebuilder:storageversion
 
 // ObjectStore is the Schema for the objectstores API.
 type ObjectStore struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   ObjectStoreSpec   `json:"spec,omitempty"`
+	Spec ObjectStoreSpec `json:"spec"`
+	// +optional
 	Status ObjectStoreStatus `json:"status,omitempty"`
 }
 

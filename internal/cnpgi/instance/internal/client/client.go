@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 type cachedSecret struct {
