@@ -1,15 +1,16 @@
 package client
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"time"
 
-	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -165,14 +165,12 @@ func reconcilePod(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
-	contextLogger := log.FromContext(ctx).WithName("lifecycle")
-
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
 		return nil, err
 	}
 
-	contextLogger = log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
 		WithValues("podName", pod.Name)
 
 	mutatedPod := pod.DeepCopy()

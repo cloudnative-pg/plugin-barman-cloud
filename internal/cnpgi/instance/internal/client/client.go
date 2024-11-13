@@ -50,6 +50,7 @@ func (e *ExtendedClient) refreshTTL(ctx context.Context) error {
 	return nil
 }
 
+// Get behaves like the original Get method, but uses a cache for secrets
 func (e *ExtendedClient) Get(
 	ctx context.Context,
 	key client.ObjectKey,
@@ -139,6 +140,7 @@ func (e *ExtendedClient) RemoveSecret(key client.ObjectKey) {
 	}
 }
 
+// Update behaves like the original Update method, but on secrets it removes the secret from the cache
 func (e *ExtendedClient) Update(
 	ctx context.Context,
 	obj client.Object,
@@ -157,6 +159,7 @@ func (e *ExtendedClient) Update(
 	return e.Client.Update(ctx, obj, opts...)
 }
 
+// Delete behaves like the original Delete method, but on secrets it removes the secret from the cache
 func (e *ExtendedClient) Delete(
 	ctx context.Context,
 	obj client.Object,
@@ -175,6 +178,7 @@ func (e *ExtendedClient) Delete(
 	return e.Client.Delete(ctx, obj, opts...)
 }
 
+// Patch behaves like the original Patch method, but on secrets it removes the secret from the cache
 func (e *ExtendedClient) Patch(
 	ctx context.Context,
 	obj client.Object,
