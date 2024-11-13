@@ -24,10 +24,10 @@ github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813 h
 github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813/go.mod h1:f4hObdRVoQtMmVtWqZ6VDZBrI6ok9Td/UMhojQ+EPmk=
 github.com/cloudnative-pg/cnpg-i v0.0.0-20241109002750-8abd359df734 h1:4jq/FUrlAKxu0Kw9PL5lj5Njq8pAnmUpP/kXKOrJAaE=
 github.com/cloudnative-pg/cnpg-i v0.0.0-20241109002750-8abd359df734/go.mod h1:3U7miYasKr2rYCQzrn/IvbSQc0OpYF8ieZt2FKG4nv0=
-github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241014090747-e9c2b3738d19 h1:qy+LrScvQpIwt4qeg9FfCJuoC9CbX/kpFGLF8vSobXg=
-github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241014090747-e9c2b3738d19/go.mod h1:X6r1fRuUEIAv4+5SSBY2RmQ201K6GcptOXgnmaX/8tY=
-github.com/cloudnative-pg/machinery v0.0.0-20241030141148-670a0f16f836 h1:Hhg+I2QcaPNN5XaSsYb7Xw3PbQlvCA9eDY+SvVf902Q=
-github.com/cloudnative-pg/machinery v0.0.0-20241030141148-670a0f16f836/go.mod h1:+mUFdys1IX+qwQUrV+/i56Tey/mYh8ZzWZYttwivRns=
+github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241030141108-7e59fc9f4797 h1:8iaPgTx16yzx8rrhOi99u+GWGp47kqveF9NShElsYKM=
+github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241030141108-7e59fc9f4797/go.mod h1:X6r1fRuUEIAv4+5SSBY2RmQ201K6GcptOXgnmaX/8tY=
+github.com/cloudnative-pg/machinery v0.0.0-20241105070525-042a028b767c h1:t0RBU2gBiwJQ9XGeXlHPBYpsTscSKHgB5TfcWaiwanc=
+github.com/cloudnative-pg/machinery v0.0.0-20241105070525-042a028b767c/go.mod h1:uBHGRIk5rt07mO4zjIC1uvGBWTH6PqIiD1PfpvPGZKU=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
