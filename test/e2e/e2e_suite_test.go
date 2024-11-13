@@ -56,7 +56,7 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 		Resources: []string{barmanCloudKustomizationPath},
 		Images: []kustomizeTypes.Image{
 			{
-				Name:    "kind.local/github.com/cloudnative-pg/plugin-barman-cloud/cmd/operator",
+				Name:    "docker.io/library/plugin-barman-cloud",
 				NewName: "registry.barman-cloud-plugin:5000/plugin-barman-cloud",
 				NewTag:  "testing",
 			},
