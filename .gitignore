@@ -34,3 +34,8 @@ go.work
 
 # Taskfile cache
 .task
+
+# E2e test artifacts
+test/e2e/bin
+# Test registry certificates
+certs/
