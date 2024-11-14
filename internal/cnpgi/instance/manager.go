@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	extendedclient "github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/instance/internal/client"
 )
 
 var scheme = runtime.NewScheme()
@@ -68,17 +69,19 @@ func Start(ctx context.Context) error {
 		os.Exit(1)
 	}
 
+	barmanObjectKey := client.ObjectKey{
+		Namespace: namespace,
+		Name:      boName,
+	}
+
 	if err := mgr.Add(&CNPGI{
-		Client: mgr.GetClient(),
+		Client: extendedclient.NewExtendedClient(mgr.GetClient(), barmanObjectKey),
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		BarmanObjectKey: client.ObjectKey{
-			Namespace: namespace,
-			Name:      boName,
-		},
-		InstanceName: podName,
+		BarmanObjectKey: barmanObjectKey,
+		InstanceName:    podName,
 		// TODO: improve
 		PGDataPath:     viper.GetString("pgdata"),
 		PGWALPath:      path.Join(viper.GetString("pgdata"), "pg_wal"),

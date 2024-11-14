@@ -65,6 +65,9 @@ func (w WALServiceImplementation) Archive(
 	ctx context.Context,
 	request *wal.WALArchiveRequest,
 ) (*wal.WALArchiveResult, error) {
+	contextLogger := log.FromContext(ctx)
+	contextLogger.Debug("starting wal archive")
+
 	var cluster cnpgv1.Cluster
 	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
 		return nil, err

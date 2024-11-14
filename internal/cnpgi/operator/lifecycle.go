@@ -85,6 +85,12 @@ func (impl LifecycleImplementation) LifecycleHook(
 
 	pluginConfiguration := config.NewFromCluster(&cluster)
 
+	// barman object is required for both the archive and restore process
+	if err := pluginConfiguration.Validate(); err != nil {
+		contextLogger.Info("pluginConfiguration invalid, skipping lifecycle", "error", err)
+		return nil, nil
+	}
+
 	switch kind {
 	case "Pod":
 		contextLogger.Info("Reconciling pod")
@@ -159,18 +165,12 @@ func reconcilePod(
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
-	contextLogger := log.FromContext(ctx).WithName("lifecycle")
-	if err := pluginConfiguration.ValidateBarmanObjectName(); err != nil {
-		contextLogger.Info("no barman object name set, skipping pod sidecar injection")
-		return nil, nil
-	}
-
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
 		return nil, err
 	}
 
-	contextLogger = log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
+	contextLogger := log.FromContext(ctx).WithName("plugin-barman-cloud-lifecycle").
 		WithValues("podName", pod.Name)
 
 	mutatedPod := pod.DeepCopy()
