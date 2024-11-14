@@ -24,6 +24,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/kind/pkg/cluster"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/certmanager"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cloudnativepg"
@@ -152,7 +153,7 @@ func Setup(ctx context.Context, opts ...SetupOption) (client.Client, error) {
 		opt(&options)
 	}
 
-	if err := setupKind(options); err != nil {
+	if err := setupKind(ctx, options); err != nil {
 		return nil, err
 	}
 
@@ -239,16 +240,13 @@ func getClient() (client.Client, error) {
 	return cl, nil
 }
 
-func setupKind(options SetupOptions) error {
+func setupKind(ctx context.Context, options SetupOptions) error {
 	// This function sets up the environment for the e2e tests
 	// by creating the cluster and installing the necessary
 	// components.
-	if err := kind.EnsureVersion(options.KindVersion); err != nil {
-		return fmt.Errorf("failed to ensure Kind kindVersion: %w", err)
-	}
-
 	expectedClusterName := kindClusterName(options.KindClusterNamePrefix, options.K8sVersion)
-	clusterIsRunning, err := kind.IsClusterRunning(expectedClusterName)
+	provider := cluster.NewProvider()
+	clusterIsRunning, err := kind.IsClusterRunning(provider, expectedClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to check if Kind cluster is running: %w", err)
 	}
@@ -258,7 +256,7 @@ func setupKind(options SetupOptions) error {
 			kind.WithConfigFile(kindConfigFile),
 			kind.WithNetworks(options.KindAdditionalNetworks),
 		}
-		if err := kind.CreateCluster(expectedClusterName, kindOpts...); err != nil {
+		if err := kind.CreateCluster(ctx, provider, expectedClusterName, kindOpts...); err != nil {
 			return fmt.Errorf("failed to create Kind cluster: %w", err)
 		}
 	}

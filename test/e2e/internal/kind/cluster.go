@@ -17,23 +17,25 @@ limitations under the License.
 package kind
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"strings"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/strslice"
+	"github.com/docker/docker/client"
+	"sigs.k8s.io/kind/pkg/cluster"
+	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
 // IsClusterRunning checks if a Kind cluster with the given name is running
-func IsClusterRunning(clusterName string) (bool, error) {
-	cmd := exec.Command(Kind, "get", "clusters")
-	output, err := cmd.CombinedOutput()
+func IsClusterRunning(provider *cluster.Provider, clusterName string) (bool, error) {
+	clusters, err := provider.List()
 	if err != nil {
-		return false, fmt.Errorf("failed to get Kind clusters: %w, output: %s", err, string(output))
+		return false, fmt.Errorf("failed to list Kind clusters: %w", err)
 	}
-
-	clusters := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, cluster := range clusters {
-		if cluster == clusterName {
+	for _, c := range clusters {
+		if c == clusterName {
 			return true, nil
 		}
 	}
@@ -73,48 +75,68 @@ func WithNetworks(networks []string) CreateClusterOption {
 }
 
 // CreateCluster creates a Kind cluster with the given name
-func CreateCluster(name string, opts ...CreateClusterOption) error {
+func CreateCluster(ctx context.Context, provider *cluster.Provider, name string, opts ...CreateClusterOption) error {
 	options := &CreateClusterOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	args := []string{"create", "cluster", "--name", name}
+	createOpts := []cluster.CreateOption{
+		cluster.CreateWithRetain(true),
+		cluster.CreateWithDisplayUsage(true),
+		cluster.CreateWithDisplaySalutation(true),
+	}
 	if options.ConfigFile != "" {
-		args = append(args, "--config", options.ConfigFile)
+		createOpts = append(createOpts, cluster.CreateWithConfigFile(options.ConfigFile))
 	}
 	if options.K8sVersion != "" {
-		args = append(args, "--image", fmt.Sprintf("kindest/node:%s", options.K8sVersion))
+		createOpts = append(createOpts, cluster.CreateWithNodeImage(fmt.Sprintf("kindest/node:%s", options.K8sVersion)))
+	}
+	err := provider.Create(name, createOpts...)
+	if err != nil {
+		return fmt.Errorf("kind cluster creation failed: %w", err)
 	}
 
-	cmd := exec.Command(Kind, args...) // #nosec
-	cmd.Dir, _ = os.Getwd()
-	output, err := cmd.CombinedOutput()
+	// Initialize Docker client
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return fmt.Errorf("'kind create cluster' failed: %w, output: %s", err, string(output))
+		return fmt.Errorf("failed to create Docker client: %w", err)
 	}
 
 	// Since a cluster can mount additional certificates, we need to make sure they are
 	// usable by the nodes in the cluster.
-	nodes, err := getNodes(name)
+	nodeList, err := getNodes(provider, name)
 	if err != nil {
 		return err
 	}
-	for _, node := range nodes {
-		cmd = exec.Command("docker", "exec", node, "update-ca-certificates") // #nosec
-		output, err = cmd.CombinedOutput()
+	for _, node := range nodeList {
+		cmd := exec.Command("docker", "exec", node.String(), "update-ca-certificates") // #nosec
+		output, err := cmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to update CA certificates in node %s: %w, output: %s", node, err, string(output))
 		}
+
+		execConfig := container.ExecOptions{
+			Cmd:          strslice.StrSlice([]string{"update-ca-certificates"}),
+			AttachStdout: true,
+			AttachStderr: true,
+		}
+		execID, err := cli.ContainerExecCreate(ctx, node.String(), execConfig)
+		if err != nil {
+			return fmt.Errorf("failed to create exec instance in node %s: %w", node.String(), err)
+		}
+
+		err = cli.ContainerExecStart(ctx, execID.ID, container.ExecStartOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to start exec instance in node %s: %w", node.String(), err)
+		}
 	}
 
-	for _, network := range options.Networks {
-		for _, node := range nodes {
-			cmd = exec.Command("docker", "network", "connect", network, node) // #nosec
-			output, err = cmd.CombinedOutput()
+	for _, netw := range options.Networks {
+		for _, node := range nodeList {
+			err := cli.NetworkConnect(ctx, netw, node.String(), nil)
 			if err != nil {
-				return fmt.Errorf("failed to connect node %s to network %s: %w, output: %s", node, network, err,
-					string(output))
+				return fmt.Errorf("failed to connect node %s to network %s: %w", node.String(), netw, err)
 			}
 		}
 	}
@@ -122,12 +144,11 @@ func CreateCluster(name string, opts ...CreateClusterOption) error {
 	return nil
 }
 
-func getNodes(clusterName string) ([]string, error) {
-	cmd := exec.Command(Kind, "get", "nodes", "--name", clusterName)
-	output, err := cmd.CombinedOutput()
+func getNodes(provider *cluster.Provider, clusterName string) ([]nodes.Node, error) {
+	nodeList, err := provider.ListNodes(clusterName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Kind nodes: %w, output: %s", err, string(output))
+		return nil, fmt.Errorf("failed to get Kind nodes: %w", err)
 	}
 
-	return strings.Split(strings.TrimSpace(string(output)), "\n"), nil
+	return nodeList, nil
 }
