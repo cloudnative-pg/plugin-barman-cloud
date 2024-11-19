@@ -46,6 +46,8 @@ tasks:
 
   uncommitted:
     desc: Check for uncommitted changes
+    deps:
+      - controller-gen
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: c899668d635076ee593adaabfa7184fc753306ba
@@ -244,8 +246,30 @@ tasks:
         build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
+
+  controller-gen:
+    desc: Run controller-gen
+    env:
+      # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_CONTROLLER_GEN_SHA: 1ad0ee66473e3a405d1078fcc55df00f2507d14a
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
+        controller-gen --source . --args object:headerFile=hack/boilerplate.go.txt --args paths=./api/...
+        file --path api/v1/zz_generated.deepcopy.go export --path api/v1/zz_generated.deepcopy.go
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
+        controller-gen --source . --args rbac:roleName=plugin-barman-cloud --args crd --args webhook --args paths=./api/...
+        --args output:crd:artifacts:config=config/crd/bases directory --path config/crd/bases export --path config/crd/bases
+    sources:
+      - ./api/**/*.go
+    generates:
+      - ./api/v1/zz_generated.deepcopy.go
+
   manifest:
     desc: Update the image in the Kustomization
+    deps:
+      - controller-gen
     requires:
       # We expect this to run in a GitHub workflow, so we put a few GitHub-specific vars here
       # to prevent running this task locally by accident.
