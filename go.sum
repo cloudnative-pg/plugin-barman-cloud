@@ -24,8 +24,8 @@ github.com/cert-manager/cert-manager v1.16.2 h1:c9UU2E+8XWGruyvC/mdpc1wuLddtgmNr
 github.com/cert-manager/cert-manager v1.16.2/go.mod h1:MfLVTL45hFZsqmaT1O0+b2ugaNNQQZttSFV9hASHUb0=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b h1:LZ9tIgKmWb8ZvyLg/J8ExXtmBtEWP2dr3Y4TU4nCq/w=
-github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b/go.mod h1:mzd1EvoLYy16jJdne6/4nwhoj7t4IZ0MqJMEH4mla8Q=
+github.com/cloudnative-pg/api v0.0.0-20241116094849-219d7a1d257f h1:KAXst7XLaipdFk9Qv796+tThfEJwFMG4wPLAizZ7wx4=
+github.com/cloudnative-pg/api v0.0.0-20241116094849-219d7a1d257f/go.mod h1:aYVZDHteiejVYbntDxJVx1K45xeV8y0KtR/wK4zvt7U=
 github.com/cloudnative-pg/barman-cloud v0.0.0-20241105055149-ae6c2408bd14 h1:HX5pXyzVAqfjcDgCa1l8b4sumf7XYnGqiP+6XMgbB2E=
 github.com/cloudnative-pg/barman-cloud v0.0.0-20241105055149-ae6c2408bd14/go.mod h1:HPGwXHlatQEnb2HdsbGTZLEo8qlxKLdxTHiTeF9TTqw=
 github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813 h1:XWpr5y28JRwcA4BzxBkHFx7C8JDqOSdDIN7RbRdI6Dg=
@@ -126,8 +126,8 @@ github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnr
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
-github.com/klauspost/compress v1.17.9 h1:6KIumPrER1LHsvBVuDa0r5xaG0Es51mhhB9BQB2qeMA=
-github.com/klauspost/compress v1.17.9/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
+github.com/klauspost/compress v1.17.11 h1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=
+github.com/klauspost/compress v1.17.11/go.mod h1:pMDklpSncoRMuLFrf1W9Ss9KT+0rH90U12bZKk7uwG0=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

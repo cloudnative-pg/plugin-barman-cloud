@@ -18,7 +18,6 @@ spec:
       serviceAccountName: plugin-barman-cloud
       containers:
       - image: plugin-barman-cloud:latest
-        imagePullPolicy: IfNotPresent
         name: barman-cloud
         ports:
         - containerPort: 9090

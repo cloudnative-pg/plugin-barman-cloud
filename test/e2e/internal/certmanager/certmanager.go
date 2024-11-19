@@ -29,23 +29,23 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
 )
 
-// InstallOptions contains the options for installing cert-manager
+// InstallOptions contains the options for installing cert-manager.
 type InstallOptions struct {
 	Version              string
 	IgnoreExistResources bool
 }
 
-// InstallOption is a function that sets up an option for installing cert-manager
+// InstallOption is a function that sets up an option for installing cert-manager.
 type InstallOption func(*InstallOptions)
 
-// WithVersion sets the version of cert-manager to install
+// WithVersion sets the version of cert-manager to install.
 func WithVersion(version string) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.Version = version
 	}
 }
 
-// WithIgnoreExistingResources sets whether to ignore existing resources
+// WithIgnoreExistingResources sets whether to ignore existing resources.
 func WithIgnoreExistingResources(ignore bool) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.IgnoreExistResources = ignore
@@ -54,10 +54,10 @@ func WithIgnoreExistingResources(ignore bool) InstallOption {
 
 // TODO: renovate
 
-// DefaultVersion is the default version of cert-manager to install
+// DefaultVersion is the default version of cert-manager to install.
 const DefaultVersion = "v1.15.1"
 
-// Install installs cert-manager using kubectl
+// Install installs cert-manager using kubectl.
 func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error {
 	options := &InstallOptions{
 		Version:              DefaultVersion,
@@ -98,7 +98,7 @@ func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error
 			Namespace: "cert-manager",
 			Name:      deploymentName,
 		}, interval); err != nil {
-			return err
+			return fmt.Errorf("failed to wait for deployment %s to be ready: %w", deploymentName, err)
 		}
 	}
 

@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/kind/pkg/cluster"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/certmanager"
+	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cloudnativepg"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kind"
 )
@@ -147,6 +147,8 @@ func defaultSetupOptions() SetupOptions {
 }
 
 // Setup sets up the test environment for the e2e tests, starting kind and installing the necessary components.
+//
+//nolint:ireturn
 func Setup(ctx context.Context, opts ...SetupOption) (client.Client, error) {
 	options := defaultSetupOptions()
 	for _, opt := range opts {
@@ -157,9 +159,9 @@ func Setup(ctx context.Context, opts ...SetupOption) (client.Client, error) {
 		return nil, err
 	}
 
-	cl, err := getClient()
+	cl, _, err := internalClient.NewClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
 	if err := installCertManager(ctx, cl, options); err != nil {
@@ -224,20 +226,6 @@ func installCertManager(ctx context.Context, cl client.Client, options SetupOpti
 	}
 
 	return nil
-}
-
-func getClient() (client.Client, error) {
-	// Use the current kubernetes client configuration
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Kubernetes config: %w", err)
-	}
-	cl, err := client.New(cfg, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
-	return cl, nil
 }
 
 func setupKind(ctx context.Context, options SetupOptions) error {

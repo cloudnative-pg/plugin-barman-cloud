@@ -6,6 +6,7 @@ toolchain go1.23.3
 
 require (
 	github.com/cert-manager/cert-manager v1.16.2
+	github.com/cloudnative-pg/api v0.0.0-20241116094849-219d7a1d257f
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20241105055149-ae6c2408bd14
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20241109002750-8abd359df734
@@ -40,7 +41,6 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudnative-pg/api v0.0.0-20241004125129-98baa9f4957b // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.0.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

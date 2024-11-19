@@ -54,7 +54,7 @@ func IsReady(ctx context.Context, cl client.Client, name types.NamespacedName) (
 func WaitForDeploymentReady(
 	ctx context.Context, cl client.Client, namespacedName types.NamespacedName, interval time.Duration,
 ) error {
-	return wait.PollUntilContextCancel(ctx, interval, false,
+	err := wait.PollUntilContextCancel(ctx, interval, false,
 		func(ctx context.Context) (bool, error) {
 			ready, err := IsReady(ctx, cl, namespacedName)
 			if err != nil {
@@ -66,4 +66,9 @@ func WaitForDeploymentReady(
 
 			return false, nil
 		})
+	if err != nil {
+		return fmt.Errorf("failed to wait for %s to be ready: %w", namespacedName, err)
+	}
+
+	return nil
 }

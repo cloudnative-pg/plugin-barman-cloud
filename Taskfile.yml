@@ -198,7 +198,7 @@ tasks:
     deps:
       - build-images
     cmds:
-      - go test -v ./test/e2e
+      - go test -timeout 30m -v ./test/e2e
 
   ci:
     desc: Run the CI pipeline
