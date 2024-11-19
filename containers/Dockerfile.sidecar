@@ -33,17 +33,10 @@ COPY ../internal/ internal/
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
-# Build barman-cloud
+# Use plug-barman-cloud-base to get the dependencies
 # pip will build everything inside /usr/ since this is the case
-# we should build and then copy every file into a destination that will
-# then copy into the distroless container
-FROM python:3.13-slim-bookworm AS pythonbuilder
-COPY containers/sidecar-requirements.txt .
-RUN apt-get update && \
-    apt-get install -y postgresql-common build-essential && \
-    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get install -y libpq-dev && \
-    pip install -r sidecar-requirements.txt
+# Copy every file into a destination that will then copy into the distroless container
+FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:latest AS pythonbuilder
 # Prepare a new /usr/ directory with the files we'll need in the final image
 RUN mkdir /new-usr/ && \
     cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
