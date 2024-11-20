@@ -44,7 +44,9 @@ func (e *ConfigurationError) IsEmpty() bool {
 
 // PluginConfiguration is the configuration of the plugin
 type PluginConfiguration struct {
-	BarmanObjectName string
+	BarmanObjectName         string
+	RecoveryBarmanObjectName string
+	RecoveryBarmanServerName string
 }
 
 // NewFromCluster extracts the configuration from the cluster
@@ -54,22 +56,50 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		metadata.PluginName,
 	)
 
+	recoveryServerName := ""
+	recoveryBarmanObjectName := ""
+
+	if recoveryParameters := getRecoveryParameters(cluster); recoveryParameters != nil {
+		recoveryBarmanObjectName = recoveryParameters["barmanObjectName"]
+		recoveryServerName = recoveryParameters["serverName"]
+		if len(recoveryServerName) == 0 {
+			recoveryServerName = cluster.Name
+		}
+	}
+
 	result := &PluginConfiguration{
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
+		// used for restore/wal_restore
+		RecoveryBarmanServerName: recoveryServerName,
+		RecoveryBarmanObjectName: recoveryBarmanObjectName,
 	}
 
 	return result
 }
 
-// Validate checks if the barmanObjectName is set
-func (p *PluginConfiguration) Validate() error {
-	err := NewConfigurationError()
-	if len(p.BarmanObjectName) != 0 {
+func getRecoveryParameters(cluster *cnpgv1.Cluster) map[string]string {
+	recoveryPluginConfiguration := cluster.GetRecoverySourcePlugin()
+	if recoveryPluginConfiguration == nil {
 		return nil
 	}
 
-	return err.WithMessage("Missing barmanObjectName parameter")
+	if recoveryPluginConfiguration.Name != metadata.PluginName {
+		return nil
+	}
+
+	return recoveryPluginConfiguration.Parameters
+}
+
+// Validate checks if the barmanObjectName is set
+func (p *PluginConfiguration) Validate() error {
+	err := NewConfigurationError()
+
+	if len(p.BarmanObjectName) == 0 && len(p.RecoveryBarmanObjectName) == 0 {
+		return err.WithMessage("no reference to barmanObjectName have been included")
+	}
+
+	return nil
 }
 
 // Plugin represents a plugin with its associated cluster and parameters.
