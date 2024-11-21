@@ -133,15 +133,16 @@ tasks:
     deps:
       - generate-certs
       - start-build-network
-    env:
-      # TODO: renovate
-      DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v0.13.6
+    vars:
+      # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+      DAGGER_VERSION: 0.13.6
+      DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
         docker run -d -v /var/lib/dagger --name "${DAGGER_ENGINE_CONTAINER_NAME}"
         --network=${REGISTRY_NETWORK}
         -v $(pwd)/certs/ca.pem:/usr/local/share/ca-certificates/ca.crt
-        --privileged ${DAGGER_ENGINE_IMAGE}
+        --privileged {{ .DAGGER_ENGINE_IMAGE }}
     status:
       - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "${DAGGER_ENGINE_CONTAINER_NAME}" 2> /dev/null )" == 'true' \]
 
