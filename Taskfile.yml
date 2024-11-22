@@ -62,7 +62,7 @@ tasks:
       # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
-      SETUP_ENVTEST_VERSION: 0.19.1
+      SETUP_ENVTEST_VERSION: 0.19.2
     cmds:
       - >
         GITHUB_REF= dagger -s call -m ./dagger/gotest
