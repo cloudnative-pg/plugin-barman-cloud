@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path"
+
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
@@ -21,9 +25,6 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"os/exec"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"

@@ -1,4 +1,4 @@
-package instance
+package common
 
 import (
 	"context"
@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -152,7 +151,7 @@ func (w WALServiceImplementation) Restore(
 
 	barmanConfiguration := &objectStore.Spec.Configuration
 
-	env := common.GetRestoreCABundleEnv(barmanConfiguration)
+	env := GetRestoreCABundleEnv(barmanConfiguration)
 	credentialsEnv, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
 		w.Client,
@@ -163,7 +162,7 @@ func (w WALServiceImplementation) Restore(
 	if err != nil {
 		return nil, fmt.Errorf("while getting recover credentials: %w", err)
 	}
-	env = common.MergeEnv(env, credentialsEnv)
+	env = MergeEnv(env, credentialsEnv)
 
 	// TODO: refactor this code elsewhere
 	serverName := cluster.Name

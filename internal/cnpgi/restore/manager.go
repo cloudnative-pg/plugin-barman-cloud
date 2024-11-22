@@ -33,6 +33,7 @@ func Start(ctx context.Context) error {
 	setupLog.Info("Starting barman cloud instance plugin")
 	namespace := viper.GetString("namespace")
 	clusterName := viper.GetString("cluster-name")
+	boName := viper.GetString("barman-object-name")
 
 	objs := map[client.Object]cache.ByObject{
 		&cnpgv1.Cluster{}: {
@@ -41,6 +42,15 @@ func Start(ctx context.Context) error {
 				namespace: {},
 			},
 		},
+	}
+
+	if boName != "" {
+		objs[&barmancloudv1.ObjectStore{}] = cache.ByObject{
+			Field: fields.OneTermEqualSelector("metadata.name", boName),
+			Namespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -65,12 +75,17 @@ func Start(ctx context.Context) error {
 	if err := mgr.Add(&CNPGI{
 		PluginPath:     viper.GetString("plugin-path"),
 		SpoolDirectory: viper.GetString("spool-directory"),
+		BarmanObjectKey: client.ObjectKey{
+			Namespace: namespace,
+			Name:      boName,
+		},
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		Client:     mgr.GetClient(),
-		PGDataPath: viper.GetString("pgdata"),
+		Client:       mgr.GetClient(),
+		PGDataPath:   viper.GetString("pgdata"),
+		InstanceName: viper.GetString("pod-name"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
 		return err

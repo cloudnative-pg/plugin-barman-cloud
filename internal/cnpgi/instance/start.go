@@ -8,6 +8,8 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 )
 
 // CNPGI is the implementation of the PostgreSQL sidecar
@@ -26,7 +28,7 @@ type CNPGI struct {
 // Start starts the GRPC service
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
-		wal.RegisterWALServer(server, WALServiceImplementation{
+		wal.RegisterWALServer(server, common.WALServiceImplementation{
 			BarmanObjectKey:  c.BarmanObjectKey,
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
