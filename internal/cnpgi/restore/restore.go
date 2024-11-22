@@ -4,11 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"path"
-	"strings"
-
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
@@ -17,6 +12,7 @@ import (
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
@@ -25,6 +21,9 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"os/exec"
+	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -152,10 +151,7 @@ func (impl JobHookImpl) Restore(
 		}
 	}
 
-	config, err := getRestoreWalConfig(ctx, backup, &recoveryObjectStore.Spec.Configuration)
-	if err != nil {
-		return nil, err
-	}
+	config := getRestoreWalConfig()
 
 	contextLogger.Info("sending restore response", "config", config, "env", env)
 	return &restore.RestoreResponse{
@@ -336,33 +332,17 @@ func (impl JobHookImpl) restoreCustomWalDir(ctx context.Context) (bool, error) {
 // getRestoreWalConfig obtains the content to append to `custom.conf` allowing PostgreSQL
 // to complete the WAL recovery from the object storage and then start
 // as a new primary
-func getRestoreWalConfig(
-	ctx context.Context,
-	backup *cnpgv1.Backup,
-	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
-) (string, error) {
-	var err error
-
-	cmd := []string{barmanCapabilities.BarmanCloudWalRestore}
-	if backup.Status.EndpointURL != "" {
-		cmd = append(cmd, "--endpoint-url", backup.Status.EndpointURL)
-	}
-	cmd = append(cmd, backup.Status.DestinationPath)
-	cmd = append(cmd, backup.Status.ServerName)
-
-	cmd, err = barmanCommand.AppendCloudProviderOptionsFromConfiguration(ctx, cmd, barmanConfiguration)
-	if err != nil {
-		return "", err
-	}
-
-	cmd = append(cmd, "%f", "%p")
+func getRestoreWalConfig() string {
+	restoreCmd := fmt.Sprintf(
+		"/controller/manager wal-restore --log-destination %s/%s.json %%f %%p",
+		postgres.LogPath, postgres.LogFileName)
 
 	recoveryFileContents := fmt.Sprintf(
 		"recovery_target_action = promote\n"+
 			"restore_command = '%s'\n",
-		strings.Join(cmd, " "))
+		restoreCmd)
 
-	return recoveryFileContents, nil
+	return recoveryFileContents
 }
 
 // loadBackupObjectFromExternalCluster generates an in-memory Backup structure given a reference to
