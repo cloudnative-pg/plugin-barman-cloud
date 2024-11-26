@@ -16,6 +16,7 @@ import (
 type CNPGI struct {
 	Client           client.Client
 	BarmanObjectKey  client.ObjectKey
+	ServerName       string
 	ClusterObjectKey client.ObjectKey
 	PGDataPath       string
 	PGWALPath        string
@@ -31,6 +32,7 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
 			BarmanObjectKey:  c.BarmanObjectKey,
 			ClusterObjectKey: c.ClusterObjectKey,
+			ServerName:       c.ServerName,
 			InstanceName:     c.InstanceName,
 			Client:           c.Client,
 			SpoolDirectory:   c.SpoolDirectory,
@@ -40,6 +42,7 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		backup.RegisterBackupServer(server, BackupServiceImplementation{
 			Client:           c.Client,
 			BarmanObjectKey:  c.BarmanObjectKey,
+			ServerName:       c.ServerName,
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
 		})

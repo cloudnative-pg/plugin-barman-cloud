@@ -22,6 +22,7 @@ func NewCmd() *cobra.Command {
 				"cluster-name",
 				"pod-name",
 				"spool-directory",
+				"server-name",
 			}
 
 			for _, k := range requiredSettings {
@@ -40,6 +41,7 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
+	_ = viper.BindEnv("server-name", "SERVER_NAME")
 
 	return cmd
 }

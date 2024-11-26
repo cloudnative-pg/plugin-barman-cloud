@@ -115,6 +115,13 @@ func reconcileJob(
 		return nil, nil
 	}
 
+	// Since we're recoverying from an existing object store,
+	// we set our primary object store name to the recovery one.
+	// This won't be needed anymore when wal-restore will be able
+	// to check two object stores
+	pluginConfiguration.BarmanObjectName = pluginConfiguration.RecoveryBarmanObjectName
+	pluginConfiguration.ServerName = pluginConfiguration.RecoveryBarmanServerName
+
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -175,10 +182,14 @@ func reconcilePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if err := reconcilePodSpec(pluginConfiguration, cluster, &mutatedPod.Spec, "postgres", corev1.Container{
-		Args: []string{"instance"},
-	}); err != nil {
-		return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
+	if len(pluginConfiguration.BarmanObjectName) != 0 {
+		if err := reconcilePodSpec(pluginConfiguration, cluster, &mutatedPod.Spec, "postgres", corev1.Container{
+			Args: []string{"instance"},
+		}); err != nil {
+			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
+		}
+	} else {
+		contextLogger.Debug("No need to mutate instance with no backup & archiving confniguration")
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)
@@ -211,6 +222,10 @@ func reconcilePodSpec(
 		{
 			Name:  "BARMAN_OBJECT_NAME",
 			Value: cfg.BarmanObjectName,
+		},
+		{
+			Name:  "SERVER_NAME",
+			Value: cfg.ServerName,
 		},
 		{
 			// TODO: should we really use this one?

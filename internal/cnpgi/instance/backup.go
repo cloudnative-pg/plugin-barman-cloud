@@ -31,6 +31,7 @@ type BackupServiceImplementation struct {
 	ClusterObjectKey client.ObjectKey
 	Client           client.Client
 	InstanceName     string
+	ServerName       string
 	backup.UnimplementedBackupServer
 }
 
@@ -111,21 +112,12 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
-	serverName := cluster.Name
-	for _, plugin := range cluster.Spec.Plugins {
-		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
-			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
-				serverName = pluginServerName
-			}
-		}
-	}
-
 	backupName := fmt.Sprintf("backup-%v", pgTime.ToCompactISO8601(time.Now()))
 
 	if err = backupCmd.Take(
 		ctx,
 		backupName,
-		serverName,
+		b.ServerName,
 		env,
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
@@ -137,7 +129,7 @@ func (b BackupServiceImplementation) Backup(
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx,
 		backupName,
-		serverName,
+		b.ServerName,
 		barmanCloudExecutor{},
 		env)
 	if err != nil {

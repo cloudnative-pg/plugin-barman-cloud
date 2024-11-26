@@ -86,6 +86,7 @@ func Start(ctx context.Context) error {
 		Client:       mgr.GetClient(),
 		PGDataPath:   viper.GetString("pgdata"),
 		InstanceName: viper.GetString("pod-name"),
+		ServerName:   viper.GetString("server-name"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
 		return err

@@ -22,6 +22,7 @@ type CNPGI struct {
 	Client           client.Client
 	PGDataPath       string
 	InstanceName     string
+	ServerName       string
 }
 
 // Start starts the GRPC service
@@ -38,6 +39,7 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			SpoolDirectory:   c.SpoolDirectory,
 			PGDataPath:       c.PGDataPath,
 			PGWALPath:        path.Join(c.PGDataPath, "pg_wal"),
+			ServerName:       c.ServerName,
 		})
 
 		restore.RegisterRestoreJobHooksServer(server, &JobHookImpl{
