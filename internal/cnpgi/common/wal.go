@@ -1,4 +1,4 @@
-package instance
+package common
 
 import (
 	"context"
@@ -19,12 +19,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // WALServiceImplementation is the implementation of the WAL Service
 type WALServiceImplementation struct {
+	ServerName       string
 	BarmanObjectKey  client.ObjectKey
 	ClusterObjectKey client.ObjectKey
 	Client           client.Client
@@ -73,16 +73,6 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	// TODO: refactor this code elsewhere
-	serverName := cluster.Name
-	for _, plugin := range cluster.Spec.Plugins {
-		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
-			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
-				serverName = pluginServerName
-			}
-		}
-	}
-
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
 		return nil, err
@@ -112,7 +102,7 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, serverName)
+	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, w.ServerName)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +142,7 @@ func (w WALServiceImplementation) Restore(
 
 	barmanConfiguration := &objectStore.Spec.Configuration
 
-	env := common.GetRestoreCABundleEnv(barmanConfiguration)
+	env := GetRestoreCABundleEnv(barmanConfiguration)
 	credentialsEnv, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
 		w.Client,
@@ -163,19 +153,9 @@ func (w WALServiceImplementation) Restore(
 	if err != nil {
 		return nil, fmt.Errorf("while getting recover credentials: %w", err)
 	}
-	env = common.MergeEnv(env, credentialsEnv)
+	env = MergeEnv(env, credentialsEnv)
 
-	// TODO: refactor this code elsewhere
-	serverName := cluster.Name
-	for _, plugin := range cluster.Spec.Plugins {
-		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
-			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
-				serverName = pluginServerName
-			}
-		}
-	}
-
-	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, serverName)
+	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, w.ServerName)
 	if err != nil {
 		return nil, fmt.Errorf("while getting barman-cloud-wal-restore options: %w", err)
 	}

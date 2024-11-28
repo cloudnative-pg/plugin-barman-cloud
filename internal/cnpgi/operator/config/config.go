@@ -45,6 +45,7 @@ func (e *ConfigurationError) IsEmpty() bool {
 // PluginConfiguration is the configuration of the plugin
 type PluginConfiguration struct {
 	BarmanObjectName         string
+	ServerName               string
 	RecoveryBarmanObjectName string
 	RecoveryBarmanServerName string
 }
@@ -55,6 +56,15 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		*cluster,
 		metadata.PluginName,
 	)
+
+	serverName := cluster.Name
+	for _, plugin := range cluster.Spec.Plugins {
+		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
+			if pluginServerName, ok := plugin.Parameters["serverName"]; ok {
+				serverName = pluginServerName
+			}
+		}
+	}
 
 	recoveryServerName := ""
 	recoveryBarmanObjectName := ""
@@ -70,6 +80,7 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	result := &PluginConfiguration{
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
+		ServerName:       serverName,
 		// used for restore/wal_restore
 		RecoveryBarmanServerName: recoveryServerName,
 		RecoveryBarmanObjectName: recoveryBarmanObjectName,

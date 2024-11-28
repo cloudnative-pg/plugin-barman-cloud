@@ -81,6 +81,7 @@ func Start(ctx context.Context) error {
 			Name:      clusterName,
 		},
 		BarmanObjectKey: barmanObjectKey,
+		ServerName:      viper.GetString("server-name"),
 		InstanceName:    podName,
 		// TODO: improve
 		PGDataPath:     viper.GetString("pgdata"),
