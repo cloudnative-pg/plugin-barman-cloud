@@ -31,8 +31,9 @@ import (
 	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-func NewGCSObjectStoreResources(namespace, name string) Resources {
-	return Resources{
+// NewGCSObjectStoreResources creates the resources required to create a GCS object store.
+func NewGCSObjectStoreResources(namespace, name string) *Resources {
+	return &Resources{
 		Deployment: newGCSDeployment(namespace, name),
 		Service:    newGCSService(namespace, name),
 		Secret:     newGCSSecret(namespace, name),
@@ -76,7 +77,8 @@ func newGCSDeployment(namespace, name string) *appsv1.Deployment {
 								},
 							},
 							Command: []string{"fake-gcs-server"},
-							Args: []string{"-scheme",
+							Args: []string{
+								"-scheme",
 								"http",
 								"-port",
 								"4443",
@@ -167,6 +169,7 @@ func newGCSPVC(namespace, name string) *corev1.PersistentVolumeClaim {
 	}
 }
 
+// NewGCSObjectStore creates a new GCS object store.
 func NewGCSObjectStore(namespace, name, gcsOSName string) *pluginBarmanCloudV1.ObjectStore {
 	return &pluginBarmanCloudV1.ObjectStore{
 		TypeMeta: metav1.TypeMeta{

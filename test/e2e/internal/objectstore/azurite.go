@@ -31,8 +31,9 @@ import (
 	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-func NewAzuriteObjectStoreResources(namespace, name string) Resources {
-	return Resources{
+// NewAzuriteObjectStoreResources creates the resources required to create an Azurite object store.
+func NewAzuriteObjectStoreResources(namespace, name string) *Resources {
+	return &Resources{
 		Deployment: newAzuriteDeployment(namespace, name),
 		Service:    newAzuriteService(namespace, name),
 		PVC:        newAzuritePVC(namespace, name),
@@ -174,6 +175,7 @@ func newAzuritePVC(namespace, name string) *corev1.PersistentVolumeClaim {
 	}
 }
 
+// NewAzuriteObjectStore creates a new ObjectStore object for Azurite.
 func NewAzuriteObjectStore(namespace, name, azuriteOSName string) *pluginBarmanCloudV1.ObjectStore {
 	return &pluginBarmanCloudV1.ObjectStore{
 		TypeMeta: metav1.TypeMeta{

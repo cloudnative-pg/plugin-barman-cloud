@@ -20,37 +20,45 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/api/apps/v1"
-	v2 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	// Size of the PVCs for the object stores
+	// DefaultSize is the default size of the PVCs for the object stores.
 	DefaultSize = "1Gi"
 )
 
 // Resources represents the resources required to create an object store.
 type Resources struct {
-	Deployment *v1.Deployment
-	Service    *v2.Service
-	Secret     *v2.Secret
-	PVC        *v2.PersistentVolumeClaim
+	Deployment *appsv1.Deployment
+	Service    *corev1.Service
+	Secret     *corev1.Secret
+	PVC        *corev1.PersistentVolumeClaim
 }
 
 // Create creates the object store resources.
 func (osr Resources) Create(ctx context.Context, cl client.Client) error {
-	if err := cl.Create(ctx, osr.PVC); err != nil {
-		return fmt.Errorf("failed to create PVC: %w", err)
+	if osr.PVC != nil {
+		if err := cl.Create(ctx, osr.PVC); err != nil {
+			return fmt.Errorf("failed to create PVC: %w", err)
+		}
 	}
-	if err := cl.Create(ctx, osr.Secret); err != nil {
-		return fmt.Errorf("failed to create secret: %w", err)
+	if osr.Secret != nil {
+		if err := cl.Create(ctx, osr.Secret); err != nil {
+			return fmt.Errorf("failed to create secret: %w", err)
+		}
 	}
-	if err := cl.Create(ctx, osr.Deployment); err != nil {
-		return fmt.Errorf("failed to create deployment: %w", err)
+	if osr.Deployment != nil {
+		if err := cl.Create(ctx, osr.Deployment); err != nil {
+			return fmt.Errorf("failed to create deployment: %w", err)
+		}
 	}
-	if err := cl.Create(ctx, osr.Service); err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
+	if osr.Service != nil {
+		if err := cl.Create(ctx, osr.Service); err != nil {
+			return fmt.Errorf("failed to create service: %w", err)
+		}
 	}
 
 	return nil
