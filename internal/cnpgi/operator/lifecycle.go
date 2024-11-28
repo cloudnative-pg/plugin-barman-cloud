@@ -115,7 +115,7 @@ func reconcileJob(
 		return nil, nil
 	}
 
-	// Since we're recoverying from an existing object store,
+	// Since we're recovering from an existing object store,
 	// we set our primary object store name to the recovery one.
 	// This won't be needed anymore when wal-restore will be able
 	// to check two object stores
@@ -189,7 +189,7 @@ func reconcilePod(
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
 	} else {
-		contextLogger.Debug("No need to mutate instance with no backup & archiving confniguration")
+		contextLogger.Debug("No need to mutate instance with no backup & archiving configuration")
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)
