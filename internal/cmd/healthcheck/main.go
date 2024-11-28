@@ -34,7 +34,7 @@ func unixHealthCheck() *cobra.Command {
 			dialPath := fmt.Sprintf("unix://%s", path.Join("/plugins", metadata.PluginName))
 			cli, cliErr := grpc.NewClient(dialPath, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if cliErr != nil {
-				log.Error(cliErr, "error while building client")
+				log.Error(cliErr, "while building the client")
 				return cliErr
 			}
 
@@ -44,18 +44,25 @@ func unixHealthCheck() *cobra.Command {
 				&grpc_health_v1.HealthCheckRequest{},
 			)
 			if healthErr != nil {
-				log.Error(healthErr, "healthcheck call failed")
+				log.Error(healthErr, "while executing the healthcheck call")
 				return healthErr
 			}
 
-			log.Info("received status: %s", res.Status.String())
-			switch res.Status {
-			case grpc_health_v1.HealthCheckResponse_SERVING:
+			if res.Status == grpc_health_v1.HealthCheckResponse_SERVING {
+				log.Trace("healthcheck response OK")
 				os.Exit(0)
+				return nil
+			}
+
+			log.Error(fmt.Errorf("unexpected healthcheck response: %v", res.Status),
+				"while processing healthcheck response")
+
+			// exit code 1 is returned when we exit from the function with an error
+			switch res.Status {
 			case grpc_health_v1.HealthCheckResponse_UNKNOWN:
-				os.Exit(1)
-			case grpc_health_v1.HealthCheckResponse_NOT_SERVING:
 				os.Exit(2)
+			case grpc_health_v1.HealthCheckResponse_NOT_SERVING:
+				os.Exit(3)
 			default:
 				os.Exit(125)
 			}
