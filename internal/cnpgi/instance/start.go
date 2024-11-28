@@ -46,6 +46,7 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
 		})
+		common.AddHealthCheck(server)
 		return nil
 	}
 

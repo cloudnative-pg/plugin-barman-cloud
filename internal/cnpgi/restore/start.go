@@ -49,6 +49,9 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			PgDataPath:           c.PGDataPath,
 			PgWalFolderToSymlink: PgWalVolumePgWalPath,
 		})
+
+		common.AddHealthCheck(server)
+
 		return nil
 	}
 
