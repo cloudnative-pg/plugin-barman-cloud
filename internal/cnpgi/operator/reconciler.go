@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
@@ -78,7 +77,6 @@ func (r ReconcilerImplementation) Pre(
 
 	var barmanObjects []barmancloudv1.ObjectStore
 
-	// this could be empty during recoveries
 	if pluginConfiguration.BarmanObjectName != "" {
 		var barmanObject barmancloudv1.ObjectStore
 		if err := r.Client.Get(ctx, client.ObjectKey{
@@ -86,7 +84,10 @@ func (r ReconcilerImplementation) Pre(
 			Name:      pluginConfiguration.BarmanObjectName,
 		}, &barmanObject); err != nil {
 			if apierrs.IsNotFound(err) {
-				contextLogger.Info("barman object configuration not found, requeuing")
+				contextLogger.Info(
+					"barman object configuration not found, requeuing",
+					"name", pluginConfiguration.BarmanObjectName,
+					"namespace", cluster.Namespace)
 				return &reconciler.ReconcilerHooksResult{
 					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
 				}, nil
@@ -98,15 +99,26 @@ func (r ReconcilerImplementation) Pre(
 		barmanObjects = append(barmanObjects, barmanObject)
 	}
 
-	if barmanObject, err := r.getRecoveryBarmanObject(ctx, &cluster); err != nil {
-		if apierrs.IsNotFound(err) {
-			contextLogger.Info("barman recovery object configuration not found, requeuing")
-			return &reconciler.ReconcilerHooksResult{
-				Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
-			}, nil
+	if pluginConfiguration.RecoveryBarmanObjectName != "" {
+		var barmanObject barmancloudv1.ObjectStore
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      pluginConfiguration.RecoveryBarmanObjectName,
+		}, &barmanObject); err != nil {
+			if apierrs.IsNotFound(err) {
+				contextLogger.Info(
+					"barman recovery object configuration not found, requeuing",
+					"name", pluginConfiguration.RecoveryBarmanObjectName,
+					"namespace", cluster.Namespace,
+				)
+				return &reconciler.ReconcilerHooksResult{
+					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+				}, nil
+			}
+			return nil, err
 		}
-	} else if barmanObject != nil {
-		barmanObjects = append(barmanObjects, *barmanObject)
+
+		barmanObjects = append(barmanObjects, barmanObject)
 	}
 
 	var additionalSecretNames []string
@@ -122,30 +134,6 @@ func (r ReconcilerImplementation) Pre(
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
 	}, nil
-}
-
-func (r ReconcilerImplementation) getRecoveryBarmanObject(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-) (*barmancloudv1.ObjectStore, error) {
-	recoveryConfig := cluster.GetRecoverySourcePlugin()
-	if recoveryConfig != nil && recoveryConfig.Name == metadata.PluginName {
-		// TODO: refactor -> cnpg-i-machinery should be able to help us on getting
-		// the configuration for a recovery plugin
-		if recoveryObjectStore, ok := recoveryConfig.Parameters["barmanObjectName"]; ok {
-			var barmanObject barmancloudv1.ObjectStore
-			if err := r.Client.Get(ctx, client.ObjectKey{
-				Namespace: cluster.Namespace,
-				Name:      recoveryObjectStore,
-			}, &barmanObject); err != nil {
-				return nil, err
-			}
-
-			return &barmanObject, nil
-		}
-	}
-
-	return nil, nil
 }
 
 // Post implements the reconciler interface

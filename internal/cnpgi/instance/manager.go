@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,20 +34,16 @@ func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
 	namespace := viper.GetString("namespace")
-	boName := viper.GetString("barman-object-name")
 	clusterName := viper.GetString("cluster-name")
 	podName := viper.GetString("pod-name")
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	barmanObjectName := viper.GetString("barman-object-name")
+	recoveryBarmanObjectName := viper.GetString("recovery-barman-object-name")
+
+	controllerOptions := ctrl.Options{
 		Scheme: scheme,
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
-				&barmancloudv1.ObjectStore{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", boName),
-					Namespaces: map[string]cache.Config{
-						namespace: {},
-					},
-				},
 				&cnpgv1.Cluster{}: {
 					Field: fields.OneTermEqualSelector("metadata.name", clusterName),
 					Namespaces: map[string]cache.Config{
@@ -62,7 +59,23 @@ func Start(ctx context.Context) error {
 				},
 			},
 		},
-	})
+	}
+
+	if len(recoveryBarmanObjectName) == 0 {
+		controllerOptions.Cache.ByObject[&barmancloudv1.ObjectStore{}] = cache.ByObject{
+			Field: fields.OneTermEqualSelector("metadata.name", barmanObjectName),
+			Namespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		}
+	} else {
+		controllerOptions.Client.Cache.DisableFor = append(
+			controllerOptions.Client.Cache.DisableFor,
+			&barmancloudv1.ObjectStore{},
+		)
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), controllerOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
@@ -70,23 +83,39 @@ func Start(ctx context.Context) error {
 
 	barmanObjectKey := client.ObjectKey{
 		Namespace: namespace,
-		Name:      boName,
+		Name:      barmanObjectName,
+	}
+	recoveryBarmanObjectKey := client.ObjectKey{
+		Namespace: namespace,
+		Name:      recoveryBarmanObjectName,
+	}
+
+	involvedObjectStores := make([]types.NamespacedName, 0, 2)
+	if len(barmanObjectName) > 0 {
+		involvedObjectStores = append(involvedObjectStores, barmanObjectKey)
+	}
+	if len(recoveryBarmanObjectName) > 0 {
+		involvedObjectStores = append(involvedObjectStores, recoveryBarmanObjectKey)
 	}
 
 	if err := mgr.Add(&CNPGI{
-		Client: extendedclient.NewExtendedClient(mgr.GetClient(), barmanObjectKey),
+		Client: extendedclient.NewExtendedClient(mgr.GetClient(), involvedObjectStores),
 		ClusterObjectKey: client.ObjectKey{
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		BarmanObjectKey: barmanObjectKey,
-		ServerName:      viper.GetString("server-name"),
-		InstanceName:    podName,
+		InstanceName: podName,
 		// TODO: improve
 		PGDataPath:     viper.GetString("pgdata"),
 		PGWALPath:      path.Join(viper.GetString("pgdata"), "pg_wal"),
 		SpoolDirectory: viper.GetString("spool-directory"),
 		PluginPath:     viper.GetString("plugin-path"),
+
+		BarmanObjectKey: barmanObjectKey,
+		ServerName:      viper.GetString("server-name"),
+
+		RecoveryBarmanObjectKey: recoveryBarmanObjectKey,
+		RecoveryServerName:      viper.GetString("recovery-server-name"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
 		return err

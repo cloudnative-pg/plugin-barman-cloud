@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -21,32 +22,41 @@ type cachedSecret struct {
 // ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
 type ExtendedClient struct {
 	client.Client
-	barmanObjectKey client.ObjectKey
-	cachedSecrets   []*cachedSecret
-	mux             *sync.Mutex
-	ttl             int
+	barmanObjectKeys []client.ObjectKey
+	cachedSecrets    []*cachedSecret
+	mux              *sync.Mutex
+	ttl              int
 }
 
 // NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation
 func NewExtendedClient(
 	baseClient client.Client,
-	objectStoreKey client.ObjectKey,
+	objectStoreKeys []client.ObjectKey,
 ) client.Client {
 	return &ExtendedClient{
-		Client:          baseClient,
-		barmanObjectKey: objectStoreKey,
-		mux:             &sync.Mutex{},
+		Client:           baseClient,
+		barmanObjectKeys: objectStoreKeys,
+		mux:              &sync.Mutex{},
 	}
 }
 
 func (e *ExtendedClient) refreshTTL(ctx context.Context) error {
-	var object v1.ObjectStore
-	if err := e.Get(ctx, e.barmanObjectKey, &object); err != nil {
-		return fmt.Errorf("failed to get the object store while refreshing the TTL parameter: %w", err)
+	minTTL := math.MaxInt
+
+	for _, key := range e.barmanObjectKeys {
+		var object v1.ObjectStore
+
+		if err := e.Get(ctx, key, &object); err != nil {
+			return fmt.Errorf("failed to get the object store while refreshing the TTL parameter: %w", err)
+		}
+
+		currentTTL := object.Spec.InstanceSidecarConfiguration.GetCacheTTL()
+		if currentTTL < minTTL {
+			minTTL = currentTTL
+		}
 	}
 
-	e.ttl = object.Spec.InstanceSidecarConfiguration.GetCacheTTL()
-
+	e.ttl = minTTL
 	return nil
 }
 

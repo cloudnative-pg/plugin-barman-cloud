@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-bis
+  labels:
+    app: minio-bis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio-bis
+  template:
+    metadata:
+      labels:
+        app: minio-bis
+    spec:
+      containers:
+      - name: minio
+        image: minio/minio
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        args:
+        - server
+        - /data
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef: 
+              name: minio-bis
+              key: ACCESS_KEY_ID
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef: 
+              name: minio-bis
+              key: ACCESS_SECRET_KEY
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio-bis

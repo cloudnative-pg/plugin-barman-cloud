@@ -15,8 +15,6 @@ import (
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
 	Client           client.Client
-	BarmanObjectKey  client.ObjectKey
-	ServerName       string
 	ClusterObjectKey client.ObjectKey
 	PGDataPath       string
 	PGWALPath        string
@@ -24,20 +22,30 @@ type CNPGI struct {
 	// mutually exclusive with serverAddress
 	PluginPath   string
 	InstanceName string
+
+	BarmanObjectKey client.ObjectKey
+	ServerName      string
+
+	RecoveryBarmanObjectKey client.ObjectKey
+	RecoveryServerName      string
 }
 
 // Start starts the GRPC service
 func (c *CNPGI) Start(ctx context.Context) error {
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
-			BarmanObjectKey:  c.BarmanObjectKey,
 			ClusterObjectKey: c.ClusterObjectKey,
-			ServerName:       c.ServerName,
 			InstanceName:     c.InstanceName,
 			Client:           c.Client,
 			SpoolDirectory:   c.SpoolDirectory,
 			PGDataPath:       c.PGDataPath,
 			PGWALPath:        c.PGWALPath,
+
+			BarmanObjectKey: c.BarmanObjectKey,
+			ServerName:      c.ServerName,
+
+			RecoveryBarmanObjectKey: c.RecoveryBarmanObjectKey,
+			RecoveryServerName:      c.RecoveryServerName,
 		})
 		backup.RegisterBackupServer(server, BackupServiceImplementation{
 			Client:           c.Client,
