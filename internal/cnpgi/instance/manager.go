@@ -2,6 +2,7 @@ package instance
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path"
 
@@ -94,6 +95,10 @@ func Start(ctx context.Context) error {
 	}
 
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+
 		setupLog.Error(err, "problem running manager")
 		return err
 	}

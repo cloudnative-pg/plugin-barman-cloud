@@ -2,6 +2,7 @@ package restore
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -93,6 +94,9 @@ func Start(ctx context.Context) error {
 	}
 
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
 		setupLog.Error(err, "problem running manager")
 		return err
 	}
