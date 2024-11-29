@@ -19,7 +19,6 @@ package operator
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 
 	// +kubebuilder:scaffold:imports
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -156,11 +155,6 @@ func Start(ctx context.Context) error {
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
-
-		setupLog.Error(err, "problem running manager")
 		return err
 	}
 

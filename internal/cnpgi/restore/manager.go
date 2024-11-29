@@ -2,8 +2,6 @@ package restore
 
 import (
 	"context"
-	"errors"
-	"os"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/spf13/viper"
@@ -70,7 +68,7 @@ func Start(ctx context.Context) error {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		return err
 	}
 
 	if err := mgr.Add(&CNPGI{
@@ -93,11 +91,7 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
-		setupLog.Error(err, "problem running manager")
+	if err := mgr.Start(ctx); err != nil {
 		return err
 	}
 

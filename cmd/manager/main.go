@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/cobra"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/instance"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/operator"
@@ -30,8 +33,10 @@ func main() {
 	rootCmd.AddCommand(operator.NewCmd())
 	rootCmd.AddCommand(restore.NewCmd())
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if err := rootCmd.ExecuteContext(ctrl.SetupSignalHandler()); err != nil {
+		if !errors.Is(err, context.Canceled) {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 }

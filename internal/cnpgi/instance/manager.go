@@ -2,8 +2,6 @@ package instance
 
 import (
 	"context"
-	"errors"
-	"os"
 	"path"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -67,7 +65,7 @@ func Start(ctx context.Context) error {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		return err
 	}
 
 	barmanObjectKey := client.ObjectKey{
@@ -94,12 +92,7 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
-
-		setupLog.Error(err, "problem running manager")
+	if err := mgr.Start(ctx); err != nil {
 		return err
 	}
 
