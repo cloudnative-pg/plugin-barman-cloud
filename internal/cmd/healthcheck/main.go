@@ -29,7 +29,7 @@ func NewCmd() *cobra.Command {
 func unixHealthCheck() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unix",
-		Short: "unix healthcheck",
+		Short: "executes the health check command on unix:///plugins/barman-cloud.cloudnative-pg.io",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			dialPath := fmt.Sprintf("unix://%s", path.Join("/plugins", metadata.PluginName))
 			cli, cliErr := grpc.NewClient(dialPath, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -54,7 +54,7 @@ func unixHealthCheck() *cobra.Command {
 				return nil
 			}
 
-			log.Error(fmt.Errorf("unexpected healthcheck response: %v", res.Status),
+			log.Error(fmt.Errorf("unexpected healthcheck status: %v", res.Status),
 				"while processing healthcheck response")
 
 			// exit code 1 is returned when we exit from the function with an error
