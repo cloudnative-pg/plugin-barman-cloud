@@ -155,7 +155,6 @@ func Start(ctx context.Context) error {
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
 		return err
 	}
 
