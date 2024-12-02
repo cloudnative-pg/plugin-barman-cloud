@@ -239,7 +239,7 @@ func reconcilePodSpec(
 		FailureThreshold: 3,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"manager", "healthcheck", "unix"},
+				Command: []string{"/manager", "healthcheck", "unix"},
 			},
 		},
 	}
