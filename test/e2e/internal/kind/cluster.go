@@ -19,7 +19,6 @@ package kind
 import (
 	"context"
 	"fmt"
-	"os/exec"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/strslice"
@@ -28,7 +27,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
-// IsClusterRunning checks if a Kind cluster with the given name is running
+// IsClusterRunning checks if a Kind cluster with the given name is running.
 func IsClusterRunning(provider *cluster.Provider, clusterName string) (bool, error) {
 	clusters, err := provider.List()
 	if err != nil {
@@ -43,38 +42,38 @@ func IsClusterRunning(provider *cluster.Provider, clusterName string) (bool, err
 	return false, nil
 }
 
-// CreateClusterOptions are the options for creating a Kind cluster
+// CreateClusterOptions are the options for creating a Kind cluster.
 type CreateClusterOptions struct {
 	ConfigFile string
 	K8sVersion string
 	Networks   []string
 }
 
-// CreateClusterOption is the option for creating a Kind cluster
+// CreateClusterOption is the option for creating a Kind cluster.
 type CreateClusterOption func(*CreateClusterOptions)
 
-// WithConfigFile sets the config file for creating a Kind cluster
+// WithConfigFile sets the config file for creating a Kind cluster.
 func WithConfigFile(configFile string) CreateClusterOption {
 	return func(opts *CreateClusterOptions) {
 		opts.ConfigFile = configFile
 	}
 }
 
-// WithK8sVersion sets the Kubernetes version for creating a Kind cluster
+// WithK8sVersion sets the Kubernetes version for creating a Kind cluster.
 func WithK8sVersion(k8sVersion string) CreateClusterOption {
 	return func(opts *CreateClusterOptions) {
 		opts.K8sVersion = k8sVersion
 	}
 }
 
-// WithNetwork sets the network for creating a Kind cluster
+// WithNetworks sets the network for creating a Kind cluster.
 func WithNetworks(networks []string) CreateClusterOption {
 	return func(opts *CreateClusterOptions) {
 		opts.Networks = networks
 	}
 }
 
-// CreateCluster creates a Kind cluster with the given name
+// CreateCluster creates a Kind cluster with the given name.
 func CreateCluster(ctx context.Context, provider *cluster.Provider, name string, opts ...CreateClusterOption) error {
 	options := &CreateClusterOptions{}
 	for _, opt := range opts {
@@ -109,13 +108,20 @@ func CreateCluster(ctx context.Context, provider *cluster.Provider, name string,
 	if err != nil {
 		return err
 	}
-	for _, node := range nodeList {
-		cmd := exec.Command("docker", "exec", node.String(), "update-ca-certificates") // #nosec
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("failed to update CA certificates in node %s: %w, output: %s", node, err, string(output))
-		}
 
+	if err := updateCACertificates(ctx, cli, nodeList); err != nil {
+		return fmt.Errorf("failed to update CA certificates: %w", err)
+	}
+
+	if err := connectNetworks(ctx, cli, nodeList, options.Networks); err != nil {
+		return fmt.Errorf("failed to connect networks: %w", err)
+	}
+
+	return nil
+}
+
+func updateCACertificates(ctx context.Context, cli *client.Client, nodes []nodes.Node) error {
+	for _, node := range nodes {
 		execConfig := container.ExecOptions{
 			Cmd:          strslice.StrSlice([]string{"update-ca-certificates"}),
 			AttachStdout: true,
@@ -132,8 +138,12 @@ func CreateCluster(ctx context.Context, provider *cluster.Provider, name string,
 		}
 	}
 
-	for _, netw := range options.Networks {
-		for _, node := range nodeList {
+	return nil
+}
+
+func connectNetworks(ctx context.Context, cli *client.Client, nodes []nodes.Node, networks []string) error {
+	for _, netw := range networks {
+		for _, node := range nodes {
 			err := cli.NetworkConnect(ctx, netw, node.String(), nil)
 			if err != nil {
 				return fmt.Errorf("failed to connect node %s to network %s: %w", node.String(), netw, err)

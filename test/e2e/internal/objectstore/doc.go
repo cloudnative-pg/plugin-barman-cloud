@@ -14,17 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
-
-import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-)
-
-// const namespace = "plugin-barman-cloud-system"
-
-var _ = Describe("controller", Ordered, func() {
-	It("passes", func() {
-		Expect(true).To(BeTrue())
-	})
-})
+// Package objectstore provides shared examples for object store resources.
+package objectstore

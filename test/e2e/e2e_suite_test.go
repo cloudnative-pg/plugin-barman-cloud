@@ -23,20 +23,24 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	apimachineryTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kustomizeTypes "sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 
+	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/deployment"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/e2etestenv"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
+
+	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/backup"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -72,9 +76,26 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 				},
 			},
 		},
+		Patches: []kustomizeTypes.Patch{
+			{
+				Patch: `[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Always"}]`,
+				Target: &kustomizeTypes.Selector{
+					ResId: resid.ResId{
+						Gvk: resid.Gvk{
+							Group:   "apps",
+							Version: "v1",
+							Kind:    "Deployment",
+						},
+						Name:      "barman-cloud",
+						Namespace: "cnpg-system",
+					},
+				},
+				Options: nil,
+			},
+		},
 	}
 
-	scheme := runtime.NewScheme()
+	scheme := cl.Scheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		Fail(fmt.Sprintf("failed to add core/v1 to scheme: %v", err))
 	}
@@ -92,6 +113,12 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 	}
 	if err := certmanagerv1.AddToScheme(scheme); err != nil {
 		Fail(fmt.Sprintf("failed to add cert-manager.io/v1 to scheme: %v", err))
+	}
+	if err := pluginBarmanCloudV1.AddToScheme(scheme); err != nil {
+		Fail(fmt.Sprintf("failed to add plugin-barman-cloud/v1 to scheme: %v", err))
+	}
+	if err := cloudnativepgv1.AddToScheme(scheme); err != nil {
+		Fail(fmt.Sprintf("failed to add postgresql.cnpg.io/v1 to scheme: %v", err))
 	}
 
 	if err := kustomize.ApplyKustomization(ctx, cl, barmanCloudKustomization); err != nil {

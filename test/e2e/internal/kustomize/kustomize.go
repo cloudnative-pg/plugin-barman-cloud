@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 
 	"gopkg.in/yaml.v3"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,15 +33,15 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
-// ApplyKustomizationOptions holds options for applying kustomizations
+// ApplyKustomizationOptions holds options for applying kustomizations.
 type ApplyKustomizationOptions struct {
 	IgnoreExistingResources bool
 }
 
-// ApplyKustomizationOption is a functional option for ApplyKustomization
+// ApplyKustomizationOption is a functional option for ApplyKustomization.
 type ApplyKustomizationOption func(*ApplyKustomizationOptions)
 
-// ApplyKustomization builds the kustomization and creates the resources
+// ApplyKustomization builds the kustomization and creates the resources.
 func ApplyKustomization(
 	ctx context.Context,
 	cl client.Client,
@@ -112,28 +111,32 @@ func applyResourceMap(ctx context.Context, cl client.Client, resourceMap resmap.
 }
 
 func applyResource(ctx context.Context, cl client.Client, obj *unstructured.Unstructured) error {
-	if err := cl.Create(ctx, obj); err != nil {
-		if apimachineryerrors.IsAlreadyExists(err) {
-			// If the resource already exists, retrieve the existing resource
-			existing := &unstructured.Unstructured{}
-			existing.SetGroupVersionKind(obj.GroupVersionKind())
-			key := client.ObjectKey{
-				Namespace: obj.GetNamespace(),
-				Name:      obj.GetName(),
-			}
-			if err := cl.Get(ctx, key, existing); err != nil {
-				log.Fatalf("Error getting existing resource: %v", err)
-			}
-
-			// Update the existing resource with the new data
-			obj.SetResourceVersion(existing.GetResourceVersion())
-			err = cl.Update(ctx, obj)
-			if err != nil {
-				return fmt.Errorf("error updating resource: %v", err)
-			}
-		} else {
-			return fmt.Errorf("error creating resource: %v", err)
-		}
+	err := cl.Create(ctx, obj)
+	if err == nil {
+		return nil
 	}
+
+	if !apimachineryerrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating resource: %w", err)
+	}
+
+	// If the resource already exists, retrieve the existing resource
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(obj.GroupVersionKind())
+	key := client.ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	}
+	if err := cl.Get(ctx, key, existing); err != nil {
+		return fmt.Errorf("error getting existing resource: %w", err)
+	}
+
+	// Update the existing resource with the new data
+	obj.SetResourceVersion(existing.GetResourceVersion())
+	err = cl.Update(ctx, obj)
+	if err != nil {
+		return fmt.Errorf("error updating resource: %w", err)
+	}
+
 	return nil
 }

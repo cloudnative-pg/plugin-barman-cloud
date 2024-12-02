@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	types2 "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/types"
@@ -30,7 +31,7 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
 )
 
-// InstallCloudNativePGOptions contains the options for installing CloudNativePG
+// InstallCloudNativePGOptions contains the options for installing CloudNativePG.
 type InstallCloudNativePGOptions struct {
 	ImageName                string
 	ImageTag                 string
@@ -40,52 +41,52 @@ type InstallCloudNativePGOptions struct {
 	IgnoreExistResources     bool
 }
 
-// InstallOption is a function that sets up an option for installing CloudNativePG
+// InstallOption is a function that sets up an option for installing CloudNativePG.
 type InstallOption func(*InstallCloudNativePGOptions)
 
-// WithImageName sets the name for the CloudNativePG image
+// WithImageName sets the name for the CloudNativePG image.
 func WithImageName(ref string) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.ImageName = ref
 	}
 }
 
-// WithImageTag sets the tag for the CloudNativePG image
+// WithImageTag sets the tag for the CloudNativePG image.
 func WithImageTag(tag string) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.ImageTag = tag
 	}
 }
 
-// WithKustomizationResourceURL sets the URL for the CloudNativePG kustomization
+// WithKustomizationResourceURL sets the URL for the CloudNativePG kustomization.
 func WithKustomizationResourceURL(url string) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.KustomizationResourceURL = url
 	}
 }
 
-// WithKustomizationRef sets the ref for the CloudNativePG kustomization
+// WithKustomizationRef sets the ref for the CloudNativePG kustomization.
 func WithKustomizationRef(ref string) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.KustomizationRef = ref
 	}
 }
 
-// WithKustomizationTimeout sets the timeout for the kustomization resources
+// WithKustomizationTimeout sets the timeout for the kustomization resources.
 func WithKustomizationTimeout(timeout string) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.KustomizationTimeout = timeout
 	}
 }
 
-// WithIgnoreExistingResources sets whether to ignore existing resources
+// WithIgnoreExistingResources sets whether to ignore existing resources.
 func WithIgnoreExistingResources(ignore bool) InstallOption {
 	return func(opts *InstallCloudNativePGOptions) {
 		opts.IgnoreExistResources = ignore
 	}
 }
 
-// Install installs CloudNativePG using kubectl
+// Install installs CloudNativePG using kubectl.
 func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error {
 	// Defining the default options
 	options := &InstallCloudNativePGOptions{
@@ -127,6 +128,16 @@ func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error
 				Options: nil,
 			},
 		},
+	}
+
+	// If the deployment exist, exit doing nothing
+	// If we redeploy, we'll zero out the webhook ca configuration and the tests will fail
+	if options.IgnoreExistResources {
+		deploy := &appsv1.Deployment{}
+		err := cl.Get(ctx, types2.NamespacedName{Namespace: "cnpg-system", Name: "cnpg-controller-manager"}, deploy)
+		if err == nil {
+			return nil
+		}
 	}
 
 	if err := kustomize.ApplyKustomization(ctx, cl, kustomization); err != nil {
