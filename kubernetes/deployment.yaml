@@ -37,6 +37,11 @@ spec:
         - --server-address=:9090
         - --leader-elect
         - --log-level=debug
+        readinessProbe:
+          tcpSocket:
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
         volumeMounts:
         - mountPath: /server
           name: server
