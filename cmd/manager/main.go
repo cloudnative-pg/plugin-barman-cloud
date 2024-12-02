@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/healthcheck"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/instance"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/operator"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cmd/restore"
@@ -32,6 +33,7 @@ func main() {
 	rootCmd.AddCommand(instance.NewCmd())
 	rootCmd.AddCommand(operator.NewCmd())
 	rootCmd.AddCommand(restore.NewCmd())
+	rootCmd.AddCommand(healthcheck.NewCmd())
 
 	if err := rootCmd.ExecuteContext(ctrl.SetupSignalHandler()); err != nil {
 		if !errors.Is(err, context.Canceled) {
