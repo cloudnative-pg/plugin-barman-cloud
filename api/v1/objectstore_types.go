@@ -18,6 +18,8 @@ package v1
 
 import (
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,6 +31,10 @@ type InstanceSidecarConfiguration struct {
 	// +kubebuilder:validation:Maximum=3600
 	// +kubebuilder:default=180
 	CacheTTL *int `json:"cacheTTL,omitempty"`
+
+	// The environment to be explicitely passed to the sidecar
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // GetCacheTTL returns the cache TTL value, defaulting to 180 seconds if not set.

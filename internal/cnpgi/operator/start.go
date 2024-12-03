@@ -27,7 +27,9 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		reconciler.RegisterReconcilerHooksServer(server, ReconcilerImplementation{
 			Client: c.Client,
 		})
-		lifecycle.RegisterOperatorLifecycleServer(server, LifecycleImplementation{})
+		lifecycle.RegisterOperatorLifecycleServer(server, LifecycleImplementation{
+			Client: c.Client,
+		})
 		return nil
 	}
 
