@@ -6,7 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -45,19 +44,13 @@ var _ = Describe("ExtendedClient Get", func() {
 				Namespace: "default",
 				Name:      "test-object-store",
 			},
-			Spec: v1.ObjectStoreSpec{
-				InstanceSidecarConfiguration: v1.InstanceSidecarConfiguration{
-					CacheTTL: ptr.To(60),
-				},
-			},
+			Spec: v1.ObjectStoreSpec{},
 		}
 
 		baseClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(secretInClient, objectStore).Build()
-		extendedClient = NewExtendedClient(baseClient, []client.ObjectKey{
-			client.ObjectKeyFromObject(objectStore),
-		}).(*ExtendedClient)
+		extendedClient = NewExtendedClient(baseClient).(*ExtendedClient)
 	})
 
 	It("returns secret from cache if not expired", func(ctx SpecContext) {
@@ -70,22 +63,22 @@ var _ = Describe("ExtendedClient Get", func() {
 
 		// manually add the secret to the cache, this is not present in the fake client so we are sure it is from the
 		// cache
-		extendedClient.cachedSecrets = []*cachedSecret{
+		extendedClient.cachedObjects = []cachedEntry{
 			{
-				secret:        secretNotInClient,
+				entry:         secretNotInClient,
 				fetchUnixTime: time.Now().Unix(),
 			},
 		}
 
 		err := extendedClient.Get(ctx, client.ObjectKeyFromObject(secretNotInClient), secretInClient)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(secretNotInClient).To(Equal(extendedClient.cachedSecrets[0].secret))
+		Expect(secretNotInClient).To(Equal(extendedClient.cachedObjects[0].entry))
 	})
 
 	It("fetches secret from base client if cache is expired", func(ctx SpecContext) {
-		extendedClient.cachedSecrets = []*cachedSecret{
+		extendedClient.cachedObjects = []cachedEntry{
 			{
-				secret:        secretInClient.DeepCopy(),
+				entry:         secretInClient.DeepCopy(),
 				fetchUnixTime: time.Now().Add(-2 * time.Minute).Unix(),
 			},
 		}
@@ -111,6 +104,6 @@ var _ = Describe("ExtendedClient Get", func() {
 
 		err = extendedClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(extendedClient.cachedSecrets).To(BeEmpty())
+		Expect(extendedClient.cachedObjects).To(BeEmpty())
 	})
 })

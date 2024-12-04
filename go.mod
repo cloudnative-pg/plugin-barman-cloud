@@ -10,7 +10,7 @@ require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20241105055149-ae6c2408bd14
 	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20241109002750-8abd359df734
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241129144432-bd94f16685d3
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241205093641-958e207b8afe
 	github.com/cloudnative-pg/machinery v0.0.0-20241105070525-042a028b767c
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/onsi/ginkgo/v2 v2.21.0
