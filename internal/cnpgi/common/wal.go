@@ -20,23 +20,17 @@ import (
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 // WALServiceImplementation is the implementation of the WAL Service
 type WALServiceImplementation struct {
 	wal.UnimplementedWALServer
-	ClusterObjectKey client.ObjectKey
-	Client           client.Client
-	InstanceName     string
-	SpoolDirectory   string
-	PGDataPath       string
-	PGWALPath        string
-
-	BarmanObjectKey client.ObjectKey
-	ServerName      string
-
-	RecoveryBarmanObjectKey client.ObjectKey
-	RecoveryServerName      string
+	Client         client.Client
+	InstanceName   string
+	SpoolDirectory string
+	PGDataPath     string
+	PGWALPath      string
 }
 
 // GetCapabilities implements the WALService interface
@@ -72,13 +66,13 @@ func (w WALServiceImplementation) Archive(
 	contextLogger := log.FromContext(ctx)
 	contextLogger.Debug("starting wal archive")
 
-	var cluster cnpgv1.Cluster
-	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
+	configuration, err := config.NewFromClusterJSON(request.ClusterDefinition)
+	if err != nil {
 		return nil, err
 	}
 
 	var objectStore barmancloudv1.ObjectStore
-	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
+	if err := w.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
 		return nil, err
 	}
 
@@ -106,7 +100,7 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, w.ServerName)
+	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, configuration.ServerName)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +125,8 @@ func (w WALServiceImplementation) Restore(
 	walName := request.GetSourceWalName()
 	destinationPath := request.GetDestinationFileName()
 
-	var cluster cnpgv1.Cluster
-	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
+	configuration, err := config.NewFromClusterJSON(request.ClusterDefinition)
+	if err != nil {
 		return nil, err
 	}
 
@@ -140,30 +134,30 @@ func (w WALServiceImplementation) Restore(
 	var serverName string
 
 	switch {
-	case cluster.IsReplica() && cluster.Status.CurrentPrimary == w.InstanceName:
-		// Designated primary on replica cluster, using recovery object store
-		serverName = w.RecoveryServerName
-		if err := w.Client.Get(ctx, w.RecoveryBarmanObjectKey, &objectStore); err != nil {
+	case configuration.Cluster.IsReplica() && configuration.Cluster.Status.CurrentPrimary == w.InstanceName:
+		// Designated primary on replica cluster, using replica source object store
+		serverName = configuration.ReplicaSourceServerName
+		if err := w.Client.Get(ctx, configuration.GetReplicaSourceBarmanObjectKey(), &objectStore); err != nil {
 			return nil, err
 		}
 
-	case cluster.Status.CurrentPrimary == "":
+	case configuration.Cluster.Status.CurrentPrimary == "":
 		// Recovery from object store, using recovery object store
-		serverName = w.RecoveryServerName
-		if err := w.Client.Get(ctx, w.RecoveryBarmanObjectKey, &objectStore); err != nil {
+		serverName = configuration.RecoveryServerName
+		if err := w.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &objectStore); err != nil {
 			return nil, err
 		}
 
 	default:
 		// Using cluster object store
-		serverName = w.ServerName
-		if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
+		serverName = configuration.ServerName
+		if err := w.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
 			return nil, err
 		}
 	}
 
 	return &wal.WALRestoreResult{}, w.restoreFromBarmanObjectStore(
-		ctx, &cluster, &objectStore, serverName, walName, destinationPath)
+		ctx, configuration.Cluster, &objectStore, serverName, walName, destinationPath)
 }
 
 func (w WALServiceImplementation) restoreFromBarmanObjectStore(
@@ -246,7 +240,11 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		return walStatus[0].Err
+		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
+			return WALNotFoundError{}
+		} else {
+			return walStatus[0].Err
+		}
 	}
 
 	// We skip this step if streaming connection is not available

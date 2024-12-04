@@ -4,7 +4,7 @@ metadata:
   name: cluster-example
 spec:
   instances: 3
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   plugins:
   - name: barman-cloud.cloudnative-pg.io
     parameters:

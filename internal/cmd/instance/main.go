@@ -18,11 +18,8 @@ func NewCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			requiredSettings := []string{
 				"namespace",
-				"barman-object-name",
-				"cluster-name",
 				"pod-name",
 				"spool-directory",
-				"server-name",
 			}
 
 			for _, k := range requiredSettings {
@@ -36,16 +33,9 @@ func NewCmd() *cobra.Command {
 	}
 
 	_ = viper.BindEnv("namespace", "NAMESPACE")
-	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
-
-	_ = viper.BindEnv("barman-object-name", "BARMAN_OBJECT_NAME")
-	_ = viper.BindEnv("server-name", "SERVER_NAME")
-
-	_ = viper.BindEnv("recovery-barman-object-name", "RECOVERY_BARMAN_OBJECT_NAME")
-	_ = viper.BindEnv("recovery-server-name", "RECOVERY_SERVER_NAME")
 
 	return cmd
 }

@@ -18,17 +18,16 @@ import (
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
-	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
 	"github.com/cloudnative-pg/machinery/pkg/execlog"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 const (
@@ -44,14 +43,7 @@ const (
 type JobHookImpl struct {
 	restore.UnimplementedRestoreJobHooksServer
 
-	Client           client.Client
-	ClusterObjectKey client.ObjectKey
-
-	BarmanObjectKey types.NamespacedName
-	ServerName      string
-
-	RecoveryBarmanObjectKey types.NamespacedName
-	RecoveryServerName      string
+	Client client.Client
 
 	SpoolDirectory       string
 	PgDataPath           string
@@ -78,27 +70,24 @@ func (impl JobHookImpl) Restore(
 	req *restore.RestoreRequest,
 ) (*restore.RestoreResponse, error) {
 	contextLogger := log.FromContext(ctx)
-	var cluster cnpgv1.Cluster
-	if err := decoder.DecodeObject(
-		req.GetClusterDefinition(),
-		&cluster,
-		cnpgv1.GroupVersion.WithKind("Cluster"),
-	); err != nil {
+
+	configuration, err := config.NewFromClusterJSON(req.ClusterDefinition)
+	if err != nil {
 		return nil, err
 	}
 
 	var recoveryObjectStore barmancloudv1.ObjectStore
-	if err := impl.Client.Get(ctx, impl.RecoveryBarmanObjectKey, &recoveryObjectStore); err != nil {
+	if err := impl.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &recoveryObjectStore); err != nil {
 		return nil, err
 	}
 
-	if impl.BarmanObjectKey.Name != "" {
+	if configuration.BarmanObjectName != "" {
 		var targetObjectStore barmancloudv1.ObjectStore
-		if err := impl.Client.Get(ctx, impl.BarmanObjectKey, &targetObjectStore); err != nil {
+		if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &targetObjectStore); err != nil {
 			return nil, err
 		}
 
-		if err := impl.checkBackupDestination(ctx, &cluster, &targetObjectStore.Spec.Configuration); err != nil {
+		if err := impl.checkBackupDestination(ctx, configuration.Cluster, &targetObjectStore.Spec.Configuration); err != nil {
 			return nil, err
 		}
 	}
@@ -107,9 +96,9 @@ func (impl JobHookImpl) Restore(
 	backup, env, err := loadBackupObjectFromExternalCluster(
 		ctx,
 		impl.Client,
-		&cluster,
+		configuration.Cluster,
 		&recoveryObjectStore.Spec.Configuration,
-		impl.RecoveryServerName,
+		configuration.RecoveryServerName,
 	)
 	if err != nil {
 		return nil, err
@@ -133,7 +122,7 @@ func (impl JobHookImpl) Restore(
 		return nil, err
 	}
 
-	if cluster.Spec.WalStorage != nil {
+	if configuration.Cluster.Spec.WalStorage != nil {
 		if _, err := impl.restoreCustomWalDir(ctx); err != nil {
 			return nil, err
 		}

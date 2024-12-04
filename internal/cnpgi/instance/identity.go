@@ -2,20 +2,17 @@ package instance
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/identity"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // IdentityImplementation implements IdentityServer
 type IdentityImplementation struct {
 	identity.UnimplementedIdentityServer
-	BarmanObjectKey client.ObjectKey
-	Client          client.Client
+	Client client.Client
 }
 
 // GetPluginMetadata implements IdentityServer
@@ -56,11 +53,6 @@ func (i IdentityImplementation) Probe(
 	ctx context.Context,
 	_ *identity.ProbeRequest,
 ) (*identity.ProbeResponse, error) {
-	var obj barmancloudv1.ObjectStore
-	if err := i.Client.Get(ctx, i.BarmanObjectKey, &obj); err != nil {
-		return nil, fmt.Errorf("while fetching object store %s: %w", i.BarmanObjectKey.Name, err)
-	}
-
 	return &identity.ProbeResponse{
 		Ready: true,
 	}, nil

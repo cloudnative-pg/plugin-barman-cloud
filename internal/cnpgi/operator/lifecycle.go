@@ -206,7 +206,6 @@ func reconcileJob(
 	mutatedJob := job.DeepCopy()
 
 	if err := reconcilePodSpec(
-		pluginConfiguration,
 		cluster,
 		&mutatedJob.Spec.Template.Spec,
 		"full-recovery",
@@ -262,7 +261,6 @@ func reconcilePod(
 
 	if len(pluginConfiguration.BarmanObjectName) != 0 {
 		if err := reconcilePodSpec(
-			pluginConfiguration,
 			cluster,
 			&mutatedPod.Spec,
 			"postgres",
@@ -289,7 +287,6 @@ func reconcilePod(
 }
 
 func reconcilePodSpec(
-	cfg *config.PluginConfiguration,
 	cluster *cnpgv1.Cluster,
 	spec *corev1.PodSpec,
 	mainContainerName string,
@@ -311,32 +308,6 @@ func reconcilePodSpec(
 			Name:  "SPOOL_DIRECTORY",
 			Value: "/controller/wal-restore-spool",
 		},
-	}
-
-	if len(cfg.BarmanObjectName) > 0 {
-		envs = append(envs,
-			corev1.EnvVar{
-				Name:  "BARMAN_OBJECT_NAME",
-				Value: cfg.BarmanObjectName,
-			},
-			corev1.EnvVar{
-				Name:  "SERVER_NAME",
-				Value: cfg.ServerName,
-			},
-		)
-	}
-
-	if len(cfg.RecoveryBarmanObjectName) > 0 {
-		envs = append(envs,
-			corev1.EnvVar{
-				Name:  "RECOVERY_BARMAN_OBJECT_NAME",
-				Value: cfg.RecoveryBarmanObjectName,
-			},
-			corev1.EnvVar{
-				Name:  "RECOVERY_SERVER_NAME",
-				Value: cfg.RecoveryServerName,
-			},
-		)
 	}
 
 	envs = append(envs, additionalEnvs...)

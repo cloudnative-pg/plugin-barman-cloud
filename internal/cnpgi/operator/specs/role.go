@@ -15,7 +15,6 @@ import (
 func BuildRole(
 	cluster *cnpgv1.Cluster,
 	barmanObjects []barmancloudv1.ObjectStore,
-	additionalSecretNames []string,
 ) *rbacv1.Role {
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
@@ -34,10 +33,6 @@ func BuildRole(
 		for _, secret := range CollectSecretNamesFromCredentials(&barmanObject.Spec.Configuration.BarmanCredentials) {
 			secretsSet.Put(secret)
 		}
-	}
-
-	for _, secret := range additionalSecretNames {
-		secretsSet.Put(secret)
 	}
 
 	role.Rules = append(role.Rules, rbacv1.PolicyRule{
