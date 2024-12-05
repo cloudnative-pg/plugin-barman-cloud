@@ -195,15 +195,13 @@ var _ = Describe("Backup and restore", func() {
 			"using in-tree for backup and the plugin for restore on Azure",
 			&azureBackupPluginInTreeBackupPluginRestore{},
 		),
-		// TODO: enable the tests for GCS when we have support for STORAGE_EMULATOR_HOST
-		//   env variable.
-		PEntry("using the plugin for backup and restore on GCS",
+		Entry("using the plugin for backup and restore on GCS",
 			&gcsBackupPluginBackupPluginRestore{},
 		),
-		PEntry("using the plugin for backup and in-tree for restore on GCS",
+		Entry("using the plugin for backup and in-tree for restore on GCS",
 			&gcsBackupPluginBackupInTreeRestore{},
 		),
-		PEntry(
+		Entry(
 			"using in-tree for backup and the plugin for restore on GCS",
 			&gcsBackupPluginInTreeBackupPluginRestore{},
 		),
