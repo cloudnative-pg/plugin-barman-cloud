@@ -67,8 +67,9 @@ func newGCSDeployment(namespace, name string) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name: name,
-							// TODO: renovate the image
-							Image: "registry.barman-cloud-plugin:5000/fakegcs:test",
+							// TODO: use the official image when https://github.com/fsouza/fake-gcs-server/pull/1827
+							//   is merged and released
+							Image: "ghcr.io/fcanovai/fake-gcs-server:latest",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 4443,
@@ -189,7 +190,14 @@ func NewGCSObjectStore(namespace, name, gcsOSName string) *pluginBarmanCloudV1.O
 					},
 				},
 				DestinationPath: "gs://backups/",
-				EndpointURL:     fmt.Sprintf("http://%v:4443", gcsOSName),
+			},
+			InstanceSidecarConfiguration: pluginBarmanCloudV1.InstanceSidecarConfiguration{
+				Env: []corev1.EnvVar{
+					{
+						Name:  "STORAGE_EMULATOR_HOST",
+						Value: fmt.Sprintf("http://%v:4443", gcsOSName),
+					},
+				},
 			},
 		},
 	}

@@ -579,6 +579,12 @@ func newSrcClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "STORAGE_EMULATOR_HOST",
+					Value: fmt.Sprintf("http://%v:4443", gcs),
+				},
+			},
 			Backup: &cloudnativepgv1.BackupConfiguration{
 				BarmanObjectStore: &cloudnativepgv1.BarmanObjectStoreConfiguration{
 					BarmanCredentials: barmanapi.BarmanCredentials{
@@ -591,7 +597,6 @@ func newSrcClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 							},
 						},
 					},
-					EndpointURL:     fmt.Sprintf("http://%v:4443", gcs),
 					DestinationPath: "gs://backups/",
 				},
 			},
@@ -627,6 +632,12 @@ func newDstClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 					},
 				},
 			},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "STORAGE_EMULATOR_HOST",
+					Value: fmt.Sprintf("http://%v:4443", gcs),
+				},
+			},
 			ExternalClusters: []cloudnativepgv1.ExternalCluster{
 				{
 					Name: "source",
@@ -642,7 +653,6 @@ func newDstClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 							},
 						},
 						DestinationPath: "gs://backups/",
-						EndpointURL:     fmt.Sprintf("http://%v:4443", gcs),
 					},
 				},
 			},
