@@ -18,7 +18,6 @@ package v1
 
 import (
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
