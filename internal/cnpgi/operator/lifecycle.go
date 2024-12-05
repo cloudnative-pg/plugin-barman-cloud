@@ -14,8 +14,11 @@ import (
 	"github.com/spf13/viper"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -23,6 +26,7 @@ import (
 // LifecycleImplementation is the implementation of the lifecycle handler
 type LifecycleImplementation struct {
 	lifecycle.UnimplementedOperatorLifecycleServer
+	Client client.Client
 }
 
 // GetCapabilities exposes the lifecycle capabilities
@@ -94,13 +98,77 @@ func (impl LifecycleImplementation) LifecycleHook(
 	switch kind {
 	case "Pod":
 		contextLogger.Info("Reconciling pod")
-		return reconcilePod(ctx, &cluster, request, pluginConfiguration)
+		return impl.reconcilePod(ctx, &cluster, request, pluginConfiguration)
 	case "Job":
 		contextLogger.Info("Reconciling job")
-		return reconcileJob(ctx, &cluster, request, pluginConfiguration)
+		return impl.reconcileJob(ctx, &cluster, request, pluginConfiguration)
 	default:
 		return nil, fmt.Errorf("unsupported kind: %s", kind)
 	}
+}
+
+func (impl LifecycleImplementation) collectAdditionalEnvs(
+	ctx context.Context,
+	namespace string,
+	pluginConfiguration *config.PluginConfiguration,
+) ([]corev1.EnvVar, error) {
+	var result []corev1.EnvVar
+
+	if len(pluginConfiguration.BarmanObjectName) > 0 {
+		envs, err := impl.collectObjectStoreEnvs(
+			ctx,
+			types.NamespacedName{
+				Name:      pluginConfiguration.BarmanObjectName,
+				Namespace: namespace,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, envs...)
+	}
+
+	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 {
+		envs, err := impl.collectObjectStoreEnvs(
+			ctx,
+			types.NamespacedName{
+				Name:      pluginConfiguration.RecoveryBarmanObjectName,
+				Namespace: namespace,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, envs...)
+	}
+
+	return result, nil
+}
+
+func (impl LifecycleImplementation) collectObjectStoreEnvs(
+	ctx context.Context,
+	barmanObjectKey types.NamespacedName,
+) ([]corev1.EnvVar, error) {
+	var objectStore barmancloudv1.ObjectStore
+	if err := impl.Client.Get(ctx, barmanObjectKey, &objectStore); err != nil {
+		return nil, err
+	}
+
+	return objectStore.Spec.InstanceSidecarConfiguration.Env, nil
+}
+
+func (impl LifecycleImplementation) reconcileJob(
+	ctx context.Context,
+	cluster *cnpgv1.Cluster,
+	request *lifecycle.OperatorLifecycleRequest,
+	pluginConfiguration *config.PluginConfiguration,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	env, err := impl.collectAdditionalEnvs(ctx, cluster.Namespace, pluginConfiguration)
+	if err != nil {
+		return nil, nil
+	}
+
+	return reconcileJob(ctx, cluster, request, pluginConfiguration, env)
 }
 
 func reconcileJob(
@@ -108,6 +176,7 @@ func reconcileJob(
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
+	env []corev1.EnvVar,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	contextLogger := log.FromContext(ctx).WithName("lifecycle")
 	if pluginConfig := cluster.GetRecoverySourcePlugin(); pluginConfig == nil || pluginConfig.Name != metadata.PluginName {
@@ -144,6 +213,7 @@ func reconcileJob(
 		corev1.Container{
 			Args: []string{"restore"},
 		},
+		env,
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
 	}
@@ -159,11 +229,26 @@ func reconcileJob(
 	}, nil
 }
 
+func (impl LifecycleImplementation) reconcilePod(
+	ctx context.Context,
+	cluster *cnpgv1.Cluster,
+	request *lifecycle.OperatorLifecycleRequest,
+	pluginConfiguration *config.PluginConfiguration,
+) (*lifecycle.OperatorLifecycleResponse, error) {
+	env, err := impl.collectAdditionalEnvs(ctx, cluster.Namespace, pluginConfiguration)
+	if err != nil {
+		return nil, nil
+	}
+
+	return reconcilePod(ctx, cluster, request, pluginConfiguration, env)
+}
+
 func reconcilePod(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
+	env []corev1.EnvVar,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
@@ -176,9 +261,16 @@ func reconcilePod(
 	mutatedPod := pod.DeepCopy()
 
 	if len(pluginConfiguration.BarmanObjectName) != 0 {
-		if err := reconcilePodSpec(pluginConfiguration, cluster, &mutatedPod.Spec, "postgres", corev1.Container{
-			Args: []string{"instance"},
-		}); err != nil {
+		if err := reconcilePodSpec(
+			pluginConfiguration,
+			cluster,
+			&mutatedPod.Spec,
+			"postgres",
+			corev1.Container{
+				Args: []string{"instance"},
+			},
+			env,
+		); err != nil {
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
 	} else {
@@ -202,6 +294,7 @@ func reconcilePodSpec(
 	spec *corev1.PodSpec,
 	mainContainerName string,
 	sidecarConfig corev1.Container,
+	additionalEnvs []corev1.EnvVar,
 ) error {
 	envs := []corev1.EnvVar{
 		{
@@ -245,6 +338,8 @@ func reconcilePodSpec(
 			},
 		)
 	}
+
+	envs = append(envs, additionalEnvs...)
 
 	baseProbe := &corev1.Probe{
 		FailureThreshold: 3,
