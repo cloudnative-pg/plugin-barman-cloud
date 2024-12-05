@@ -32,7 +32,7 @@ type InstanceSidecarConfiguration struct {
 	// +kubebuilder:default=180
 	CacheTTL *int `json:"cacheTTL,omitempty"`
 
-	// The environment to be explicitely passed to the sidecar
+	// The environment to be explicitly passed to the sidecar
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 }
