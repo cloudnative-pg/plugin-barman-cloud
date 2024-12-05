@@ -115,13 +115,6 @@ func reconcileJob(
 		return nil, nil
 	}
 
-	// Since we're recovering from an existing object store,
-	// we set our primary object store name to the recovery one.
-	// This won't be needed anymore when wal-restore will be able
-	// to check two object stores
-	pluginConfiguration.BarmanObjectName = pluginConfiguration.RecoveryBarmanObjectName
-	pluginConfiguration.ServerName = pluginConfiguration.RecoveryBarmanServerName
-
 	var job batchv1.Job
 	if err := decoder.DecodeObject(
 		request.GetObjectDefinition(),
@@ -220,19 +213,37 @@ func reconcilePodSpec(
 			Value: cluster.Name,
 		},
 		{
-			Name:  "BARMAN_OBJECT_NAME",
-			Value: cfg.BarmanObjectName,
-		},
-		{
-			Name:  "SERVER_NAME",
-			Value: cfg.ServerName,
-		},
-		{
 			// TODO: should we really use this one?
 			// should we mount an emptyDir volume just for that?
 			Name:  "SPOOL_DIRECTORY",
 			Value: "/controller/wal-restore-spool",
 		},
+	}
+
+	if len(cfg.BarmanObjectName) > 0 {
+		envs = append(envs,
+			corev1.EnvVar{
+				Name:  "BARMAN_OBJECT_NAME",
+				Value: cfg.BarmanObjectName,
+			},
+			corev1.EnvVar{
+				Name:  "SERVER_NAME",
+				Value: cfg.ServerName,
+			},
+		)
+	}
+
+	if len(cfg.RecoveryBarmanObjectName) > 0 {
+		envs = append(envs,
+			corev1.EnvVar{
+				Name:  "RECOVERY_BARMAN_OBJECT_NAME",
+				Value: cfg.RecoveryBarmanObjectName,
+			},
+			corev1.EnvVar{
+				Name:  "RECOVERY_SERVER_NAME",
+				Value: cfg.RecoveryServerName,
+			},
+		)
 	}
 
 	baseProbe := &corev1.Probe{

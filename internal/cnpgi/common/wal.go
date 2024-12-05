@@ -24,15 +24,19 @@ import (
 
 // WALServiceImplementation is the implementation of the WAL Service
 type WALServiceImplementation struct {
-	ServerName       string
-	BarmanObjectKey  client.ObjectKey
+	wal.UnimplementedWALServer
 	ClusterObjectKey client.ObjectKey
 	Client           client.Client
 	InstanceName     string
 	SpoolDirectory   string
 	PGDataPath       string
 	PGWALPath        string
-	wal.UnimplementedWALServer
+
+	BarmanObjectKey client.ObjectKey
+	ServerName      string
+
+	RecoveryBarmanObjectKey client.ObjectKey
+	RecoveryServerName      string
 }
 
 // GetCapabilities implements the WALService interface
@@ -123,8 +127,9 @@ func (w WALServiceImplementation) Restore(
 	ctx context.Context,
 	request *wal.WALRestoreRequest,
 ) (*wal.WALRestoreResult, error) {
-	contextLogger := log.FromContext(ctx)
-	startTime := time.Now()
+	// TODO: build full paths
+	walName := request.GetSourceWalName()
+	destinationPath := request.GetDestinationFileName()
 
 	var cluster cnpgv1.Cluster
 	if err := w.Client.Get(ctx, w.ClusterObjectKey, &cluster); err != nil {
@@ -132,13 +137,45 @@ func (w WALServiceImplementation) Restore(
 	}
 
 	var objectStore barmancloudv1.ObjectStore
-	if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
-		return nil, err
+	var serverName string
+
+	switch {
+	case cluster.IsReplica() && cluster.Status.CurrentPrimary == w.InstanceName:
+		// Designated primary on replica cluster, using recovery object store
+		serverName = w.RecoveryServerName
+		if err := w.Client.Get(ctx, w.RecoveryBarmanObjectKey, &objectStore); err != nil {
+			return nil, err
+		}
+
+	case cluster.Status.CurrentPrimary == "":
+		// Recovery from object store, using recovery object store
+		serverName = w.RecoveryServerName
+		if err := w.Client.Get(ctx, w.RecoveryBarmanObjectKey, &objectStore); err != nil {
+			return nil, err
+		}
+
+	default:
+		// Using cluster object store
+		serverName = w.ServerName
+		if err := w.Client.Get(ctx, w.BarmanObjectKey, &objectStore); err != nil {
+			return nil, err
+		}
 	}
 
-	// TODO: build full paths
-	walName := request.GetSourceWalName()
-	destinationPath := request.GetDestinationFileName()
+	return &wal.WALRestoreResult{}, w.restoreFromBarmanObjectStore(
+		ctx, &cluster, &objectStore, serverName, walName, destinationPath)
+}
+
+func (w WALServiceImplementation) restoreFromBarmanObjectStore(
+	ctx context.Context,
+	cluster *cnpgv1.Cluster,
+	objectStore *barmancloudv1.ObjectStore,
+	serverName string,
+	walName string,
+	destinationPath string,
+) error {
+	contextLogger := log.FromContext(ctx)
+	startTime := time.Now()
 
 	barmanConfiguration := &objectStore.Spec.Configuration
 
@@ -151,37 +188,37 @@ func (w WALServiceImplementation) Restore(
 		os.Environ(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("while getting recover credentials: %w", err)
+		return fmt.Errorf("while getting recover credentials: %w", err)
 	}
 	env = MergeEnv(env, credentialsEnv)
 
-	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, w.ServerName)
+	options, err := barmanCommand.CloudWalRestoreOptions(ctx, barmanConfiguration, serverName)
 	if err != nil {
-		return nil, fmt.Errorf("while getting barman-cloud-wal-restore options: %w", err)
+		return fmt.Errorf("while getting barman-cloud-wal-restore options: %w", err)
 	}
 
 	// Create the restorer
 	var walRestorer *barmanRestorer.WALRestorer
 	if walRestorer, err = barmanRestorer.New(ctx, env, w.SpoolDirectory); err != nil {
-		return nil, fmt.Errorf("while creating the restorer: %w", err)
+		return fmt.Errorf("while creating the restorer: %w", err)
 	}
 
 	// Step 1: check if this WAL file is not already in the spool
 	var wasInSpool bool
 	if wasInSpool, err = walRestorer.RestoreFromSpool(walName, destinationPath); err != nil {
-		return nil, fmt.Errorf("while restoring a file from the spool directory: %w", err)
+		return fmt.Errorf("while restoring a file from the spool directory: %w", err)
 	}
 	if wasInSpool {
 		contextLogger.Info("Restored WAL file from spool (parallel)",
 			"walName", walName,
 		)
-		return nil, nil
+		return nil
 	}
 
 	// We skip this step if streaming connection is not available
-	if isStreamingAvailable(&cluster, w.InstanceName) {
+	if isStreamingAvailable(cluster, w.InstanceName) {
 		if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -194,7 +231,7 @@ func (w WALServiceImplementation) Restore(
 	if IsWALFile(walName) {
 		// If this is a regular WAL file, we try to prefetch
 		if walFilesList, err = gatherWALFilesToRestore(walName, maxParallel); err != nil {
-			return nil, fmt.Errorf("while generating the list of WAL files to restore: %w", err)
+			return fmt.Errorf("while generating the list of WAL files to restore: %w", err)
 		}
 	} else {
 		// This is not a regular WAL file, we fetch it directly
@@ -209,18 +246,18 @@ func (w WALServiceImplementation) Restore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		return nil, walStatus[0].Err
+		return walStatus[0].Err
 	}
 
 	// We skip this step if streaming connection is not available
 	endOfWALStream := isEndOfWALStream(walStatus)
-	if isStreamingAvailable(&cluster, w.InstanceName) && endOfWALStream {
+	if isStreamingAvailable(cluster, w.InstanceName) && endOfWALStream {
 		contextLogger.Info(
 			"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
 
 		err = walRestorer.SetEndOfWALStream()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -241,7 +278,7 @@ func (w WALServiceImplementation) Restore(
 		"downloadTotalTime", time.Since(downloadStartTime),
 		"totalTime", time.Since(startTime))
 
-	return &wal.WALRestoreResult{}, nil
+	return nil
 }
 
 // Status implements the WALService interface

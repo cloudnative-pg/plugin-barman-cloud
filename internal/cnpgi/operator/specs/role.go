@@ -27,24 +27,10 @@ func BuildRole(
 	}
 
 	secretsSet := stringset.New()
-	for _, barmanObject := range barmanObjects {
-		role.Rules = append(role.Rules, rbacv1.PolicyRule{
-			APIGroups: []string{
-				"barmancloud.cnpg.io",
-			},
-			Verbs: []string{
-				"get",
-				"watch",
-				"list",
-			},
-			Resources: []string{
-				"objectstores",
-			},
-			ResourceNames: []string{
-				barmanObject.Name,
-			},
-		})
+	barmanObjectsSet := stringset.New()
 
+	for _, barmanObject := range barmanObjects {
+		barmanObjectsSet.Put(barmanObject.Name)
 		for _, secret := range CollectSecretNamesFromCredentials(&barmanObject.Spec.Configuration.BarmanCredentials) {
 			secretsSet.Put(secret)
 		}
@@ -53,6 +39,21 @@ func BuildRole(
 	for _, secret := range additionalSecretNames {
 		secretsSet.Put(secret)
 	}
+
+	role.Rules = append(role.Rules, rbacv1.PolicyRule{
+		APIGroups: []string{
+			"barmancloud.cnpg.io",
+		},
+		Verbs: []string{
+			"get",
+			"watch",
+			"list",
+		},
+		Resources: []string{
+			"objectstores",
+		},
+		ResourceNames: barmanObjectsSet.ToSortedList(),
+	})
 
 	role.Rules = append(role.Rules, rbacv1.PolicyRule{
 		APIGroups: []string{

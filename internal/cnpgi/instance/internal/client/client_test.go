@@ -55,7 +55,9 @@ var _ = Describe("ExtendedClient Get", func() {
 		baseClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(secretInClient, objectStore).Build()
-		extendedClient = NewExtendedClient(baseClient, client.ObjectKeyFromObject(objectStore)).(*ExtendedClient)
+		extendedClient = NewExtendedClient(baseClient, []client.ObjectKey{
+			client.ObjectKeyFromObject(objectStore),
+		}).(*ExtendedClient)
 	})
 
 	It("returns secret from cache if not expired", func(ctx SpecContext) {

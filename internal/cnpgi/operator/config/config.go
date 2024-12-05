@@ -47,7 +47,7 @@ type PluginConfiguration struct {
 	BarmanObjectName         string
 	ServerName               string
 	RecoveryBarmanObjectName string
-	RecoveryBarmanServerName string
+	RecoveryServerName       string
 }
 
 // NewFromCluster extracts the configuration from the cluster
@@ -82,7 +82,7 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
 		ServerName:       serverName,
 		// used for restore/wal_restore
-		RecoveryBarmanServerName: recoveryServerName,
+		RecoveryServerName:       recoveryServerName,
 		RecoveryBarmanObjectName: recoveryBarmanObjectName,
 	}
 

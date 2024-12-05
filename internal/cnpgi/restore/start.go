@@ -15,14 +15,20 @@ import (
 
 // CNPGI is the implementation of the PostgreSQL sidecar
 type CNPGI struct {
-	PluginPath       string
-	SpoolDirectory   string
-	BarmanObjectKey  client.ObjectKey
+	PluginPath     string
+	SpoolDirectory string
+
+	BarmanObjectKey client.ObjectKey
+	ServerName      string
+
+	RecoveryBarmanObjectKey client.ObjectKey
+	RecoveryServerName      string
+
 	ClusterObjectKey client.ObjectKey
-	Client           client.Client
-	PGDataPath       string
-	InstanceName     string
-	ServerName       string
+
+	Client       client.Client
+	PGDataPath   string
+	InstanceName string
 }
 
 // Start starts the GRPC service
@@ -32,14 +38,18 @@ func (c *CNPGI) Start(ctx context.Context) error {
 
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
-			BarmanObjectKey:  c.BarmanObjectKey,
 			ClusterObjectKey: c.ClusterObjectKey,
 			InstanceName:     c.InstanceName,
 			Client:           c.Client,
 			SpoolDirectory:   c.SpoolDirectory,
 			PGDataPath:       c.PGDataPath,
 			PGWALPath:        path.Join(c.PGDataPath, "pg_wal"),
-			ServerName:       c.ServerName,
+
+			BarmanObjectKey: c.BarmanObjectKey,
+			ServerName:      c.ServerName,
+
+			RecoveryBarmanObjectKey: c.RecoveryBarmanObjectKey,
+			RecoveryServerName:      c.RecoveryServerName,
 		})
 
 		restore.RegisterRestoreJobHooksServer(server, &JobHookImpl{
@@ -48,6 +58,12 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			SpoolDirectory:       c.SpoolDirectory,
 			PgDataPath:           c.PGDataPath,
 			PgWalFolderToSymlink: PgWalVolumePgWalPath,
+
+			BarmanObjectKey: c.BarmanObjectKey,
+			ServerName:      c.ServerName,
+
+			RecoveryBarmanObjectKey: c.RecoveryBarmanObjectKey,
+			RecoveryServerName:      c.RecoveryServerName,
 		})
 
 		common.AddHealthCheck(server)

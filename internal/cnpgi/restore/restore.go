@@ -43,9 +43,16 @@ const (
 // JobHookImpl is the implementation of the restore job hooks
 type JobHookImpl struct {
 	restore.UnimplementedRestoreJobHooksServer
-	Client               client.Client
-	ClusterObjectKey     client.ObjectKey
-	BackupToRestore      client.ObjectKey
+
+	Client           client.Client
+	ClusterObjectKey client.ObjectKey
+
+	BarmanObjectKey types.NamespacedName
+	ServerName      string
+
+	RecoveryBarmanObjectKey types.NamespacedName
+	RecoveryServerName      string
+
 	SpoolDirectory       string
 	PgDataPath           string
 	PgWalFolderToSymlink string
@@ -80,38 +87,17 @@ func (impl JobHookImpl) Restore(
 		return nil, err
 	}
 
-	recoveryPluginConfiguration := cluster.GetRecoverySourcePlugin()
-
 	var recoveryObjectStore barmancloudv1.ObjectStore
-	if err := impl.Client.Get(ctx, types.NamespacedName{
-		Namespace: cluster.Namespace,
-		// TODO: refactor -> cnpg-i-machinery should be able to help us on getting
-		// the configuration for a recovery plugin
-		Name: recoveryPluginConfiguration.Parameters["barmanObjectName"],
-	}, &recoveryObjectStore); err != nil {
+	if err := impl.Client.Get(ctx, impl.RecoveryBarmanObjectKey, &recoveryObjectStore); err != nil {
 		return nil, err
 	}
 
-	var targetObjectStoreName types.NamespacedName
-	for _, plugin := range cluster.Spec.Plugins {
-		if plugin.IsEnabled() && plugin.Name == metadata.PluginName {
-			targetObjectStoreName = types.NamespacedName{
-				Namespace: cluster.Namespace,
-				Name:      plugin.Parameters["barmanObjectName"],
-			}
-		}
-	}
-
-	var targetObjectStore barmancloudv1.ObjectStore
-	if targetObjectStoreName.Name != "" {
-		if err := impl.Client.Get(ctx, targetObjectStoreName, &targetObjectStore); err != nil {
+	if impl.BarmanObjectKey.Name != "" {
+		var targetObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, impl.BarmanObjectKey, &targetObjectStore); err != nil {
 			return nil, err
 		}
-	}
 
-	// Before starting the restore we check if the archive destination is safe to use,
-	// otherwise we stop creating the cluster
-	if targetObjectStoreName.Name != "" {
 		if err := impl.checkBackupDestination(ctx, &cluster, &targetObjectStore.Spec.Configuration); err != nil {
 			return nil, err
 		}
@@ -123,6 +109,7 @@ func (impl JobHookImpl) Restore(
 		impl.Client,
 		&cluster,
 		&recoveryObjectStore.Spec.Configuration,
+		impl.RecoveryServerName,
 	)
 	if err != nil {
 		return nil, err
@@ -353,30 +340,13 @@ func loadBackupObjectFromExternalCluster(
 	typedClient client.Client,
 	cluster *cnpgv1.Cluster,
 	recoveryObjectStore *api.BarmanObjectStoreConfiguration,
+	serverName string,
 ) (*cnpgv1.Backup, []string, error) {
 	contextLogger := log.FromContext(ctx)
-	sourceName := cluster.Spec.Bootstrap.Recovery.Source
-
-	if sourceName == "" {
-		return nil, nil, fmt.Errorf("recovery source not specified")
-	}
-
-	server, found := cluster.ExternalCluster(sourceName)
-	if !found {
-		return nil, nil, fmt.Errorf("missing external cluster: %v", sourceName)
-	}
-
-	// TODO: document this, should this be in the helper?
-	var serverName string
-	if pluginServerName, ok := server.PluginConfiguration.Parameters["serverName"]; ok {
-		serverName = pluginServerName
-	} else {
-		serverName = server.Name
-	}
 
 	contextLogger.Info("Recovering from external cluster",
-		"sourceName", sourceName,
-		"serverName", serverName)
+		"serverName", serverName,
+		"objectStore", recoveryObjectStore)
 
 	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
 		ctx,
