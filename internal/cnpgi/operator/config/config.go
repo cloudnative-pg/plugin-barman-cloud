@@ -59,6 +59,7 @@ type PluginConfiguration struct {
 	ReplicaSourceServerName       string
 }
 
+// GetBarmanObjectKey gets the namespaced name of the barman object
 func (config *PluginConfiguration) GetBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: config.Cluster.Namespace,
@@ -66,6 +67,7 @@ func (config *PluginConfiguration) GetBarmanObjectKey() types.NamespacedName {
 	}
 }
 
+// GetRecoveryBarmanObjectKey gets the namespaced name of the recovery barman object
 func (config *PluginConfiguration) GetRecoveryBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: config.Cluster.Namespace,
@@ -73,6 +75,7 @@ func (config *PluginConfiguration) GetRecoveryBarmanObjectKey() types.Namespaced
 	}
 }
 
+// GetReplicaSourceBarmanObjectKey gets the namespaced name of the replica source barman object
 func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: config.Cluster.Namespace,
@@ -80,6 +83,8 @@ func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.Names
 	}
 }
 
+// GetReferredBarmanObjectsKey gets the list of barman objects referred by this
+// plugin configuration
 func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.NamespacedName {
 	result := make([]types.NamespacedName, 0, 3)
 
@@ -237,10 +242,10 @@ func getReplicaSourcePlugin(cluster *cnpgv1.Cluster) *cnpgv1.PluginConfiguration
 }
 
 // Validate checks if the barmanObjectName is set
-func (p *PluginConfiguration) Validate() error {
+func (config *PluginConfiguration) Validate() error {
 	err := NewConfigurationError()
 
-	if len(p.BarmanObjectName) == 0 && len(p.RecoveryBarmanObjectName) == 0 {
+	if len(config.BarmanObjectName) == 0 && len(config.RecoveryBarmanObjectName) == 0 {
 		return err.WithMessage("no reference to barmanObjectName have been included")
 	}
 

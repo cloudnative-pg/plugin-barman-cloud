@@ -242,9 +242,9 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	if walStatus[0].Err != nil {
 		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
 			return WALNotFoundError{}
-		} else {
-			return walStatus[0].Err
 		}
+
+		return walStatus[0].Err
 	}
 
 	// We skip this step if streaming connection is not available
