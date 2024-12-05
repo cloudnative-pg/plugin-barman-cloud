@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// The default TTL in seconds of cache entries
+// DefaultTTLSeconds is the default TTL in seconds of cache entries
 const DefaultTTLSeconds = 10
 
 type cachedEntry struct {
@@ -114,7 +114,7 @@ func (e *ExtendedClient) getCachedObject(
 		return nil
 	}
 
-	if err := e.Client.Get(ctx, key, obj); err != nil {
+	if err := e.Client.Get(ctx, key, obj, opts...); err != nil {
 		return err
 	}
 

@@ -168,14 +168,13 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, nil
 	}
 
-	return reconcileJob(ctx, cluster, request, pluginConfiguration, env)
+	return reconcileJob(ctx, cluster, request, env)
 }
 
 func reconcileJob(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
-	pluginConfiguration *config.PluginConfiguration,
 	env []corev1.EnvVar,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	contextLogger := log.FromContext(ctx).WithName("lifecycle")

@@ -75,7 +75,7 @@ func (r ReconcilerImplementation) Pre(
 
 	contextLogger.Debug("parsing barman object configuration")
 
-	var barmanObjects []barmancloudv1.ObjectStore
+	barmanObjects := make([]barmancloudv1.ObjectStore, 0, len(pluginConfiguration.GetReferredBarmanObjectsKey()))
 	for _, barmanObjectKey := range pluginConfiguration.GetReferredBarmanObjectsKey() {
 		var barmanObject barmancloudv1.ObjectStore
 		if err := r.Client.Get(ctx, barmanObjectKey, &barmanObject); err != nil {

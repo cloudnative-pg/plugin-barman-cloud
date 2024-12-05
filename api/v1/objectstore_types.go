@@ -24,7 +24,7 @@ import (
 
 // InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
 type InstanceSidecarConfiguration struct {
-	// The environment to be explicitely passed to the sidecar
+	// The environment to be explicitly passed to the sidecar
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 }

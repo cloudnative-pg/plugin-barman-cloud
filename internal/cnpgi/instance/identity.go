@@ -50,7 +50,7 @@ func (i IdentityImplementation) GetPluginCapabilities(
 
 // Probe implements IdentityServer
 func (i IdentityImplementation) Probe(
-	ctx context.Context,
+	_ context.Context,
 	_ *identity.ProbeRequest,
 ) (*identity.ProbeResponse, error) {
 	return &identity.ProbeResponse{
