@@ -16,6 +16,9 @@ tasks:
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        with-linter-cache --cache golangci-lint
+        with-build-cache --cache go-build
+        with-module-cache --cache go-mod
         run --source . --config .golangci.yml stdout
     sources:
       - ./**/*.go
