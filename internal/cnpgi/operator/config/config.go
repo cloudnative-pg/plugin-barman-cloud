@@ -79,7 +79,7 @@ func (config *PluginConfiguration) GetRecoveryBarmanObjectKey() types.Namespaced
 func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: config.Cluster.Namespace,
-		Name:      config.ReplicaSourceServerName,
+		Name:      config.ReplicaSourceBarmanObjectName,
 	}
 }
 
@@ -151,7 +151,7 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 	if replicaSourceParameters := getReplicaSourceParameters(cluster); replicaSourceParameters != nil {
 		replicaSourceBarmanObjectName = replicaSourceParameters["barmanObjectName"]
 		replicaSourceServerName = replicaSourceParameters["serverName"]
-		if len(recoveryServerName) == 0 {
+		if len(replicaSourceServerName) == 0 {
 			replicaSourceServerName = cluster.Name
 		}
 	}
