@@ -247,7 +247,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
 		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return WALNotFoundError{}
+			return newWALNotFoundError()
 		}
 
 		return walStatus[0].Err
