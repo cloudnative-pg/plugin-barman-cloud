@@ -24,24 +24,9 @@ import (
 
 // InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
 type InstanceSidecarConfiguration struct {
-	// The expiration time of the cache entries not managed by the informers. Expressed in seconds.
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=3600
-	// +kubebuilder:default=180
-	CacheTTL *int `json:"cacheTTL,omitempty"`
-
 	// The environment to be explicitly passed to the sidecar
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
-}
-
-// GetCacheTTL returns the cache TTL value, defaulting to 180 seconds if not set.
-func (i InstanceSidecarConfiguration) GetCacheTTL() int {
-	if i.CacheTTL == nil {
-		return 180
-	}
-	return *i.CacheTTL
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.

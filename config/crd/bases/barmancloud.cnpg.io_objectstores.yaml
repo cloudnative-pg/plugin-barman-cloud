@@ -382,15 +382,8 @@ spec:
                 description: InstanceSidecarConfiguration defines the configuration
                   for the sidecar that runs in the instance pods.
                 properties:
-                  cacheTTL:
-                    default: 180
-                    description: The expiration time of the cache entries not managed
-                      by the informers. Expressed in seconds.
-                    maximum: 3600
-                    minimum: 0
-                    type: integer
                   env:
-                    description: The environment to be explicitly passed to the sidecar
+                    description: The environment to be explicitely passed to the sidecar
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.

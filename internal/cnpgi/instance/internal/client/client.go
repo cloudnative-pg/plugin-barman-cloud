@@ -3,61 +3,56 @@ package client
 import (
 	"context"
 	"fmt"
-	"math"
+	"reflect"
 	"sync"
 	"time"
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	v1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-type cachedSecret struct {
-	secret        *corev1.Secret
+// DefaultTTLSeconds is the default TTL in seconds of cache entries
+const DefaultTTLSeconds = 10
+
+type cachedEntry struct {
+	entry         client.Object
 	fetchUnixTime int64
+	ttl           time.Duration
+}
+
+func (e *cachedEntry) isExpired() bool {
+	return time.Now().Unix()-e.fetchUnixTime > int64(e.ttl)
 }
 
 // ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
 type ExtendedClient struct {
 	client.Client
-	barmanObjectKeys []client.ObjectKey
-	cachedSecrets    []*cachedSecret
-	mux              *sync.Mutex
-	ttl              int
+	cachedObjects []cachedEntry
+	mux           *sync.Mutex
 }
 
 // NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation
 func NewExtendedClient(
 	baseClient client.Client,
-	objectStoreKeys []client.ObjectKey,
 ) client.Client {
 	return &ExtendedClient{
-		Client:           baseClient,
-		barmanObjectKeys: objectStoreKeys,
-		mux:              &sync.Mutex{},
+		Client: baseClient,
+		mux:    &sync.Mutex{},
 	}
 }
 
-func (e *ExtendedClient) refreshTTL(ctx context.Context) error {
-	minTTL := math.MaxInt
-
-	for _, key := range e.barmanObjectKeys {
-		var object v1.ObjectStore
-
-		if err := e.Get(ctx, key, &object); err != nil {
-			return fmt.Errorf("failed to get the object store while refreshing the TTL parameter: %w", err)
-		}
-
-		currentTTL := object.Spec.InstanceSidecarConfiguration.GetCacheTTL()
-		if currentTTL < minTTL {
-			minTTL = currentTTL
-		}
+func (e *ExtendedClient) isObjectCached(obj client.Object) bool {
+	if _, isSecret := obj.(*corev1.Secret); isSecret {
+		return true
 	}
 
-	e.ttl = minTTL
-	return nil
+	if _, isObjectStore := obj.(*corev1.Secret); isObjectStore {
+		return true
+	}
+
+	return false
 }
 
 // Get behaves like the original Get method, but uses a cache for secrets
@@ -67,84 +62,87 @@ func (e *ExtendedClient) Get(
 	obj client.Object,
 	opts ...client.GetOption,
 ) error {
+	if !e.isObjectCached(obj) {
+		return e.Client.Get(ctx, key, obj, opts...)
+	}
+
+	return e.getCachedObject(ctx, key, obj, opts...)
+}
+
+func (e *ExtendedClient) getCachedObject(
+	ctx context.Context,
+	key client.ObjectKey,
+	obj client.Object,
+	opts ...client.GetOption,
+) error {
 	contextLogger := log.FromContext(ctx).
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
-
-	if _, ok := obj.(*corev1.Secret); !ok {
-		contextLogger.Trace("not a secret, skipping")
-		return e.Client.Get(ctx, key, obj, opts...)
-	}
-
-	if err := e.refreshTTL(ctx); err != nil {
-		return err
-	}
-
-	if e.isCacheDisabled() {
-		contextLogger.Trace("cache is disabled")
-		return e.Client.Get(ctx, key, obj, opts...)
-	}
 
 	contextLogger.Trace("locking the cache")
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
-	expiredSecretIndex := -1
 	// check if in cache
-	for idx, cache := range e.cachedSecrets {
-		if cache.secret.Namespace != key.Namespace || cache.secret.Name != key.Name {
+	expiredObjectIndex := -1
+	for idx, cacheEntry := range e.cachedObjects {
+		if cacheEntry.entry.GetNamespace() != key.Namespace || cacheEntry.entry.GetName() != key.Name {
 			continue
 		}
-		if e.isExpired(cache.fetchUnixTime) {
-			contextLogger.Trace("secret found, but it is expired")
-			expiredSecretIndex = idx
+		if cacheEntry.entry.GetObjectKind().GroupVersionKind() != obj.GetObjectKind().GroupVersionKind() {
+			continue
+		}
+		if cacheEntry.isExpired() {
+			contextLogger.Trace("expired object found")
+			expiredObjectIndex = idx
 			break
 		}
-		contextLogger.Debug("secret found, loading it from cache")
-		cache.secret.DeepCopyInto(obj.(*corev1.Secret))
+
+		contextLogger.Debug("object found, loading it from cache")
+
+		// Yes, this is a terrible hack, but that's exactly the way
+		// controller-runtime works.
+		// https://github.com/kubernetes-sigs/controller-runtime/blob/
+		// 717b32aede14c921d239cf1b974a11e718949865/pkg/cache/internal/cache_reader.go#L92
+		outVal := reflect.ValueOf(obj)
+		objVal := reflect.ValueOf(cacheEntry.entry)
+		if !objVal.Type().AssignableTo(outVal.Type()) {
+			return fmt.Errorf("cache had type %s, but %s was asked for", objVal.Type(), outVal.Type())
+		}
+
+		reflect.Indirect(outVal).Set(reflect.Indirect(objVal))
 		return nil
 	}
 
-	if err := e.Client.Get(ctx, key, obj); err != nil {
+	if err := e.Client.Get(ctx, key, obj, opts...); err != nil {
 		return err
 	}
 
-	cs := &cachedSecret{
-		secret:        obj.(*corev1.Secret).DeepCopy(),
+	cs := cachedEntry{
+		entry:         obj.(runtime.Object).DeepCopyObject().(client.Object),
 		fetchUnixTime: time.Now().Unix(),
 	}
 
-	contextLogger.Debug("setting secret in the cache")
-	if expiredSecretIndex != -1 {
-		e.cachedSecrets[expiredSecretIndex] = cs
+	contextLogger.Debug("setting object in the cache")
+	if expiredObjectIndex != -1 {
+		e.cachedObjects[expiredObjectIndex] = cs
 	} else {
-		e.cachedSecrets = append(e.cachedSecrets, cs)
+		e.cachedObjects = append(e.cachedObjects, cs)
 	}
 
 	return nil
 }
 
-func (e *ExtendedClient) isExpired(unixTime int64) bool {
-	return time.Now().Unix()-unixTime > int64(e.ttl)
-}
-
-func (e *ExtendedClient) isCacheDisabled() bool {
-	const noCache = 0
-	return e.ttl == noCache
-}
-
-// RemoveSecret ensures that a secret is not present in the cache
-func (e *ExtendedClient) RemoveSecret(key client.ObjectKey) {
-	if e.isCacheDisabled() {
-		return
-	}
-
+// removeObject ensures that a object is not present in the cache
+func (e *ExtendedClient) removeObject(object client.Object) {
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
-	for i, cache := range e.cachedSecrets {
-		if cache.secret.Namespace == key.Namespace && cache.secret.Name == key.Name {
-			e.cachedSecrets = append(e.cachedSecrets[:i], e.cachedSecrets[i+1:]...)
+	for i, cache := range e.cachedObjects {
+		if cache.entry.GetNamespace() == object.GetNamespace() &&
+			cache.entry.GetName() == object.GetName() &&
+			cache.entry.GetObjectKind().GroupVersionKind() != object.GetObjectKind().GroupVersionKind() {
+			e.cachedObjects = append(e.cachedObjects[:i], e.cachedObjects[i+1:]...)
 			return
 		}
 	}
@@ -156,15 +154,9 @@ func (e *ExtendedClient) Update(
 	obj client.Object,
 	opts ...client.UpdateOption,
 ) error {
-	if e.isCacheDisabled() {
-		return e.Client.Update(ctx, obj, opts...)
+	if e.isObjectCached(obj) {
+		e.removeObject(obj)
 	}
-
-	if _, ok := obj.(*corev1.Secret); !ok {
-		return e.Client.Update(ctx, obj, opts...)
-	}
-
-	e.RemoveSecret(client.ObjectKeyFromObject(obj))
 
 	return e.Client.Update(ctx, obj, opts...)
 }
@@ -175,15 +167,9 @@ func (e *ExtendedClient) Delete(
 	obj client.Object,
 	opts ...client.DeleteOption,
 ) error {
-	if e.isCacheDisabled() {
-		return e.Client.Delete(ctx, obj, opts...)
+	if e.isObjectCached(obj) {
+		e.removeObject(obj)
 	}
-
-	if _, ok := obj.(*corev1.Secret); !ok {
-		return e.Client.Delete(ctx, obj, opts...)
-	}
-
-	e.RemoveSecret(client.ObjectKeyFromObject(obj))
 
 	return e.Client.Delete(ctx, obj, opts...)
 }
@@ -195,15 +181,9 @@ func (e *ExtendedClient) Patch(
 	patch client.Patch,
 	opts ...client.PatchOption,
 ) error {
-	if e.isCacheDisabled() {
-		return e.Client.Patch(ctx, obj, patch, opts...)
+	if e.isObjectCached(obj) {
+		e.removeObject(obj)
 	}
-
-	if _, ok := obj.(*corev1.Secret); !ok {
-		return e.Client.Patch(ctx, obj, patch, opts...)
-	}
-
-	e.RemoveSecret(client.ObjectKeyFromObject(obj))
 
 	return e.Client.Patch(ctx, obj, patch, opts...)
 }
