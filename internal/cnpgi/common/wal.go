@@ -121,7 +121,8 @@ func (w WALServiceImplementation) Restore(
 	ctx context.Context,
 	request *wal.WALRestoreRequest,
 ) (*wal.WALRestoreResult, error) {
-	// TODO: build full paths
+	contextLogger := log.FromContext(ctx)
+
 	walName := request.GetSourceWalName()
 	destinationPath := request.GetDestinationFileName()
 
@@ -156,6 +157,11 @@ func (w WALServiceImplementation) Restore(
 		}
 	}
 
+	contextLogger.Info(
+		"Restoring WAL file",
+		"objectStore", objectStore.Name,
+		"serverName", serverName,
+		"walName", walName)
 	return &wal.WALRestoreResult{}, w.restoreFromBarmanObjectStore(
 		ctx, configuration.Cluster, &objectStore, serverName, walName, destinationPath)
 }
