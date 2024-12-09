@@ -9,7 +9,8 @@ spec:
   selector:
     matchLabels:
       app: barman-cloud
-  strategy: {}
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
