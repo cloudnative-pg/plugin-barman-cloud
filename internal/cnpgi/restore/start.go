@@ -18,14 +18,6 @@ type CNPGI struct {
 	PluginPath     string
 	SpoolDirectory string
 
-	BarmanObjectKey client.ObjectKey
-	ServerName      string
-
-	RecoveryBarmanObjectKey client.ObjectKey
-	RecoveryServerName      string
-
-	ClusterObjectKey client.ObjectKey
-
 	Client       client.Client
 	PGDataPath   string
 	InstanceName string
@@ -38,32 +30,18 @@ func (c *CNPGI) Start(ctx context.Context) error {
 
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
-			ClusterObjectKey: c.ClusterObjectKey,
-			InstanceName:     c.InstanceName,
-			Client:           c.Client,
-			SpoolDirectory:   c.SpoolDirectory,
-			PGDataPath:       c.PGDataPath,
-			PGWALPath:        path.Join(c.PGDataPath, "pg_wal"),
-
-			BarmanObjectKey: c.BarmanObjectKey,
-			ServerName:      c.ServerName,
-
-			RecoveryBarmanObjectKey: c.RecoveryBarmanObjectKey,
-			RecoveryServerName:      c.RecoveryServerName,
+			InstanceName:   c.InstanceName,
+			Client:         c.Client,
+			SpoolDirectory: c.SpoolDirectory,
+			PGDataPath:     c.PGDataPath,
+			PGWALPath:      path.Join(c.PGDataPath, "pg_wal"),
 		})
 
 		restore.RegisterRestoreJobHooksServer(server, &JobHookImpl{
 			Client:               c.Client,
-			ClusterObjectKey:     c.ClusterObjectKey,
 			SpoolDirectory:       c.SpoolDirectory,
 			PgDataPath:           c.PGDataPath,
 			PgWalFolderToSymlink: PgWalVolumePgWalPath,
-
-			BarmanObjectKey: c.BarmanObjectKey,
-			ServerName:      c.ServerName,
-
-			RecoveryBarmanObjectKey: c.RecoveryBarmanObjectKey,
-			RecoveryServerName:      c.RecoveryServerName,
 		})
 
 		common.AddHealthCheck(server)

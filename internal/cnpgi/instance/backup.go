@@ -10,7 +10,6 @@ import (
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
 	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
@@ -22,16 +21,14 @@ import (
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 // BackupServiceImplementation is the implementation
 // of the Backup CNPG capability
 type BackupServiceImplementation struct {
-	BarmanObjectKey  client.ObjectKey
-	ClusterObjectKey client.ObjectKey
-	Client           client.Client
-	InstanceName     string
-	ServerName       string
+	Client       client.Client
+	InstanceName string
 	backup.UnimplementedBackupServer
 }
 
@@ -65,20 +62,20 @@ func (b BackupServiceImplementation) GetCapabilities(
 // Backup implements the Backup interface
 func (b BackupServiceImplementation) Backup(
 	ctx context.Context,
-	_ *backup.BackupRequest,
+	request *backup.BackupRequest,
 ) (*backup.BackupResult, error) {
 	contextLogger := log.FromContext(ctx)
 
 	contextLogger.Info("Starting backup")
 
-	var cluster cnpgv1.Cluster
-	if err := b.Client.Get(ctx, b.ClusterObjectKey, &cluster); err != nil {
+	configuration, err := config.NewFromClusterJSON(request.ClusterDefinition)
+	if err != nil {
 		return nil, err
 	}
 
 	var objectStore barmancloudv1.ObjectStore
-	if err := b.Client.Get(ctx, b.BarmanObjectKey, &objectStore); err != nil {
-		contextLogger.Error(err, "while getting object store", "key", b.BarmanObjectKey)
+	if err := b.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
+		contextLogger.Error(err, "while getting object store", "key", configuration.GetRecoveryBarmanObjectKey())
 		return nil, err
 	}
 
@@ -117,7 +114,7 @@ func (b BackupServiceImplementation) Backup(
 	if err = backupCmd.Take(
 		ctx,
 		backupName,
-		b.ServerName,
+		configuration.ServerName,
 		env,
 		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
@@ -129,7 +126,7 @@ func (b BackupServiceImplementation) Backup(
 	executedBackupInfo, err := backupCmd.GetExecutedBackupInfo(
 		ctx,
 		backupName,
-		b.ServerName,
+		configuration.ServerName,
 		barmanCloudExecutor{},
 		env)
 	if err != nil {

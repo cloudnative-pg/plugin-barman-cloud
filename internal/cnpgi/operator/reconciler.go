@@ -75,14 +75,10 @@ func (r ReconcilerImplementation) Pre(
 
 	contextLogger.Debug("parsing barman object configuration")
 
-	var barmanObjects []barmancloudv1.ObjectStore
-
-	if pluginConfiguration.BarmanObjectName != "" {
+	barmanObjects := make([]barmancloudv1.ObjectStore, 0, len(pluginConfiguration.GetReferredBarmanObjectsKey()))
+	for _, barmanObjectKey := range pluginConfiguration.GetReferredBarmanObjectsKey() {
 		var barmanObject barmancloudv1.ObjectStore
-		if err := r.Client.Get(ctx, client.ObjectKey{
-			Namespace: cluster.Namespace,
-			Name:      pluginConfiguration.BarmanObjectName,
-		}, &barmanObject); err != nil {
+		if err := r.Client.Get(ctx, barmanObjectKey, &barmanObject); err != nil {
 			if apierrs.IsNotFound(err) {
 				contextLogger.Info(
 					"barman object configuration not found, requeuing",
@@ -99,30 +95,7 @@ func (r ReconcilerImplementation) Pre(
 		barmanObjects = append(barmanObjects, barmanObject)
 	}
 
-	if pluginConfiguration.RecoveryBarmanObjectName != "" {
-		var barmanObject barmancloudv1.ObjectStore
-		if err := r.Client.Get(ctx, client.ObjectKey{
-			Namespace: cluster.Namespace,
-			Name:      pluginConfiguration.RecoveryBarmanObjectName,
-		}, &barmanObject); err != nil {
-			if apierrs.IsNotFound(err) {
-				contextLogger.Info(
-					"barman recovery object configuration not found, requeuing",
-					"name", pluginConfiguration.RecoveryBarmanObjectName,
-					"namespace", cluster.Namespace,
-				)
-				return &reconciler.ReconcilerHooksResult{
-					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
-				}, nil
-			}
-			return nil, err
-		}
-
-		barmanObjects = append(barmanObjects, barmanObject)
-	}
-
-	var additionalSecretNames []string
-	if err := r.ensureRole(ctx, &cluster, barmanObjects, additionalSecretNames); err != nil {
+	if err := r.ensureRole(ctx, &cluster, barmanObjects); err != nil {
 		return nil, err
 	}
 
@@ -150,10 +123,9 @@ func (r ReconcilerImplementation) ensureRole(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	barmanObjects []barmancloudv1.ObjectStore,
-	additionalSecretNames []string,
 ) error {
 	contextLogger := log.FromContext(ctx)
-	newRole := specs.BuildRole(cluster, barmanObjects, additionalSecretNames)
+	newRole := specs.BuildRole(cluster, barmanObjects)
 
 	var role rbacv1.Role
 	if err := r.Client.Get(ctx, client.ObjectKey{
