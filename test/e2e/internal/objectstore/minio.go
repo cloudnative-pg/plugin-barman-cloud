@@ -31,8 +31,9 @@ import (
 	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
-func NewMinioObjectStoreResources(namespace, name string) Resources {
-	return Resources{
+// NewMinioObjectStoreResources creates the resources required to create a Minio object store.
+func NewMinioObjectStoreResources(namespace, name string) *Resources {
+	return &Resources{
 		Deployment: newMinioDeployment(namespace, name),
 		Service:    newMinioService(namespace, name),
 		PVC:        newMinioPVC(namespace, name),
@@ -189,6 +190,7 @@ func newMinioPVC(namespace, name string) *corev1.PersistentVolumeClaim {
 	}
 }
 
+// NewMinioObjectStore creates a new Minio object store.
 func NewMinioObjectStore(namespace, name, minioOSName string) *pluginBarmanCloudV1.ObjectStore {
 	return &pluginBarmanCloudV1.ObjectStore{
 		TypeMeta: metav1.TypeMeta{

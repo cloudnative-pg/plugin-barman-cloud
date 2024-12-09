@@ -34,7 +34,7 @@ const (
 	minio   = "minio"
 	azurite = "azurite"
 	gcs     = "gcs"
-	// Size of the PVCs for the object stores and the cluster instances
+	// Size of the PVCs for the object stores and the cluster instances.
 	size               = "1Gi"
 	srcClusterName     = "source"
 	srcBackupName      = "source"
@@ -48,7 +48,7 @@ type testCaseFactory interface {
 }
 
 type backupRestoreTestResources struct {
-	ObjectStoreResources objectstore.Resources
+	ObjectStoreResources *objectstore.Resources
 	ObjectStore          *pluginBarmanCloudV1.ObjectStore
 	SrcCluster           *cloudnativepgv1.Cluster
 	SrcBackup            *cloudnativepgv1.Backup
