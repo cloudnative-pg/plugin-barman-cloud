@@ -50,7 +50,7 @@ tasks:
   uncommitted:
     desc: Check for uncommitted changes
     deps:
-      - controller-gen
+      - manifest-main
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: fa2e604b785c0ff9252a807097fc1215e10df486
@@ -269,8 +269,23 @@ tasks:
     generates:
       - ./api/v1/zz_generated.deepcopy.go
 
+  manifest-main:
+    deps:
+      - controller-gen
+    desc: Generate the manifest for the main branch
+    vars:
+      GITHUB_REPOSITORY: '{{ default "cloudnative-pg/plugin-barman-cloud" .GITHUB_REPOSITORY }}'
+      GITHUB_REF: main
+      GITHUB_REF_NAME: main
+    cmds:
+      - task: manifest-internal
+        vars:
+          GITHUB_REPOSITORY: '{{.GITHUB_REPOSITORY}}'
+          GITHUB_REF: '{{.GITHUB_REF}}'
+          GITHUB_REF_NAME: '{{.GITHUB_REF_NAME}}'
+
   manifest:
-    desc: Update the image in the Kustomization
+    desc: Generate the manifest to be uploaded to the release or as a workflow artifact
     deps:
       - controller-gen
     requires:
@@ -278,6 +293,22 @@ tasks:
       # to prevent running this task locally by accident.
       vars:
         - CI
+        - GITHUB_REPOSITORY
+        - GITHUB_REF
+        - GITHUB_REF_NAME
+    cmds:
+      - task: manifest-internal
+        vars:
+          GITHUB_REPOSITORY: '{{.GITHUB_REPOSITORY}}'
+          GITHUB_REF: '{{.GITHUB_REF}}'
+          GITHUB_REF_NAME: '{{.GITHUB_REF_NAME}}'
+
+  manifest-internal:
+    desc: Update the image in the Kustomization
+    label: manifest-internal-{{.GITHUB_REF_NAME}}
+    internal: true
+    requires:
+      vars:
         - GITHUB_REPOSITORY
         - GITHUB_REF
         - GITHUB_REF_NAME
@@ -301,6 +332,11 @@ tasks:
       - >
         dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         build --source . --dir manifest-build export --path manifest.yaml
+    sources:
+      - ./config/**/*.yaml
+      - ./kubernetes/**/*.yaml
+    generates:
+      - ./manifest.yaml
 
   upload-manifest-to-release:
     desc: Upload the manifest to the release
