@@ -1,0 +1,6 @@
+FROM python:3.13-slim AS pythonbuilder
+RUN apt-get update && \
+    apt-get install -y postgresql-common build-essential && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y libpq-dev && \
+    pip install barman[azure,cloud,google,snappy]==3.11.1 setuptools
