@@ -99,26 +99,40 @@ The cert-manager API is ready
 
 Both checks are necessary to proceed with the installation.
 
-### Step 2 - install the barman-cloud plugin
+### Step 2 - Install the barman-cloud Plugin
 
-**TODO:** temporary section - to be rewritten when manifests are available
+> **Note:** This section is temporary and will be updated once manifests are
+> included as part of the release process.
 
-The plugin can be installed via its manifest:
+Use the following command to download the plugin's codebase, including its
+manifest:
 
 ```sh
-# Download the plugin-barman-cloud codebase, including its manifest
-$ curl -Lo plugin-barman-cloud.tgz https://api.github.com/repos/cloudnative-pg/plugin-barman-cloud/tarball/main
-
-# Expand it in a temporary folder (this can be deleted after the plugin is installed)
-$ tar xvzf plugin-barman-cloud.tgz
-
-# From now on, the proposed commands are supposed to be invoked from
-# the repository root directory
-$ cd cloudnative-pg-plugin-barman-cloud*
-
-# Apply the manifest for the latest commit in the `main` branch
-$ kubectl apply -k kubernetes/
+curl -Lo plugin-barman-cloud.tgz \
+  https://api.github.com/repos/cloudnative-pg/plugin-barman-cloud/tarball/main
 ```
+
+Extract the downloaded archive into a temporary directory (this folder can be
+deleted after the installation):
+
+```sh
+tar xvzf plugin-barman-cloud.tgz
+```
+
+Change to the root directory of the extracted repository:
+
+```sh
+cd cloudnative-pg-plugin-barman-cloud*
+```
+
+Use `kubectl` to apply the manifest for the latest commit in the `main` branch:
+
+```sh
+kubectl apply -k kubernetes/
+```
+
+Example output:
+
 ```output
 customresourcedefinition.apiextensions.k8s.io/objectstores.barmancloud.cnpg.io created
 serviceaccount/plugin-barman-cloud created
@@ -139,15 +153,21 @@ certificate.cert-manager.io/barman-cloud-server created
 issuer.cert-manager.io/selfsigned-issuer created
 ```
 
-Once the plugin is installed, the following command will wait until the plugin
-is ready to be used:
+After these steps, the plugin will be successfully installed. Make sure it is
+ready to use by checking the deployment status as follows:
 
 ```sh
-$ kubectl rollout status deployment -n cnpg-system barman-cloud
+kubectl rollout status deployment \
+  -n cnpg-system barman-cloud
 ```
+
+Example output:
+
 ```output
 deployment "barman-cloud" successfully rolled out
 ```
+
+This confirms that the plugin is deployed and operational.
 
 ## Usage
 
