@@ -11,9 +11,9 @@ resources:
 - ../config/rbac
 images:
 - name: plugin-barman-cloud
-  # result of kind load docker-image
-  newName: docker.io/library/plugin-barman-cloud
+  newName: ghcr.io/cloudnative-pg/plugin-barman-cloud-testing
+  newTag: main
 secretGenerator:
 - literals:
-  - SIDECAR_IMAGE=docker.io/library/plugin-barman-cloud
+  - SIDECAR_IMAGE=ghcr.io/cloudnative-pg/plugin-barman-cloud-sidecar-testing:main
   name: plugin-barman-cloud
