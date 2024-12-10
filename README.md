@@ -101,34 +101,11 @@ Both checks are necessary to proceed with the installation.
 
 ### Step 2 - Install the barman-cloud Plugin
 
-> **NOTE:** This section is temporary and will be updated once manifests are
-> included as part of the release process.
-
-Use the following command to download the plugin's codebase, including its
-manifest:
-
-```sh
-curl -Lo plugin-barman-cloud.tgz \
-  https://api.github.com/repos/cloudnative-pg/plugin-barman-cloud/tarball/main
-```
-
-Extract the downloaded archive into a temporary directory (this folder can be
-deleted after the installation):
-
-```sh
-tar xvzf plugin-barman-cloud.tgz
-```
-
-Change to the root directory of the extracted repository:
-
-```sh
-cd cloudnative-pg-plugin-barman-cloud*
-```
-
 Use `kubectl` to apply the manifest for the latest commit in the `main` branch:
 
 ```sh
-kubectl apply -k kubernetes/
+kubectl apply -f \
+  https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/refs/heads/main/manifest.yaml
 ```
 
 Example output:
