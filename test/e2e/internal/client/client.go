@@ -19,10 +19,19 @@ package client
 import (
 	"fmt"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 // NewClient creates a new controller-runtime Kubernetes client.
@@ -36,6 +45,10 @@ func NewClient() (client.Client, *rest.Config, error) {
 	cl, err := client.New(cfg, client.Options{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	if err := addScheme(cl); err != nil {
+		return nil, nil, fmt.Errorf("failed to add scheme: %w", err)
 	}
 
 	return cl, cfg, nil
@@ -53,4 +66,34 @@ func NewClientSet() (*kubernetes.Clientset, *rest.Config, error) {
 	}
 
 	return clientSet, cfg, nil
+}
+
+func addScheme(cl client.Client) error {
+	scheme := cl.Scheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add core/v1 to scheme: %w", err)
+	}
+	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add apiextensions/v1 to scheme: %w", err)
+	}
+	if err := admissionregistrationv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add admissionregistration/v1 to scheme: %w", err)
+	}
+	if err := rbacv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add rbac/v1 to scheme: %w", err)
+	}
+	if err := appsv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add apps/v1 to scheme: %w", err)
+	}
+	if err := certmanagerv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add cert-manager/v1 to scheme: %w", err)
+	}
+	if err := pluginBarmanCloudV1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add plugin-barman-cloud/v1 to scheme: %w", err)
+	}
+	if err := cloudnativepgv1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed to add cloudnativepg/v1 to scheme: %w", err)
+	}
+
+	return nil
 }
