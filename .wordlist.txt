@@ -5,7 +5,9 @@ CloudNativePG
 Gi
 IfNotPresent
 MinIO
+PITR
 TODO
+TLS
 WAL
 WALs
 api
