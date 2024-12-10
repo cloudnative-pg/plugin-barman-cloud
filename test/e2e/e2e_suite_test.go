@@ -22,20 +22,12 @@ import (
 	"testing"
 	"time"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apimachineryTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kustomizeTypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
-	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/deployment"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/e2etestenv"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
@@ -94,32 +86,6 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 				Options: nil,
 			},
 		},
-	}
-
-	scheme := cl.Scheme()
-	if err := corev1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add core/v1 to scheme: %v", err))
-	}
-	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add apiextensions/v1 to scheme: %v", err))
-	}
-	if err := admissionregistrationv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add admissionregistration/v1 to scheme: %v", err))
-	}
-	if err := rbacv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add rbac/v1 to scheme: %v", err))
-	}
-	if err := appsv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add apps/v1 to scheme: %v", err))
-	}
-	if err := certmanagerv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add cert-manager.io/v1 to scheme: %v", err))
-	}
-	if err := pluginBarmanCloudV1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add plugin-barman-cloud/v1 to scheme: %v", err))
-	}
-	if err := cloudnativepgv1.AddToScheme(scheme); err != nil {
-		Fail(fmt.Sprintf("failed to add postgresql.cnpg.io/v1 to scheme: %v", err))
 	}
 
 	if err := kustomize.ApplyKustomization(ctx, cl, barmanCloudKustomization); err != nil {
