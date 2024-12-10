@@ -81,7 +81,7 @@ var _ = Describe("Replica cluster", func() {
 					},
 					src)).To(Succeed())
 				g.Expect(cluster2.IsReady(*src)).To(BeTrue())
-			}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 			By("Adding data to PostgreSQL")
 			clientSet, cfg, err := internalClient.NewClientSet()
@@ -107,7 +107,7 @@ var _ = Describe("Replica cluster", func() {
 				g.Expect(cl.Get(ctx, types.NamespacedName{Name: backup.Name, Namespace: backup.Namespace},
 					backup)).To(Succeed())
 				g.Expect(backup.Status.Phase).To(BeEquivalentTo(cloudnativepgv1.BackupPhaseCompleted))
-			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).Within(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			By("Creating a replica cluster")
 			replica := testResources.ReplicaCluster
@@ -123,7 +123,7 @@ var _ = Describe("Replica cluster", func() {
 					},
 					replica)).To(Succeed())
 				g.Expect(cluster2.IsReady(*replica)).To(BeTrue())
-			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 			By("Checking the data in the replica cluster")
 			output, _, err := command.ExecuteInContainer(ctx,

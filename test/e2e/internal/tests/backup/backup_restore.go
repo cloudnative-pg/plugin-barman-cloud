@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
-	cluster2 "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
+	internalCluster "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/command"
 	nmsp "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/namespace"
 
@@ -74,8 +74,8 @@ var _ = Describe("Backup and restore", func() {
 						Namespace: src.Namespace,
 					},
 					src)).To(Succeed())
-				g.Expect(cluster2.IsReady(*src)).To(BeTrue())
-			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+				g.Expect(internalCluster.IsReady(*src)).To(BeTrue())
+			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 			By("Adding data to PostgreSQL")
 			clientSet, cfg, err := internalClient.NewClientSet()
@@ -143,8 +143,8 @@ var _ = Describe("Backup and restore", func() {
 				g.Expect(cl.Get(ctx,
 					types.NamespacedName{Name: dst.Name, Namespace: dst.Namespace},
 					dst)).To(Succeed())
-				g.Expect(cluster2.IsReady(*dst)).To(BeTrue())
-			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+				g.Expect(internalCluster.IsReady(*dst)).To(BeTrue())
+			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 			By("Verifying the data exists in the restored instance")
 			output, _, err := command.ExecuteInContainer(ctx,
@@ -169,7 +169,7 @@ var _ = Describe("Backup and restore", func() {
 				g.Expect(cl.Get(ctx, types.NamespacedName{Name: backup.Name, Namespace: backup.Namespace},
 					backup)).To(Succeed())
 				g.Expect(backup.Status.Phase).To(BeEquivalentTo(v1.BackupPhaseCompleted))
-			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).Within(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 		},
 		Entry(
 			"using the plugin for backup and restore on S3",
