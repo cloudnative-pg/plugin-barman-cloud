@@ -282,21 +282,25 @@ tasks:
         - GITHUB_REF
         - GITHUB_REF_NAME
     vars:
-      IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      PLUGIN_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
+      SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_KUSTOMIZE_SHA: 32b01ce09db8bfc7ef06dec92ea20d42855cbf81
+      # TODO: go back to upstream module once the PR is merged
     cmds:
       - >
-        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
-        edit --source config --dir default set image --image controller={{.IMAGE_NAME}}:{{.IMAGE_VERSION}}
-        directory export --path manifest-build
+        dagger -s call -m https://github.com/fcanovai/sagikazarmark-daggerverse/kustomize@kustomize-secrets
+        edit --source . --dir kubernetes
+        set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
+        set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
+        directory directory --path kubernetes export --path manifest-build
       - >
         dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
-        build --source manifest-build --dir default export --path manifest.yaml
+        build --source . --dir manifest-build export --path manifest.yaml
 
   upload-manifest-to-release:
     desc: Upload the manifest to the release
