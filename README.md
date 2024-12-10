@@ -1,8 +1,9 @@
 [![CloudNativePG](./logo/cloudnativepg.png)](https://cloudnative-pg.io/)
 
-# Barman Cloud CNPG-i plugin
+# Barman Cloud CNPG-I plugin
 
-Welcome to the codebase of the [barman-cloud](https://pgbarman.org/) CNPG-i plugin.
+Welcome to the codebase of the [barman-cloud](https://pgbarman.org/) CNPG-I
+plugin for [CloudNativePG](https://cloudnative-pg.io/).
 
 ## Table of contents
 
@@ -17,33 +18,34 @@ Welcome to the codebase of the [barman-cloud](https://pgbarman.org/) CNPG-i plug
 
 ## Features
 
-This plugin configures continuous backup to Object stores on a PostgreSQL
-cluster, using the [barman-cloud](https://pgbarman.org/) tool suite.
+This plugin enables continuous backup to object storage for a PostgreSQL
+cluster using the [barman-cloud](https://pgbarman.org/) tool suite.
 
-The features implemented by this plugin are:
+The features provided by this plugin are:
 
-* Data directory backup
-* Data directory restore
-* WAL archiving
-* WAL restoring
-* Point-in-time recovery
-* Replica clusters
+- Data Directory Backup
+- Data Directory Restore
+- WAL Archiving
+- WAL Restoring
+- Point-in-Time Recovery (PITR)
+- Replica Clusters
 
-This plugin supports every object store supported by barman-cloud:
+This plugin is compatible with all object storage services supported by
+barman-cloud, including:
 
-* Amazon AWS S3
-* Google Cloud Storage
-* Microsoft Azure Blob Storage
+- Amazon AWS S3
+- Google Cloud Storage
+- Microsoft Azure Blob Storage
 
-The implementation is currently tested with the following storage backends:
+The following storage solutions have been tested and confirmed to work with
+this implementation:
 
-* [MinIO](https://min.io/) - compatible with AWS S3
-* [Azurite](https://github.com/Azure/Azurite) - simulate most of the Azure Blob
-  Storage
-* [fake-gcs-server](https://github.com/fsouza/fake-gcs-server) - simulate Google Cloud
+- [MinIO](https://min.io/) – An S3-compatible object storage solution.
+- [Azurite](https://github.com/Azure/Azurite) – A simulator for Microsoft Azure Blob Storage.
+- [fake-gcs-server](https://github.com/fsouza/fake-gcs-server) – A simulator for Google Cloud Storage.
 
-Backups taken by the in-tree object store support can be restored with this
-plugin.
+Backups created with in-tree object store support can be restored using this
+plugin, ensuring compatibility and reliability across environments.
 
 ## Prerequisites
 
