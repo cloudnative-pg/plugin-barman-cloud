@@ -49,49 +49,61 @@ plugin, ensuring compatibility and reliability across environments.
 
 ## Prerequisites
 
-* [CloudNativePG](https://cloudnative-pg.io) 1.25RC1 or newer
-* [cert-manager](https://cert-manager.io/)
+To use this plugin, ensure the following prerequisites are met:
+
+- [**CloudNativePG**](https://cloudnative-pg.io) version **1.25** or newer.
+- [**cert-manager**](https://cert-manager.io/) for enabling **TLS communication** between the plugin and the operator.
 
 ## Installation
 
-**IMPORTANT** The plugin should be installed in the same namespace where the
-operator is **installed**, usually `cnpg-system`.
+**Important Notes:**
 
-**IMPORTANT** This may be different from the namespaces the operator is
-listening on.
+1. The plugin **must** be installed in the same namespace where the operator is
+   installed (typically `cnpg-system`).
 
-### Step 1 - verify the prerequisites are met
+2. Be aware that the operator's **listening namespaces** may differ from its
+   installation namespace. Ensure you verify this distinction to avoid
+   configuration issues.
 
-Supposing that CloudNativePG is installed in the default `cnpg-system`
-namespace, the current version can be verified with:
+Here’s an enhanced version of your instructions for verifying the prerequisites:
+
+### Step 1 - Verify the Prerequisites
+
+If CloudNativePG is installed in the default `cnpg-system` namespace, verify its version using the following command:
 
 ```sh
-$ kubectl get deployment -n cnpg-system cnpg-controller-manager | grep ghcr.io/cloudnative-pg/cloudnative-pg
+kubectl get deployment -n cnpg-system cnpg-controller-manager \
+  | grep ghcr.io/cloudnative-pg/cloudnative-pg
 ```
+
+Example output:
+
 ```output
 image: ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0-rc1
 ```
 
-Please ensure you're using CloudNativePG 1.25-rc1 or newer.
+Ensure that the version displayed is **1.25** or newer.
 
-The [cert-manager](https://cert-manager.io) installation can be verified by
-using the [cmctl](https://cert-manager.io/v1.6-docs/usage/cmctl/#installation)
-tool:
+Then, use the [cmctl](https://cert-manager.io/v1.6-docs/usage/cmctl/#installation)
+tool to confirm that `cert-manager` is correctly installed:
 
 ```sh
-$ cmctl check api
+cmctl check api
 ```
+
+Example output:
+
 ```output
 The cert-manager API is ready
 ```
 
+Both checks are necessary to proceed with the installation.
+
 ### Step 2 - install the barman-cloud plugin
 
-The plugin can be installed via its manifest:
+**TODO:** temporary section - to be rewritten when manifests are available
 
-<!--
-TODO: replace this with the latest manifest as archived in the latest commit of main
--->
+The plugin can be installed via its manifest:
 
 ```sh
 # Download the plugin-barman-cloud codebase, including its manifest
