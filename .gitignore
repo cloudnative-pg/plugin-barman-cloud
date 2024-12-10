@@ -39,3 +39,5 @@ go.work
 test/e2e/bin
 # Test registry certificates
 certs/
+# Utility dir for manifest build
+manifest-build/

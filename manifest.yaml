@@ -1,0 +1,889 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: objectstores.barmancloud.cnpg.io
+spec:
+  group: barmancloud.cnpg.io
+  names:
+    kind: ObjectStore
+    listKind: ObjectStoreList
+    plural: objectstores
+    singular: objectstore
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: ObjectStore is the Schema for the objectstores API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ObjectStoreSpec defines the desired state of ObjectStore.
+            properties:
+              configuration:
+                description: |-
+                  BarmanObjectStoreConfiguration contains the backup configuration
+                  using Barman against an S3-compatible object storage
+                properties:
+                  azureCredentials:
+                    description: The credentials to use to upload data to Azure Blob
+                      Storage
+                    properties:
+                      connectionString:
+                        description: The connection string to be used
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      inheritFromAzureAD:
+                        description: Use the Azure AD based authentication without
+                          providing explicitly the keys.
+                        type: boolean
+                      storageAccount:
+                        description: The storage account where to upload data
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      storageKey:
+                        description: |-
+                          The storage account key to be used in conjunction
+                          with the storage account name
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      storageSasToken:
+                        description: |-
+                          A shared-access-signature to be used in conjunction with
+                          the storage account name
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                    type: object
+                  data:
+                    description: |-
+                      The configuration to be used to backup the data files
+                      When not defined, base backups files will be stored uncompressed and may
+                      be unencrypted in the object store, according to the bucket default
+                      policy.
+                    properties:
+                      additionalCommandArgs:
+                        description: |-
+                          AdditionalCommandArgs represents additional arguments that can be appended
+                          to the 'barman-cloud-backup' command-line invocation. These arguments
+                          provide flexibility to customize the backup process further according to
+                          specific requirements or configurations.
+
+                          Example:
+                          In a scenario where specialized backup options are required, such as setting
+                          a specific timeout or defining custom behavior, users can use this field
+                          to specify additional command arguments.
+
+                          Note:
+                          It's essential to ensure that the provided arguments are valid and supported
+                          by the 'barman-cloud-backup' command, to avoid potential errors or unintended
+                          behavior during execution.
+                        items:
+                          type: string
+                        type: array
+                      compression:
+                        description: |-
+                          Compress a backup file (a tar file per tablespace) while streaming it
+                          to the object store. Available options are empty string (no
+                          compression, default), `gzip`, `bzip2` or `snappy`.
+                        enum:
+                        - gzip
+                        - bzip2
+                        - snappy
+                        type: string
+                      encryption:
+                        description: |-
+                          Whenever to force the encryption of files (if the bucket is
+                          not already configured for that).
+                          Allowed options are empty string (use the bucket policy, default),
+                          `AES256` and `aws:kms`
+                        enum:
+                        - AES256
+                        - aws:kms
+                        type: string
+                      immediateCheckpoint:
+                        description: |-
+                          Control whether the I/O workload for the backup initial checkpoint will
+                          be limited, according to the `checkpoint_completion_target` setting on
+                          the PostgreSQL server. If set to true, an immediate checkpoint will be
+                          used, meaning PostgreSQL will complete the checkpoint as soon as
+                          possible. `false` by default.
+                        type: boolean
+                      jobs:
+                        description: |-
+                          The number of parallel jobs to be used to upload the backup, defaults
+                          to 2
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
+                  destinationPath:
+                    description: |-
+                      The path where to store the backup (i.e. s3://bucket/path/to/folder)
+                      this path, with different destination folders, will be used for WALs
+                      and for data
+                    minLength: 1
+                    type: string
+                  endpointCA:
+                    description: |-
+                      EndpointCA store the CA bundle of the barman endpoint.
+                      Useful when using self-signed certificates to avoid
+                      errors with certificate issuer and barman-cloud-wal-archive
+                    properties:
+                      key:
+                        description: The key to select
+                        type: string
+                      name:
+                        description: Name of the referent.
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  endpointURL:
+                    description: |-
+                      Endpoint to be used to upload data to the cloud,
+                      overriding the automatic endpoint discovery
+                    type: string
+                  googleCredentials:
+                    description: The credentials to use to upload data to Google Cloud
+                      Storage
+                    properties:
+                      applicationCredentials:
+                        description: The secret containing the Google Cloud Storage
+                          JSON file with the credentials
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      gkeEnvironment:
+                        description: |-
+                          If set to true, will presume that it's running inside a GKE environment,
+                          default to false.
+                        type: boolean
+                    type: object
+                  historyTags:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      HistoryTags is a list of key value pairs that will be passed to the
+                      Barman --history-tags option.
+                    type: object
+                  s3Credentials:
+                    description: The credentials to use to upload data to S3
+                    properties:
+                      accessKeyId:
+                        description: The reference to the access key id
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      inheritFromIAMRole:
+                        description: Use the role based authentication without providing
+                          explicitly the keys.
+                        type: boolean
+                      region:
+                        description: The reference to the secret containing the region
+                          name
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      secretAccessKey:
+                        description: The reference to the secret access key
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                      sessionToken:
+                        description: The references to the session key
+                        properties:
+                          key:
+                            description: The key to select
+                            type: string
+                          name:
+                            description: Name of the referent.
+                            type: string
+                        required:
+                        - key
+                        - name
+                        type: object
+                    type: object
+                  serverName:
+                    description: |-
+                      The server name on S3, the cluster name is used if this
+                      parameter is omitted
+                    type: string
+                  tags:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Tags is a list of key value pairs that will be passed to the
+                      Barman --tags option.
+                    type: object
+                  wal:
+                    description: |-
+                      The configuration for the backup of the WAL stream.
+                      When not defined, WAL files will be stored uncompressed and may be
+                      unencrypted in the object store, according to the bucket default policy.
+                    properties:
+                      archiveAdditionalCommandArgs:
+                        description: |-
+                          Additional arguments that can be appended to the 'barman-cloud-wal-archive'
+                          command-line invocation. These arguments provide flexibility to customize
+                          the WAL archive process further, according to specific requirements or configurations.
+
+                          Example:
+                          In a scenario where specialized backup options are required, such as setting
+                          a specific timeout or defining custom behavior, users can use this field
+                          to specify additional command arguments.
+
+                          Note:
+                          It's essential to ensure that the provided arguments are valid and supported
+                          by the 'barman-cloud-wal-archive' command, to avoid potential errors or unintended
+                          behavior during execution.
+                        items:
+                          type: string
+                        type: array
+                      compression:
+                        description: |-
+                          Compress a WAL file before sending it to the object store. Available
+                          options are empty string (no compression, default), `gzip`, `bzip2` or `snappy`.
+                        enum:
+                        - gzip
+                        - bzip2
+                        - snappy
+                        type: string
+                      encryption:
+                        description: |-
+                          Whenever to force the encryption of files (if the bucket is
+                          not already configured for that).
+                          Allowed options are empty string (use the bucket policy, default),
+                          `AES256` and `aws:kms`
+                        enum:
+                        - AES256
+                        - aws:kms
+                        type: string
+                      maxParallel:
+                        description: |-
+                          Number of WAL files to be either archived in parallel (when the
+                          PostgreSQL instance is archiving to a backup object store) or
+                          restored in parallel (when a PostgreSQL standby is fetching WAL
+                          files from a recovery object store). If not specified, WAL files
+                          will be processed one at a time. It accepts a positive integer as a
+                          value - with 1 being the minimum accepted value.
+                        minimum: 1
+                        type: integer
+                      restoreAdditionalCommandArgs:
+                        description: |-
+                          Additional arguments that can be appended to the 'barman-cloud-wal-restore'
+                          command-line invocation. These arguments provide flexibility to customize
+                          the WAL restore process further, according to specific requirements or configurations.
+
+                          Example:
+                          In a scenario where specialized backup options are required, such as setting
+                          a specific timeout or defining custom behavior, users can use this field
+                          to specify additional command arguments.
+
+                          Note:
+                          It's essential to ensure that the provided arguments are valid and supported
+                          by the 'barman-cloud-wal-restore' command, to avoid potential errors or unintended
+                          behavior during execution.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                required:
+                - destinationPath
+                type: object
+              instanceSidecarConfiguration:
+                description: InstanceSidecarConfiguration defines the configuration
+                  for the sidecar that runs in the instance pods.
+                properties:
+                  env:
+                    description: The environment to be explicitly passed to the sidecar
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  default: ""
+                                  description: |-
+                                    Name of the referent.
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  default: ""
+                                  description: |-
+                                    Name of the referent.
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
+            required:
+            - configuration
+            type: object
+          status:
+            description: ObjectStoreStatus defines the observed state of ObjectStore.
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: plugin-barman-cloud
+  namespace: cnpg-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: leader-election-role
+  namespace: cnpg-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-auth-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: objectstore-editor-role
+rules:
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: objectstore-viewer-role
+rules:
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: plugin-barman-cloud
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - barmancloud.cnpg.io
+  resources:
+  - objectstores/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - postgresql.cnpg.io
+  resources:
+  - backups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: leader-election-rolebinding
+  namespace: cnpg-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: plugin-barman-cloud
+  namespace: cnpg-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metrics-auth-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: metrics-auth-role
+subjects:
+- kind: ServiceAccount
+  name: plugin-barman-cloud
+  namespace: cnpg-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: plugin-barman-cloud
+  name: plugin-barman-cloud-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: plugin-barman-cloud
+subjects:
+- kind: ServiceAccount
+  name: plugin-barman-cloud
+  namespace: cnpg-system
+---
+apiVersion: v1
+data:
+  SIDECAR_IMAGE: |
+    Z2hjci5pby9jbG91ZG5hdGl2ZS1wZy9wbHVnaW4tYmFybWFuLWNsb3VkLXNpZGVjYXItdG
+    VzdGluZzptYWlu
+kind: Secret
+metadata:
+  name: plugin-barman-cloud-8tfddg42gf
+  namespace: cnpg-system
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    cnpg.io/pluginClientSecret: barman-cloud-client-tls
+    cnpg.io/pluginPort: "9090"
+    cnpg.io/pluginServerSecret: barman-cloud-server-tls
+  labels:
+    app: barman-cloud
+    cnpg.io/pluginName: barman-cloud.cloudnative-pg.io
+  name: barman-cloud
+  namespace: cnpg-system
+spec:
+  ports:
+  - port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: barman-cloud
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: barman-cloud
+  name: barman-cloud
+  namespace: cnpg-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: barman-cloud
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: barman-cloud
+    spec:
+      containers:
+      - args:
+        - operator
+        - --server-cert=/server/tls.crt
+        - --server-key=/server/tls.key
+        - --client-cert=/client/tls.crt
+        - --server-address=:9090
+        - --leader-elect
+        - --log-level=debug
+        env:
+        - name: SIDECAR_IMAGE
+          valueFrom:
+            secretKeyRef:
+              key: SIDECAR_IMAGE
+              name: plugin-barman-cloud-8tfddg42gf
+        image: ghcr.io/cloudnative-pg/plugin-barman-cloud-testing:main
+        name: barman-cloud
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: 9090
+        resources: {}
+        volumeMounts:
+        - mountPath: /server
+          name: server
+        - mountPath: /client
+          name: client
+      serviceAccountName: plugin-barman-cloud
+      volumes:
+      - name: server
+        secret:
+          secretName: barman-cloud-server-tls
+      - name: client
+        secret:
+          secretName: barman-cloud-client-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: barman-cloud-client
+  namespace: cnpg-system
+spec:
+  commonName: barman-cloud-client
+  duration: 2160h
+  isCA: false
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: selfsigned-issuer
+  renewBefore: 360h
+  secretName: barman-cloud-client-tls
+  usages:
+  - client auth
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: barman-cloud-server
+  namespace: cnpg-system
+spec:
+  commonName: barman-cloud
+  dnsNames:
+  - barman-cloud
+  duration: 2160h
+  isCA: false
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: selfsigned-issuer
+  renewBefore: 360h
+  secretName: barman-cloud-server-tls
+  usages:
+  - server auth
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: cnpg-system
+spec:
+  selfSigned: {}
