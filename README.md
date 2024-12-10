@@ -56,7 +56,7 @@ To use this plugin, ensure the following prerequisites are met:
 
 ## Installation
 
-**Important Notes:**
+**IMPORTANT NOTES:**
 
 1. The plugin **must** be installed in the same namespace where the operator is
    installed (typically `cnpg-system`).
@@ -101,7 +101,7 @@ Both checks are necessary to proceed with the installation.
 
 ### Step 2 - Install the barman-cloud Plugin
 
-> **Note:** This section is temporary and will be updated once manifests are
+> **NOTE:** This section is temporary and will be updated once manifests are
 > included as part of the release process.
 
 Use the following command to download the plugin's codebase, including its
@@ -171,10 +171,11 @@ This confirms that the plugin is deployed and operational.
 
 ## Usage
 
-### The BarmanObjectStore object
+### Defining the `BarmanObjectStore`
 
-A BarmanObjectStore object should be created for each object stored used by the
-PostgreSQL architecture. This is an example:
+A `BarmanObjectStore` object should be created for each object store used in
+your PostgreSQL architecture. Below is an example configuration for using
+MinIO:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -196,17 +197,16 @@ spec:
       compression: gzip
 ```
 
-The `objectstore.spec.configuration` API is the same api used by the [in-tree
-barman-cloud
-support](https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api#BarmanObjectStoreConfiguration)
-and can be used like discussed in [the relative documentation
-page](https://cloudnative-pg.io/documentation/preview/backup_barmanobjectstore/).
+The `.spec.configuration` API follows the same schema as the
+[in-tree barman-cloud support](https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api#BarmanObjectStoreConfiguration).
+Refer to [the CloudNativePG documentation](https://cloudnative-pg.io/documentation/preview/backup_barmanobjectstore/)
+for detailed usage.
 
-### WAL Archiving
+### Configuring WAL Archiving
 
-Once the `BarmanObjectStore` has been defined, a cluster using it to archive
-WALs will reference it in the `.spec.plugins` section, like in the following
-example:
+Once the `BarmanObjectStore` is defined, you can configure a PostgreSQL cluster
+to archive WALs by referencing the store in the `.spec.plugins` section, as
+shown below:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -220,21 +220,17 @@ spec:
   - name: barman-cloud.cloudnative-pg.io
     parameters:
       barmanObjectName: minio-store
-
   storage:
     size: 1Gi
 ```
 
-This will enable WAL archiving and data directory backups, as discussed in the
-next section.
+This configuration enables both WAL archiving and data directory backups.
 
-### Backup
+### Performing a Base Backup
 
-Once the transaction log files are being archived, the cluster is ready to be
-backed up.
-
-To request a backup, the `backup.spec.pluginConfiguration` stanza must be set
-with the name of this plugin like in the following example:
+Once WAL archiving is enabled, the cluster is ready for backups. To create a
+backup, configure the `backup.spec.pluginConfiguration` section to specify this
+plugin:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -243,19 +239,16 @@ metadata:
   name: backup-example
 spec:
   method: plugin
-
   cluster:
     name: cluster-example
-
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
 ```
 
-### Restore
+### Restoring a Cluster
 
-To recover a cluster from an object store, the user should create a new
-`Cluster` resource referring to the object store containing the backup, like in
-the following example:
+To restore a cluster from an object store, create a new `Cluster` resource that
+references the store containing the backup. Below is an example configuration:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -265,11 +258,9 @@ metadata:
 spec:
   instances: 3
   imagePullPolicy: IfNotPresent
-
   bootstrap:
     recovery:
       source: source
-
   externalClusters:
   - name: source
     plugin:
@@ -277,16 +268,15 @@ spec:
       parameters:
         barmanObjectName: minio-store
         serverName: cluster-example
-
   storage:
     size: 1Gi
 ```
 
-**IMPORTANT** recovering a cluster like in the previous example do not enable
-WAL archiving for the cluster being recovered.
+**NOTE:** The above configuration does **not** enable WAL archiving for the
+restored cluster.
 
-The latter can be configured by combining the `.spec.plugins` section with the
-`externalClusters.plugin` section, like in the following example:
+To enable WAL archiving for the restored cluster, include the `.spec.plugins`
+section alongside the `externalClusters.plugin` section, as shown below:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -296,35 +286,34 @@ metadata:
 spec:
   instances: 3
   imagePullPolicy: IfNotPresent
-
   bootstrap:
     recovery:
       source: source
-
   plugins:
   - name: barman-cloud.cloudnative-pg.io
     parameters:
+      # Backup Object Store (push, read-write)
       barmanObjectName: minio-store-bis
-
   externalClusters:
   - name: source
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
+        # Recovery Object Store (pull, read-only)
         barmanObjectName: minio-store
         serverName: cluster-example
-
   storage:
     size: 1Gi
 ```
 
-The object store that is used to archive the transaction log may be the same
-object store that is being used to restore a cluster or a different one.
+The same object store may be used for both transaction log archiving and
+restoring a cluster, or you can configure separate stores for these purposes.
 
-### Replica clusters
+### Configuring Replica Clusters
 
-The previous definition can be combined to setup a distributed topology using
-the `.spec.replica` section like in the following example:
+You can set up a distributed topology by combining the previously defined
+configurations with the `.spec.replica` section. Below is an example of how to
+define a replica cluster:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
