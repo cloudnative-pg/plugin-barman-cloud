@@ -16,6 +16,7 @@ import (
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -131,30 +132,40 @@ func (w WALServiceImplementation) Restore(
 		return nil, err
 	}
 
-	var objectStore barmancloudv1.ObjectStore
 	var serverName string
+	var objectStoreKey types.NamespacedName
+
+	var promotionToken string
+	if configuration.Cluster.Spec.ReplicaCluster != nil {
+		promotionToken = configuration.Cluster.Spec.ReplicaCluster.PromotionToken
+	}
 
 	switch {
+	case promotionToken != "" && configuration.Cluster.Status.LastPromotionToken != promotionToken:
+		// This is a replica cluster that is being promoted to a primary cluster
+		// Recover from the replica source object store
+		serverName = configuration.ReplicaSourceServerName
+		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
+
 	case configuration.Cluster.IsReplica() && configuration.Cluster.Status.CurrentPrimary == w.InstanceName:
 		// Designated primary on replica cluster, using replica source object store
 		serverName = configuration.ReplicaSourceServerName
-		if err := w.Client.Get(ctx, configuration.GetReplicaSourceBarmanObjectKey(), &objectStore); err != nil {
-			return nil, err
-		}
+		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
 
 	case configuration.Cluster.Status.CurrentPrimary == "":
 		// Recovery from object store, using recovery object store
 		serverName = configuration.RecoveryServerName
-		if err := w.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &objectStore); err != nil {
-			return nil, err
-		}
+		objectStoreKey = configuration.GetRecoveryBarmanObjectKey()
 
 	default:
 		// Using cluster object store
 		serverName = configuration.ServerName
-		if err := w.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
-			return nil, err
-		}
+		objectStoreKey = configuration.GetBarmanObjectKey()
+	}
+
+	var objectStore barmancloudv1.ObjectStore
+	if err := w.Client.Get(ctx, objectStoreKey, &objectStore); err != nil {
+		return nil, err
 	}
 
 	contextLogger.Info(
