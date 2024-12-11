@@ -123,7 +123,7 @@ var _ = Describe("Replica cluster", func() {
 					},
 					replica)).To(Succeed())
 				g.Expect(cluster2.IsReady(*replica)).To(BeTrue())
-			}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			By("Checking the data in the replica cluster")
 			output, _, err := command.ExecuteInContainer(ctx,

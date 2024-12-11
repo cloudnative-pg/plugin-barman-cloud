@@ -312,7 +312,8 @@ func reconcilePodSpec(
 	envs = append(envs, additionalEnvs...)
 
 	baseProbe := &corev1.Probe{
-		FailureThreshold: 3,
+		FailureThreshold: 10,
+		TimeoutSeconds:   10,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},
@@ -324,7 +325,6 @@ func reconcilePodSpec(
 	sidecarConfig.Name = "plugin-barman-cloud"
 	sidecarConfig.Image = viper.GetString("sidecar-image")
 	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
-	sidecarConfig.LivenessProbe = baseProbe.DeepCopy()
 	sidecarConfig.StartupProbe = baseProbe.DeepCopy()
 
 	// merge the main container envs if they aren't already set
