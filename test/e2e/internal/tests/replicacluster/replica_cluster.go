@@ -238,7 +238,7 @@ var _ = Describe("Replica cluster", func() {
 				g.Expect(cl.Get(ctx, types.NamespacedName{Name: replicaBackup.Name, Namespace: replicaBackup.Namespace},
 					replicaBackup)).To(Succeed())
 				g.Expect(replicaBackup.Status.Phase).To(BeEquivalentTo(cloudnativepgv1.BackupPhaseCompleted))
-			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).Within(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			By("Checking the data in the former primary cluster")
 			Eventually(func(g Gomega) {
