@@ -204,7 +204,17 @@ tasks:
     deps:
       - build-images
     cmds:
-      - go test -timeout 60m -v ./test/e2e
+      - >
+        go run github.com/onsi/ginkgo/v2/ginkgo
+        --procs=8
+        --randomize-all
+        --randomize-suites
+        --fail-on-pending
+        --fail-on-empty
+        --keep-going
+        --timeout=30m
+        --github-output
+        ./test/e2e
 
   ci:
     desc: Run the CI pipeline
