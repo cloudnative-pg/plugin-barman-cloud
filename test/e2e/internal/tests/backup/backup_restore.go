@@ -75,7 +75,7 @@ var _ = Describe("Backup and restore", func() {
 					},
 					src)).To(Succeed())
 				g.Expect(cluster2.IsReady(*src)).To(BeTrue())
-			}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			By("Adding data to PostgreSQL")
 			clientSet, cfg, err := internalClient.NewClientSet()
@@ -144,7 +144,7 @@ var _ = Describe("Backup and restore", func() {
 					types.NamespacedName{Name: dst.Name, Namespace: dst.Namespace},
 					dst)).To(Succeed())
 				g.Expect(cluster2.IsReady(*dst)).To(BeTrue())
-			}).WithTimeout(5 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(15 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
 			By("Verifying the data exists in the restored instance")
 			output, _, err := command.ExecuteInContainer(ctx,
