@@ -8,7 +8,7 @@ require (
 	github.com/cert-manager/cert-manager v1.16.2
 	github.com/cloudnative-pg/api v0.0.0-20241209133608-a48d55a7861d
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20241206153842-9d56b349a329
-	github.com/cloudnative-pg/cloudnative-pg v1.24.1
+	github.com/cloudnative-pg/cloudnative-pg v1.25.0-rc1.0.20241211133237-da2d0341a4a4
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20241211164119-6252971211f2
 	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241209132929-8e699460292f
 	github.com/cloudnative-pg/machinery v0.0.0-20241209124314-8e260445e987
@@ -132,7 +132,7 @@ require (
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/term v0.25.0 // indirect
+	golang.org/x/term v0.26.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
