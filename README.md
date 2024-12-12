@@ -2,6 +2,8 @@
 
 # Barman Cloud CNPG-I plugin
 
+**Status:** EXPERIMENTAL
+
 Welcome to the codebase of the [barman-cloud](https://pgbarman.org/) CNPG-I
 plugin for [CloudNativePG](https://cloudnative-pg.io/).
 
