@@ -6,18 +6,18 @@ toolchain go1.23.4
 
 require (
 	github.com/cert-manager/cert-manager v1.16.2
-	github.com/cloudnative-pg/api v0.0.0-20241116094849-219d7a1d257f
-	github.com/cloudnative-pg/barman-cloud v0.0.0-20241105055149-ae6c2408bd14
-	github.com/cloudnative-pg/cloudnative-pg v1.24.1-0.20241113134512-8608232c2813
-	github.com/cloudnative-pg/cnpg-i v0.0.0-20241109002750-8abd359df734
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241205093641-958e207b8afe
-	github.com/cloudnative-pg/machinery v0.0.0-20241105070525-042a028b767c
-	github.com/docker/docker v27.3.1+incompatible
-	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.1
+	github.com/cloudnative-pg/api v0.0.0-20241209133608-a48d55a7861d
+	github.com/cloudnative-pg/barman-cloud v0.0.0-20241206153842-9d56b349a329
+	github.com/cloudnative-pg/cloudnative-pg v1.24.1
+	github.com/cloudnative-pg/cnpg-i v0.0.0-20241211164119-6252971211f2
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20241209132929-8e699460292f
+	github.com/cloudnative-pg/machinery v0.0.0-20241209124314-8e260445e987
+	github.com/docker/docker v27.4.0+incompatible
+	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/gomega v1.36.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	google.golang.org/grpc v1.68.0
+	google.golang.org/grpc v1.68.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.3
 	k8s.io/apiextensions-apiserver v0.31.3
@@ -98,7 +98,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.78.1 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.78.2 // indirect
 	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.59.1 // indirect
@@ -139,7 +139,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241104194629-dd2ea8efbc28 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241104194629-dd2ea8efbc28 // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
