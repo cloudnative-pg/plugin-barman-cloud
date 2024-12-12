@@ -361,7 +361,7 @@ tasks:
         - GITHUB_TOKEN
     env:
       # renovate: datasource=git-refs depName=gh lookupName=https://github.com/sagikazarmark/daggerverse
-      DAGGER_GH_SHA: 32b01ce09db8bfc7ef06dec92ea20d42855cbf81
+      DAGGER_GH_SHA: 9ee6739db1b1cc4c806ed9389ecd534bf9f5705a
     preconditions:
       - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
         msg: not a tag, failing
