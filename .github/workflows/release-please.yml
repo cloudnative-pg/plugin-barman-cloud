@@ -48,10 +48,7 @@ jobs:
         run: |
           npx release-please release-pr \
             --token="${{ secrets.REPO_PAT }}" \
-            --repo-url="${{ github.repository }}" \
-            --bump-minor-pre-major=true \
-            --release-as=0.1.0 \
-            --signoff "Peggie <info@cloudnative-pg.io>";
+            --repo-url="${{ github.repository }}"
           npx release-please github-release \
             --token="${{ secrets.REPO_PAT }}" \
             --repo-url="${{ github.repository }}"
