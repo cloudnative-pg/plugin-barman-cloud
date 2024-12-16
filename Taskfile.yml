@@ -330,7 +330,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_KUSTOMIZE_SHA: 9ee6739db1b1cc4c806ed9389ecd534bf9f5705a
+      DAGGER_KUSTOMIZE_SHA: 8759a527c3f97b02b942fcb87b6aadb442f61d43
       # TODO: go back to upstream module once the PR is merged
     cmds:
       - >
