@@ -4,12 +4,14 @@
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
   "draft": false,
+  "extra-files": [
+    "README.md"
+  ],
   "prerelease": false,
   "packages": {
     ".": {}
   },
   "plugins": [ "sentence-case" ],
-  "release-as": "0.1.0",
   "signoff": "Peggie <info@cloudnative-pg.io>",
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
 }
