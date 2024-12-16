@@ -12,7 +12,7 @@ tasks:
     desc: Run golangci-lint
     env:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_GOLANGCI_LINT_SHA: 8759a527c3f97b02b942fcb87b6aadb442f61d43
+      DAGGER_GOLANGCI_LINT_SHA: c1be27189ce47d28f84014b715f78e47db9fbadc
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
