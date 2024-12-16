@@ -331,10 +331,9 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_KUSTOMIZE_SHA: c1be27189ce47d28f84014b715f78e47db9fbadc
-      # TODO: go back to upstream module once the PR is merged
     cmds:
       - >
-        dagger -s call -m https://github.com/fcanovai/sagikazarmark-daggerverse/kustomize@kustomize-secrets
+        dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         edit --source . --dir kubernetes
         set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
