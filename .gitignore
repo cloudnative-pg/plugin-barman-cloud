@@ -37,6 +37,8 @@ go.work
 
 # E2e test artifacts
 test/e2e/bin
+test/e2e/kustomization.yaml
+
 # Test registry certificates
 certs/
 # Utility dir for manifest build
