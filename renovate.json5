@@ -65,6 +65,18 @@
       "groupName": "all cloudnative-pg daggerverse dependencies"
     },
     {
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "matchPackageNames": [
+        "https://github.com/sagikazarmark/daggerverse"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "groupName": "all sagikazarmark daggerverse dependencies"
+    },
+    {
       "matchUpdateTypes": [
         "minor",
         "patch"
