@@ -39,9 +39,6 @@ jobs:
           path: ./manifest.yaml
       # TODO: remove bump-minor-pre-major when in production. It prevents
       #   release-please from bumping the major version on breaking changes.
-      # TODO: remove release-as after first release. Used to set the first
-      #   release version, which would default to 1.0.0. Set the version
-      #   manually also for 1.0.0.
       # We use a GitHub token with write permissions to create the release,
       # otherwise we won't be able to trigger a new run when pushing on main.
       - name: Run release-please
