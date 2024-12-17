@@ -1,9 +1,9 @@
 version: 3
 
-# Environment variables that are shared across tasks.
-env:
-  REGISTRY_NETWORK: barman-cloud-plugin
+vars:
   REGISTRY_NAME: registry.barman-cloud-plugin
+  REGISTRY_NETWORK: barman-cloud-plugin
+  REGISTRY_EXTERNAL_PORT: '{{ default 5000 .REGISTRY_EXTERNAL_PORT }}'
   REGISTRY_PORT: 5000
   DAGGER_ENGINE_CONTAINER_NAME: e2e-dagger-engine
 
@@ -78,78 +78,47 @@ tasks:
     sources:
       - ./**/*.go
 
-  generate-certs:
-    desc: Generate certificates for the local registry
-    run: once
-    cmds:
-      - > 
-          mkdir -p certs &&
-          pushd certs &&
-          openssl genrsa -out ca-key.pem 4096 &&
-          openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem \
-              -subj "/O=CloudNativePG/OU=Barman Cloud Plugin Testing" &&
-          openssl genrsa -out server-key.pem 4096 &&
-          openssl req -subj "/CN=${REGISTRY_NAME}" -sha256 -new -key server-key.pem -out server.csr &&
-          echo subjectAltName = DNS:${REGISTRY_NAME},IP:127.0.0.1 >> extfile.cnf &&
-          echo extendedKeyUsage = serverAuth >> extfile.cnf &&
-          openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \
-              -CAcreateserial -out server-cert.pem -extfile extfile.cnf &&
-          popd
-    status:
-        - test -f certs/ca-key.pem
-        - test -f certs/ca.pem
-        - test -f certs/server-key.pem
-        - test -f certs/server.csr
-        - test -f certs/server-cert.pem
-
   start-build-network:
     desc: Create a docker network for image building used by the dagger engine and the registry
     run: once
     cmds:
-      - docker network create ${REGISTRY_NETWORK}
+      - docker network create {{ .REGISTRY_NETWORK }}
     status:
-      - docker network inspect ${REGISTRY_NETWORK}
+      - docker network inspect {{ .REGISTRY_NETWORK }}
 
   start-registry:
     desc: Start a container registry
     run: once
     deps:
-      - generate-certs
       - start-build-network
-    env:
+    vars:
       # TODO: renovate
       REGISTRY_VERSION: 2
     cmds:
       - >
-        docker run -d --name ${REGISTRY_NAME}
-        -p ${REGISTRY_PORT}:5000
-        --network ${REGISTRY_NETWORK}
-        -v $(pwd)/certs:/certs
-        -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server-cert.pem -e REGISTRY_HTTP_TLS_KEY=/certs/server-key.pem
-        registry:${REGISTRY_VERSION}
+        docker run -d --name {{ .REGISTRY_NAME }}
+        --network {{ .REGISTRY_NETWORK }}
+        -p {{ .REGISTRY_EXTERNAL_PORT }}:{{ .REGISTRY_PORT }}
+        registry:{{ .REGISTRY_VERSION }}
     status:
-      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "${REGISTRY_NAME}" 2> /dev/null )" == 'true' \]
+      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .REGISTRY_NAME }}" 2> /dev/null )" == 'true' \]
 
-
-  # Start a dagger engine that mounts the CA certificate for the local registry.
+  # Start a dagger engine that can use the local registry.
   start-dagger-engine-for-local-builds:
-    desc: Start a dagger engine mounting the CA
+    desc: Start a dagger engine
     run: once
-    deps:
-      - generate-certs
-      - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
       DAGGER_VERSION: 0.15.1
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
-        docker run -d -v /var/lib/dagger --name "${DAGGER_ENGINE_CONTAINER_NAME}"
-        --network=${REGISTRY_NETWORK}
-        -v $(pwd)/certs/ca.pem:/usr/local/share/ca-certificates/ca.crt
+        docker run -d -v /var/lib/dagger --name "{{ .DAGGER_ENGINE_CONTAINER_NAME }}"
+        -v $(pwd)/hack/dagger-engine.toml:/etc/dagger/engine.toml
+        --network {{ .REGISTRY_NETWORK }}
         --privileged {{ .DAGGER_ENGINE_IMAGE }}
     status:
-      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "${DAGGER_ENGINE_CONTAINER_NAME}" 2> /dev/null )" == 'true' \]
+      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .DAGGER_ENGINE_CONTAINER_NAME }}" 2> /dev/null )" == 'true' \]
 
   # We build an image and push it to a local registry.
   # The name is always `plugin-barman-cloud:testing`.
@@ -161,12 +130,19 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: 14c1374e5878f082939aab575c36cdad19920e0d
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{.DAGGER_ENGINE_CONTAINER_NAME}}
+      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
         GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         build --dir . --file containers/Dockerfile.plugin --platform linux/amd64
-        publish --ref ${REGISTRY_NAME}:${REGISTRY_PORT}/plugin-barman-cloud --tags testing
+        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/plugin-barman-cloud --tags testing
+    sources:
+      - ./go.mod
+      - ./go.sum
+      - ./containers/Dockerfile.plugin
+      - ./**/*.go
+      - ./Taskfile.yml
+      - exclude: ./test/e2e/**
 
   # We build an image and push it to a local registry.
   # The name is always `sidecar-barman-cloud:testing`.
@@ -183,7 +159,14 @@ tasks:
       - >
         GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64
-        publish --ref ${REGISTRY_NAME}:${REGISTRY_PORT}/sidecar-barman-cloud --tags testing
+        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/sidecar-barman-cloud --tags testing
+    sources:
+      - ./go.mod
+      - ./go.sum
+      - ./containers/Dockerfile.sidecar
+      - ./**/*.go
+      - ./Taskfile.yml
+      - exclude: ./test/e2e/**
 
   build-images:
     desc: Build the container images for the plugin
@@ -194,11 +177,6 @@ tasks:
   # TODO: see if it is possible to daggerize this. It will have to manage docker to make kind work.
   # TODO: add a task to clean up the kind cluster for new test runs.
   # Run the e2e tests. This task will start a kind cluster, deploy the plugin, and run the tests.
-  # Running the e2e tests requires:
-  # * The registry to have a valid TLS certificate.
-  # * The registry to be in the same network of the dagger-engine.
-  # * The dagger-engine to mount the CA.
-  # * The kind cluster to mount the CA.
   e2e:
     desc: Run e2e tests
     deps:
