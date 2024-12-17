@@ -39,12 +39,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const testRegistry = "registry.barman-cloud-plugin:5000"
+const testNetwork = "barman-cloud-plugin"
+
 // We don't want multiple ginkgo nodes to run the setup concurrently, we use a single cluster for all tests.
 var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 	var cl client.Client
 	var err error
 	if cl, err = e2etestenv.Setup(ctx,
-		e2etestenv.WithKindAdditionalNetworks([]string{"barman-cloud-plugin"})); err != nil {
+		e2etestenv.WithKindAdditionalNetworks([]string{testNetwork})); err != nil {
 		Fail(fmt.Sprintf("failed to setup environment: %v", err))
 	}
 
@@ -54,7 +57,7 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 		Images: []kustomizeTypes.Image{
 			{
 				Name:    "docker.io/library/plugin-barman-cloud",
-				NewName: "registry.barman-cloud-plugin:5000/plugin-barman-cloud",
+				NewName: fmt.Sprintf("%v/plugin-barman-cloud", testRegistry),
 				NewTag:  "testing",
 			},
 		},
@@ -64,7 +67,9 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 					Name:     "plugin-barman-cloud",
 					Behavior: "replace",
 					KvPairSources: kustomizeTypes.KvPairSources{
-						LiteralSources: []string{"SIDECAR_IMAGE=registry.barman-cloud-plugin:5000/sidecar-barman-cloud:testing"},
+						LiteralSources: []string{
+							fmt.Sprintf("SIDECAR_IMAGE=%v/sidecar-barman-cloud:testing", testRegistry),
+						},
 					},
 				},
 			},

@@ -6,6 +6,10 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
   extraMounts:
-  - hostPath: ../../certs/ca.pem
-    containerPath: /usr/local/share/ca-certificates/ca.crt
-    readOnly: true
+    - hostPath: config/certs.d/
+      containerPath: "/etc/containerd/certs.d/"
+      readOnly: true
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
