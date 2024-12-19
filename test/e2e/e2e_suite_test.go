@@ -24,10 +24,10 @@ import (
 
 	apimachineryTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	kustomizeTypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
+	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/deployment"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/e2etestenv"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
@@ -41,10 +41,12 @@ import (
 
 // We don't want multiple ginkgo nodes to run the setup concurrently, we use a single cluster for all tests.
 var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
-	var cl client.Client
-	var err error
-	if cl, err = e2etestenv.Setup(ctx,
-		e2etestenv.WithKindAdditionalNetworks([]string{"barman-cloud-plugin"})); err != nil {
+	cl, _, err := internalClient.NewClient()
+	if err != nil {
+		Fail(fmt.Sprintf("failed to create Kubernetes client: %v", err))
+	}
+
+	if err = e2etestenv.Setup(ctx, cl); err != nil {
 		Fail(fmt.Sprintf("failed to setup environment: %v", err))
 	}
 
