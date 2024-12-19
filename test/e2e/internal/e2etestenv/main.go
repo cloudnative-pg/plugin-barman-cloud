@@ -19,26 +19,16 @@ package e2etestenv
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kind/pkg/cluster"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/certmanager"
-	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cloudnativepg"
-	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kind"
 )
 
 // SetupOptions contains the options for setting up the test environment.
 type SetupOptions struct {
-	K8sVersion string
-
-	KindVersion            string
-	KindClusterNamePrefix  string
-	KindAdditionalNetworks []string
-
 	CNPGKustomizationURL     string
 	CNPGKustomizationRef     string
 	CNPGKustomizationTimeout string
@@ -52,27 +42,6 @@ type SetupOptions struct {
 
 // SetupOption is a function that sets up an option for the test environment setup.
 type SetupOption func(*SetupOptions)
-
-// WithK8sVersion sets the Kubernetes version for the test environment.
-func WithK8sVersion(version string) SetupOption {
-	return func(opts *SetupOptions) {
-		opts.K8sVersion = version
-	}
-}
-
-// WithKindVersion sets the Kind version for the test environment.
-func WithKindVersion(version string) SetupOption {
-	return func(opts *SetupOptions) {
-		opts.KindVersion = version
-	}
-}
-
-// WithKindAdditionalNetworks sets the additional networks for the Kind cluster for the test environment.
-func WithKindAdditionalNetworks(networks []string) SetupOption {
-	return func(opts *SetupOptions) {
-		opts.KindAdditionalNetworks = networks
-	}
-}
 
 // WithCNPGKustomizationURL sets the CloudNativePG kustomization URL for the test environment.
 func WithCNPGKustomizationURL(url string) SetupOption {
@@ -124,56 +93,31 @@ func WithIgnoreExistingResources(ignore bool) SetupOption {
 	}
 }
 
-// WithKindClusterNamePrefix sets the prefix for the Kind cluster name for the test environment.
-func withKindClusterNamePrefix(name string) SetupOption {
-	return func(opts *SetupOptions) {
-		opts.KindClusterNamePrefix = name
-	}
-}
-
-const (
-	kindConfigFile = "config/kind-config.yaml"
-)
-
 func defaultSetupOptions() SetupOptions {
 	// TODO: renovate
 	return SetupOptions{
-		K8sVersion:             "v1.31.1",
-		KindVersion:            "v0.24.0",
-		CertManagerVersion:     "v1.15.1",
-		KindClusterNamePrefix:  "e2e",
-		KindAdditionalNetworks: []string{},
+		CertManagerVersion: "v1.15.1",
 	}
 }
 
 // Setup sets up the test environment for the e2e tests, starting kind and installing the necessary components.
 //
 //nolint:ireturn
-func Setup(ctx context.Context, opts ...SetupOption) (client.Client, error) {
+func Setup(ctx context.Context, cl client.Client, opts ...SetupOption) error {
 	options := defaultSetupOptions()
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	if err := setupKind(ctx, options); err != nil {
-		return nil, err
-	}
-
-	cl, _, err := internalClient.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
 	if err := installCertManager(ctx, cl, options); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := installCNPG(ctx, cl, options); err != nil {
-		return nil, err
+		return err
 	}
 
-	// Return the Kubernetes client used for the tests
-	return cl, nil
+	return nil
 }
 
 func installCNPG(ctx context.Context, cl client.Client, options SetupOptions) error {
@@ -226,33 +170,4 @@ func installCertManager(ctx context.Context, cl client.Client, options SetupOpti
 	}
 
 	return nil
-}
-
-func setupKind(ctx context.Context, options SetupOptions) error {
-	// This function sets up the environment for the e2e tests
-	// by creating the cluster and installing the necessary
-	// components.
-	expectedClusterName := kindClusterName(options.KindClusterNamePrefix, options.K8sVersion)
-	provider := cluster.NewProvider()
-	clusterIsRunning, err := kind.IsClusterRunning(provider, expectedClusterName)
-	if err != nil {
-		return fmt.Errorf("failed to check if Kind cluster is running: %w", err)
-	}
-	if !clusterIsRunning {
-		kindOpts := []kind.CreateClusterOption{
-			kind.WithK8sVersion(options.K8sVersion),
-			kind.WithConfigFile(kindConfigFile),
-			kind.WithNetworks(options.KindAdditionalNetworks),
-		}
-		if err := kind.CreateCluster(ctx, provider, expectedClusterName, kindOpts...); err != nil {
-			return fmt.Errorf("failed to create Kind cluster: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func kindClusterName(prefix, k8sVersion string) string {
-	k8sVersion = strings.ReplaceAll(k8sVersion, ".", "-")
-	return fmt.Sprintf("%s-%s", prefix, k8sVersion)
 }
