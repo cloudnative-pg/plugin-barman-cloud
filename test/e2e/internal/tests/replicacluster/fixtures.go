@@ -112,7 +112,7 @@ func newSrcCluster(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
-			Plugins: cloudnativepgv1.PluginConfigurationList{
+			Plugins: []cloudnativepgv1.PluginConfiguration{
 				{
 					Name: "barman-cloud.cloudnative-pg.io",
 					Parameters: map[string]string{
@@ -223,7 +223,7 @@ func newReplicaCluster(namespace string) *cloudnativepgv1.Cluster {
 					Source: "source",
 				},
 			},
-			Plugins: cloudnativepgv1.PluginConfigurationList{
+			Plugins: []cloudnativepgv1.PluginConfiguration{
 				{
 					Name: "barman-cloud.cloudnative-pg.io",
 					Parameters: map[string]string{
