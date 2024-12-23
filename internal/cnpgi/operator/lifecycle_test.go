@@ -53,7 +53,7 @@ var _ = Describe("LifecycleImplementation", func() {
 						},
 					},
 				},
-				Plugins: cnpgv1.PluginConfigurationList{
+				Plugins: []cnpgv1.PluginConfiguration{
 					{
 						Name: "barman-cloud.cloudnative-pg.io",
 						Parameters: map[string]string{
