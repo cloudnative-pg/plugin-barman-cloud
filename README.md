@@ -81,12 +81,12 @@ kubectl get deployment -n cnpg-system cnpg-controller-manager \
 Example output:
 
 ```output
-image: ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0-rc1
+image: ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0
 ```
 
 Ensure that the version displayed is **1.25** or newer.
 
-Then, use the [cmctl](https://cert-manager.io/v1.6-docs/usage/cmctl/#installation)
+Then, use the [cmctl](https://cert-manager.io/docs/reference/cmctl/#installation)
 tool to confirm that `cert-manager` is correctly installed:
 
 ```sh
