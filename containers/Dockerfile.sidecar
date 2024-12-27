@@ -38,11 +38,12 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 # we should build and then copy every file into a destination that will
 # then copy into the distroless container
 FROM python:3.13-slim AS pythonbuilder
+COPY containers/sidecar-requirements.txt .
 RUN apt-get update && \
     apt-get install -y postgresql-common build-essential && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
     apt-get install -y libpq-dev && \
-    pip install barman[azure,cloud,google,snappy]==3.11.1 setuptools
+    pip install -r sidecar-requirements.txt
 # Prepare a new /usr/ directory with the files we'll need in the final image
 RUN mkdir /new-usr/ && \
     cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
