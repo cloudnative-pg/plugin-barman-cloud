@@ -285,6 +285,7 @@ func newSrcClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "postgres:17-bookworm",
 			Plugins: []cloudnativepgv1.PluginConfiguration{
 				{
 					Name: "barman-cloud.cloudnative-pg.io",
@@ -298,6 +299,8 @@ func newSrcClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 					"log_min_messages": "DEBUG4",
 				},
 			},
+			PostgresUID: 999,
+			PostgresGID: 999,
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
@@ -320,6 +323,7 @@ func newDstClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "postgres:17-bookworm",
 			Bootstrap: &cloudnativepgv1.BootstrapConfiguration{
 				Recovery: &cloudnativepgv1.BootstrapRecovery{
 					Source: "source",
@@ -338,6 +342,8 @@ func newDstClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 					"log_min_messages": "DEBUG4",
 				},
 			},
+			PostgresUID: 999,
+			PostgresGID: 999,
 			ExternalClusters: []cloudnativepgv1.ExternalCluster{
 				{
 					Name: "source",
@@ -372,6 +378,7 @@ func newSrcClusterInTreeS3(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
@@ -421,6 +428,7 @@ func newDstClusterInTreeS3(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			Bootstrap: &cloudnativepgv1.BootstrapConfiguration{
 				Recovery: &cloudnativepgv1.BootstrapRecovery{
 					Source: "source",
@@ -486,6 +494,7 @@ func newSrcClusterInTreeAzure(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
@@ -523,6 +532,7 @@ func newDstClusterInTreeAzure(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			Bootstrap: &cloudnativepgv1.BootstrapConfiguration{
 				Recovery: &cloudnativepgv1.BootstrapRecovery{
 					Source: "source",
@@ -576,6 +586,7 @@ func newSrcClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
@@ -619,6 +630,7 @@ func newDstClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
 			ImagePullPolicy: corev1.PullAlways,
+			ImageName:       "ghcr.io/cloudnative-pg/postgresql:17-bookworm",
 			Bootstrap: &cloudnativepgv1.BootstrapConfiguration{
 				Recovery: &cloudnativepgv1.BootstrapRecovery{
 					Source: "source",

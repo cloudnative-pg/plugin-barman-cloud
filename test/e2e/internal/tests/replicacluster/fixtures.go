@@ -111,6 +111,7 @@ func newSrcCluster(namespace string) *cloudnativepgv1.Cluster {
 		},
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
+			ImageName:       "postgres:17-bookworm",
 			ImagePullPolicy: corev1.PullAlways,
 			Plugins: []cloudnativepgv1.PluginConfiguration{
 				{
@@ -125,6 +126,8 @@ func newSrcCluster(namespace string) *cloudnativepgv1.Cluster {
 					"log_min_messages": "DEBUG4",
 				},
 			},
+			PostgresUID: 999,
+			PostgresGID: 999,
 			StorageConfiguration: cloudnativepgv1.StorageConfiguration{
 				Size: size,
 			},
@@ -217,12 +220,15 @@ func newReplicaCluster(namespace string) *cloudnativepgv1.Cluster {
 		},
 		Spec: cloudnativepgv1.ClusterSpec{
 			Instances:       2,
+			ImageName:       "postgres:17-bookworm",
 			ImagePullPolicy: corev1.PullAlways,
 			Bootstrap: &cloudnativepgv1.BootstrapConfiguration{
 				Recovery: &cloudnativepgv1.BootstrapRecovery{
 					Source: "source",
 				},
 			},
+			PostgresUID: 999,
+			PostgresGID: 999,
 			Plugins: []cloudnativepgv1.PluginConfiguration{
 				{
 					Name: "barman-cloud.cloudnative-pg.io",
