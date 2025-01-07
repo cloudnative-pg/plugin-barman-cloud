@@ -34,7 +34,7 @@ tasks:
     desc: Run spellcheck
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: f2acc8d99c16422193b59859048ecca98ffb9334
+      DAGGER_SPELLCHECK_SHA: b8e24f5ad3e7da6dce9f6f9edd93baf165f3106a
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -48,7 +48,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: f2acc8d99c16422193b59859048ecca98ffb9334
+      DAGGER_COMMITLINT_SHA: b8e24f5ad3e7da6dce9f6f9edd93baf165f3106a
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -60,7 +60,7 @@ tasks:
       - manifest-main
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: f2acc8d99c16422193b59859048ecca98ffb9334
+      DAGGER_UNCOMMITTED_SHA: b8e24f5ad3e7da6dce9f6f9edd93baf165f3106a
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
@@ -167,7 +167,7 @@ tasks:
       - start-dagger-engine-for-local-builds
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: 14c1374e5878f082939aab575c36cdad19920e0d
+      DAGGER_DOCKER_SHA: 1379b455587e74072cee73db1b78e11af4215d53
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
@@ -184,7 +184,7 @@ tasks:
       - start-dagger-engine-for-local-builds
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: 14c1374e5878f082939aab575c36cdad19920e0d
+      DAGGER_DOCKER_SHA: 1379b455587e74072cee73db1b78e11af4215d53
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
@@ -306,7 +306,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: 14c1374e5878f082939aab575c36cdad19920e0d
+      DAGGER_DOCKER_SHA: 1379b455587e74072cee73db1b78e11af4215d53
     cmds:
       - >
         dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
@@ -324,7 +324,7 @@ tasks:
     desc: Run controller-gen
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: f2acc8d99c16422193b59859048ecca98ffb9334
+      DAGGER_CONTROLLER_GEN_SHA: b8e24f5ad3e7da6dce9f6f9edd93baf165f3106a
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
@@ -420,7 +420,7 @@ tasks:
         - GITHUB_TOKEN
     env:
       # renovate: datasource=git-refs depName=gh lookupName=https://github.com/sagikazarmark/daggerverse
-      DAGGER_GH_SHA: 8759a527c3f97b02b942fcb87b6aadb442f61d43
+      DAGGER_GH_SHA: c1be27189ce47d28f84014b715f78e47db9fbadc
     preconditions:
       - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
         msg: not a tag, failing
