@@ -1,7 +1,14 @@
 version: 3
 
-# Environment variables that are shared across tasks.
-env:
+# We have multiple parallel tasks that run for a long time. Prefix their output with the task name so we can understand
+# what task is writing.
+output: prefixed
+
+# Variables that are shared across tasks.
+vars:
+  # renovate: datasource=docker depName=kindest/node versioning=semver
+  E2E_KUBERNETES_VERSION: v1.32.0
+  E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
   REGISTRY_PORT: 5000
@@ -89,8 +96,8 @@ tasks:
           openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem \
               -subj "/O=CloudNativePG/OU=Barman Cloud Plugin Testing" &&
           openssl genrsa -out server-key.pem 4096 &&
-          openssl req -subj "/CN=${REGISTRY_NAME}" -sha256 -new -key server-key.pem -out server.csr &&
-          echo subjectAltName = DNS:${REGISTRY_NAME},IP:127.0.0.1 >> extfile.cnf &&
+          openssl req -subj "/CN={{ .REGISTRY_NAME }}" -sha256 -new -key server-key.pem -out server.csr &&
+          echo subjectAltName = DNS:{{ .REGISTRY_NAME }},IP:127.0.0.1 >> extfile.cnf &&
           echo extendedKeyUsage = serverAuth >> extfile.cnf &&
           openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \
               -CAcreateserial -out server-cert.pem -extfile extfile.cnf &&
@@ -106,9 +113,9 @@ tasks:
     desc: Create a docker network for image building used by the dagger engine and the registry
     run: once
     cmds:
-      - docker network create ${REGISTRY_NETWORK}
+      - docker network create {{ .REGISTRY_NETWORK}}
     status:
-      - docker network inspect ${REGISTRY_NETWORK}
+      - docker network inspect {{ .REGISTRY_NETWORK }}
 
   start-registry:
     desc: Start a container registry
@@ -121,14 +128,14 @@ tasks:
       REGISTRY_VERSION: 2
     cmds:
       - >
-        docker run -d --name ${REGISTRY_NAME}
-        -p ${REGISTRY_PORT}:5000
-        --network ${REGISTRY_NETWORK}
+        docker run -d --name {{ .REGISTRY_NAME }}
+        -p {{ .REGISTRY_PORT }}:5000
+        --network {{ .REGISTRY_NETWORK }}
         -v $(pwd)/certs:/certs
         -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server-cert.pem -e REGISTRY_HTTP_TLS_KEY=/certs/server-key.pem
         registry:${REGISTRY_VERSION}
     status:
-      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "${REGISTRY_NAME}" 2> /dev/null )" == 'true' \]
+      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .REGISTRY_NAME }}" 2> /dev/null )" == 'true' \]
 
 
   # Start a dagger engine that mounts the CA certificate for the local registry.
@@ -144,12 +151,12 @@ tasks:
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
-        docker run -d -v /var/lib/dagger --name "${DAGGER_ENGINE_CONTAINER_NAME}"
-        --network=${REGISTRY_NETWORK}
+        docker run -d -v /var/lib/dagger --name "{{ .DAGGER_ENGINE_CONTAINER_NAME }}"
+        --network={{ .REGISTRY_NETWORK }}
         -v $(pwd)/certs/ca.pem:/usr/local/share/ca-certificates/ca.crt
         --privileged {{ .DAGGER_ENGINE_IMAGE }}
     status:
-      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "${DAGGER_ENGINE_CONTAINER_NAME}" 2> /dev/null )" == 'true' \]
+      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .DAGGER_ENGINE_CONTAINER_NAME }}" 2> /dev/null )" == 'true' \]
 
   # We build an image and push it to a local registry.
   # The name is always `plugin-barman-cloud:testing`.
@@ -161,12 +168,12 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: 910e1ac9754f208569ac4d65f1ef52d9a2301833
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{.DAGGER_ENGINE_CONTAINER_NAME}}
+      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
-        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         build --dir . --file containers/Dockerfile.plugin --platform linux/amd64
-        publish --ref ${REGISTRY_NAME}:${REGISTRY_PORT}/plugin-barman-cloud --tags testing
+        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/plugin-barman-cloud --tags testing
 
   # We build an image and push it to a local registry.
   # The name is always `sidecar-barman-cloud:testing`.
@@ -178,18 +185,51 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: 910e1ac9754f208569ac4d65f1ef52d9a2301833
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{.DAGGER_ENGINE_CONTAINER_NAME}}
+      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
-        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64
-        publish --ref ${REGISTRY_NAME}:${REGISTRY_PORT}/sidecar-barman-cloud --tags testing
+        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/sidecar-barman-cloud --tags testing
 
   build-images:
     desc: Build the container images for the plugin
     deps:
       - build-plugin-image
       - build-sidecar-image
+
+  # Install kind if not at the expected version.
+  install-kind:
+    desc: Install kind
+    run: once
+    vars:
+      # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
+      KIND_VERSION: v0.26.0
+    cmds:
+      - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
+      - kind version | grep -q {{.KIND_VERSION}}
+    status:
+        - kind version | grep -q {{.KIND_VERSION}}
+
+  start-kind-cluster:
+    desc: Start a kind cluster
+    deps:
+      - install-kind
+      - start-build-network
+    run: once
+    cmds:
+      - >
+        kind create cluster --name {{ .E2E_CLUSTER_NAME }}
+        --image kindest/node:{{ .E2E_KUBERNETES_VERSION }}
+        --config hack/kind-config.yaml
+        --wait 5m
+      - >
+        for node in $(kind get nodes --name {{ .E2E_CLUSTER_NAME }} ); do
+          docker network connect {{ .REGISTRY_NETWORK }} $node;
+          docker exec $node sh -c "update-ca-certificates";
+        done
+    status:
+      - kind get clusters | grep -q {{ .E2E_CLUSTER_NAME }}
 
   # TODO: see if it is possible to daggerize this. It will have to manage docker to make kind work.
   # TODO: add a task to clean up the kind cluster for new test runs.
@@ -199,22 +239,42 @@ tasks:
   # * The registry to be in the same network of the dagger-engine.
   # * The dagger-engine to mount the CA.
   # * The kind cluster to mount the CA.
-  e2e:
-    desc: Run e2e tests
+  e2e-external-kind:
+    desc: Run e2e tests in a local kind cluster
     deps:
       - build-images
+      - start-kind-cluster
+    vars:
+      # renovate: datasource=docker depName=golang versioning=semver
+      GOLANG_IMAGE_VERSION: 1.23.4
+      KUBECONFIG_PATH:
+        sh: mktemp -t kubeconfig-XXXXX
+    env:
+      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
+    cmds:
+      - kind get kubeconfig --internal --name {{ .E2E_CLUSTER_NAME }} > {{ .KUBECONFIG_PATH }}
+      - >
+        GITHUB_REF= dagger call -m  dagger/e2e/ run
+        --source .
+        --kubeconfig {{.KUBECONFIG_PATH}}
+        --go-version {{ .GOLANG_IMAGE_VERSION }}
+
+  e2e-ephemeral:
+    desc: Run e2e tests in an ephemeral k3s cluster
+    deps:
+      - build-images
+    vars:
+      # renovate: datasource=docker depName=golang versioning=semver
+      GOLANG_IMAGE_VERSION: 1.23.4
+    env:
+      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
-        go run github.com/onsi/ginkgo/v2/ginkgo
-        --procs=8
-        --randomize-all
-        --randomize-suites
-        --fail-on-pending
-        --fail-on-empty
-        --keep-going
-        --timeout=30m
-        --github-output
-        ./test/e2e
+        GITHUB_REF= dagger call -m  dagger/e2e/ run-ephemeral
+        --source .
+        --ca certs/ca.pem
+        --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}}
+        --go-version {{ .GOLANG_IMAGE_VERSION }}
 
   ci:
     desc: Run the CI pipeline
@@ -224,7 +284,7 @@ tasks:
       - uncommitted
       - lint
       - go-test
-      - e2e
+      - e2e-ephemeral
 
   publish:
     desc: Build and publish a container image for the plugin
@@ -284,7 +344,7 @@ tasks:
       - controller-gen
     desc: Generate the manifest for the main branch
     vars:
-      GITHUB_REPOSITORY: '{{ default "cloudnative-pg/plugin-barman-cloud" .GITHUB_REPOSITORY }}'
+      GITHUB_REPOSITORY: cloudnative-pg/plugin-barman-cloud
       GITHUB_REF: main
       GITHUB_REF_NAME: main
     cmds:
