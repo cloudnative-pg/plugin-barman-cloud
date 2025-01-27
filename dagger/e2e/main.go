@@ -34,13 +34,13 @@ func (m *E2E) Run(
 		WithMountedFile("/kubeconfig", kubeconfig).
 		WithEnvVariable("KUBECONFIG", "/kubeconfig").
 		WithExec([]string{"go", "run", "github.com/onsi/ginkgo/v2/ginkgo",
-			"--procs=8",
+			"--procs=4",
 			"--randomize-all",
 			"--randomize-suites",
 			"--fail-on-pending",
 			"--fail-on-empty",
 			"--keep-going",
-			"--timeout=30m",
+			"--timeout=45m",
 			"--github-output",
 			"./test/e2e"}).Stdout(ctx)
 }
