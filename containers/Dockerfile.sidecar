@@ -5,7 +5,7 @@
 # Both components are built before going into a distroless container
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.23.4 AS gobuilder
+FROM --platform=$BUILDPLATFORM golang:1.23.5 AS gobuilder
 ARG TARGETOS
 ARG TARGETARCH
 
