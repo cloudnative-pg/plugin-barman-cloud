@@ -13,7 +13,10 @@
   prConcurrentLimit: 5,
   "gomod": {
     // Do not manage the dagger go.mod file
-    "ignorePaths": ["dagger/gotest/go.mod"],
+    "ignorePaths": [
+      "dagger/gotest/go.mod",
+      "dagger/e2e/go.mod"
+    ],
   },
   "postUpdateOptions": [
     "gomodTidy"
