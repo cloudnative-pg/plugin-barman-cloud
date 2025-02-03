@@ -10,7 +10,7 @@ require (
 	github.com/cloudnative-pg/barman-cloud v0.0.0-20250116091735-018944b15fd4
 	github.com/cloudnative-pg/cloudnative-pg v1.25.0
 	github.com/cloudnative-pg/cnpg-i v0.0.0-20250129202149-1b1d818ad283
-	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20250124134931-9247f383fe01
+	github.com/cloudnative-pg/cnpg-i-machinery v0.0.0-20250129091115-991bf0e266c7
 	github.com/cloudnative-pg/machinery v0.0.0-20250124134709-2553c239f2c8
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
@@ -23,7 +23,7 @@ require (
 	k8s.io/apimachinery v0.32.1
 	k8s.io/client-go v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.3
+	sigs.k8s.io/controller-runtime v0.20.1
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
 )
@@ -53,6 +53,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.22.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
