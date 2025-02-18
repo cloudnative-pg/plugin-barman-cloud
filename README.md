@@ -74,7 +74,7 @@ Here’s an enhanced version of your instructions for verifying the prerequisite
 If CloudNativePG is installed in the default `cnpg-system` namespace, verify its version using the following command:
 
 ```sh
-kubectl get deployment -n cnpg-system cnpg-controller-manager \
+kubectl get deployment -n cnpg-system cnpg-controller-manager -o yaml \
   | grep ghcr.io/cloudnative-pg/cloudnative-pg
 ```
 
