@@ -6,12 +6,10 @@ import (
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -30,23 +28,9 @@ func init() {
 func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
-	namespace := viper.GetString("namespace")
-	clusterName := viper.GetString("cluster-name")
-
-	objs := map[client.Object]cache.ByObject{
-		&cnpgv1.Cluster{}: {
-			Field: fields.OneTermEqualSelector("metadata.name", clusterName),
-			Namespaces: map[string]cache.Config{
-				namespace: {},
-			},
-		},
-	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
-		Cache: cache.Options{
-			ByObject: objs,
-		},
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
