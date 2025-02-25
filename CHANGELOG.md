@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.1.0...v0.2.0) (2025-02-24)
+
+
+### Features
+
+* Release-please cleanup ([#115](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/115)) ([cd03c55](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/cd03c556ef86c429b8699961eb24e1361b5759ff)), closes [#114](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/114)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#103](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/103)) ([55258f6](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/55258f69008d1475f65d549d47a6c87485624e28))
+* **deps:** Update kubernetes packages to v0.32.1 ([#147](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/147)) ([dbc5550](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/dbc5550c9c503dfb0a6206a244995cdda9d28c1d))
+* **deps:** Update module github.com/cloudnative-pg/api to v1 ([#131](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/131)) ([0c8ff74](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0c8ff7426ff15623deba0c9603ba76dece3cb6a5))
+* **deps:** Update module sigs.k8s.io/kustomize/api to v0.19.0 ([#148](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/148)) ([9ba6351](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9ba63518f929748f4a422eaa58293c8125b7a5f1))
+
 ## 0.1.0 (2024-12-12)
 
 
