@@ -18,9 +18,9 @@ azure-storage-blob==12.24.1 \
     --hash=sha256:052b2a1ea41725ba12e2f4f17be85a54df1129e13ea0321f5a2fcc851cbf47d4 \
     --hash=sha256:77fb823fdbac7f3c11f7d86a5892e2f85e161e8440a7489babe2195bf248f09e
     # via barman
-barman==3.12.1 \
-    --hash=sha256:258ef7100717f66032402e0abe03c977089c50fc47143df5708e92aa1d772937 \
-    --hash=sha256:9dd7be219b6f74954b80cdc28f9a72f2acb923e7da65edd0f41cdc82fd32e169
+barman==3.13.0 \
+    --hash=sha256:4c040d65f80dcd69876063781524ffa4f7918969d98b461eb43123ac5f96f260 \
+    --hash=sha256:b2ff8af2bacc6958efeec23fa26295f035658ab55d815d7f3c583cef1d8bfdfe
     # via -r sidecar-requirements.in
 boto3==1.35.99 \
     --hash=sha256:83e560faaec38a956dfb3d62e05e1703ee50432b45b788c09e25107c5058bd71 \
