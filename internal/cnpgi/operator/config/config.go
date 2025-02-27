@@ -103,8 +103,8 @@ func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.Namespa
 
 func getClusterGVK() schema.GroupVersionKind {
 	return schema.GroupVersionKind{
-		Group:   cnpgv1.GroupVersion.Group,
-		Version: cnpgv1.GroupVersion.Version,
+		Group:   cnpgv1.SchemeGroupVersion.Group,
+		Version: cnpgv1.SchemeGroupVersion.Version,
 		Kind:    cnpgv1.ClusterKind,
 	}
 }

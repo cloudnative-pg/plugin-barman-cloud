@@ -64,7 +64,7 @@ func (r ReconcilerImplementation) Pre(
 	if err := decoder.DecodeObject(
 		request.GetResourceDefinition(),
 		&cluster,
-		cnpgv1.GroupVersion.WithKind("Cluster")); err != nil {
+		cnpgv1.SchemeGroupVersion.WithKind("Cluster")); err != nil {
 		return nil, err
 	}
 
