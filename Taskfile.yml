@@ -324,7 +324,7 @@ tasks:
     desc: Run controller-gen
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: 9151fdb403298e305889668706b6cd69bb287e88
+      DAGGER_CONTROLLER_GEN_SHA: a20e0c26fbaed660d9970eecb9f1381149b90f01
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}

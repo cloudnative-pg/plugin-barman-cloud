@@ -82,7 +82,7 @@ func (impl LifecycleImplementation) LifecycleHook(
 	if err := decoder.DecodeObject(
 		request.GetClusterDefinition(),
 		&cluster,
-		cnpgv1.GroupVersion.WithKind("Cluster"),
+		cnpgv1.SchemeGroupVersion.WithKind("Cluster"),
 	); err != nil {
 		return nil, err
 	}
