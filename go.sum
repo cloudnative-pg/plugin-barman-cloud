@@ -22,8 +22,8 @@ github.com/cloudnative-pg/api v1.25.0 h1:jLrHUq9Ye52+YC9I0Cj4VAFdmaKCLKmUrF9zxgb
 github.com/cloudnative-pg/api v1.25.0/go.mod h1:49gdjFO7/fcZWjO/Ohh8DPO7UN6oivRDpN3vgulZohY=
 github.com/cloudnative-pg/barman-cloud v0.1.0 h1:e/z52CehMBIh1LjZqNBJnncWJbS+1JYvRMBR8Js6Uiw=
 github.com/cloudnative-pg/barman-cloud v0.1.0/go.mod h1:rJUJO/f1yNckLZiVxHAyRmKY+4EPJkYRJsGbTZRJQSY=
-github.com/cloudnative-pg/cloudnative-pg v1.25.1-0.20250227082220-0facc48cbbb0 h1:x0dRFwVLr+eWJrqiQfp3enYNR3zowPzPdxhskhMWRGk=
-github.com/cloudnative-pg/cloudnative-pg v1.25.1-0.20250227082220-0facc48cbbb0/go.mod h1:OSHAVFsYeLxhzwq1VA/p3H3ips4INIUZJK18XNcpCIM=
+github.com/cloudnative-pg/cloudnative-pg v1.25.1 h1:Yc6T7ikQ1AiWXBQht+6C3DoihrIpUN2OkM1dIwqadTo=
+github.com/cloudnative-pg/cloudnative-pg v1.25.1/go.mod h1:96b9bRFLSr3uFWHjhytPdcvKIKwy9H6AG7cH0O6jefs=
 github.com/cloudnative-pg/cnpg-i v0.1.0 h1:QH2xTsrODMhEEc6B25GbOYe7ZIttDmSkYvXotfU5dfs=
 github.com/cloudnative-pg/cnpg-i v0.1.0/go.mod h1:G28BhgUEHqrxEyyQeHz8BbpMVAsGuLhJm/tHUbDi8Sw=
 github.com/cloudnative-pg/cnpg-i-machinery v0.1.1 h1:U73Xbgul505qPE6ErO0th9EZYl3hV4j0Z8fxI3jRXso=
@@ -247,8 +247,8 @@ golang.org/x/net v0.0.0-20200226121028-0de0cce0169b/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20201021035429-f5854403a974/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
 golang.org/x/net v0.35.0 h1:T5GQRQb2y08kTAByq9L4/bz8cipCdA8FbRTXewonqY8=
 golang.org/x/net v0.35.0/go.mod h1:EglIi67kWsHKlRzzVMUD93VMSWGFOMSZgxFjparz1Qk=
-golang.org/x/oauth2 v0.25.0 h1:CY4y7XT9v0cRI9oupztF8AgiIu99L/ksR/Xp/6jrZ70=
-golang.org/x/oauth2 v0.25.0/go.mod h1:XYTD2NtWslqkgxebSiOHnXEap4TF09sJSc7H1sXbhtI=
+golang.org/x/oauth2 v0.27.0 h1:da9Vo7/tDv5RH/7nZDz1eMGS/q1Vv1N/7FCrBhI9I3M=
+golang.org/x/oauth2 v0.27.0/go.mod h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

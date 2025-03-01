@@ -8,7 +8,7 @@ require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/cloudnative-pg/api v1.25.0
 	github.com/cloudnative-pg/barman-cloud v0.1.0
-	github.com/cloudnative-pg/cloudnative-pg v1.25.1-0.20250227082220-0facc48cbbb0
+	github.com/cloudnative-pg/cloudnative-pg v1.25.1
 	github.com/cloudnative-pg/cnpg-i v0.1.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.1.1
 	github.com/cloudnative-pg/machinery v0.1.0
@@ -112,7 +112,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/oauth2 v0.25.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
