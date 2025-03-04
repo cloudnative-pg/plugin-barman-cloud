@@ -199,6 +199,7 @@ spec:
   imagePullPolicy: Always
   plugins:
   - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
     parameters:
       barmanObjectName: minio-store
   storage:
@@ -272,6 +273,7 @@ spec:
       source: source
   plugins:
   - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
     parameters:
       # Backup Object Store (push, read-write)
       barmanObjectName: minio-store-bis
@@ -311,6 +313,7 @@ spec:
 
   plugins:
   - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
     parameters:
       barmanObjectName: minio-store-a
 

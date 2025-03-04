@@ -6,8 +6,8 @@ Gi
 IfNotPresent
 MinIO
 PITR
-TODO
 TLS
+TODO
 WAL
 WALs
 api
@@ -34,6 +34,7 @@ hostpath
 https
 imagePullPolicy
 io
+isWALArchiver
 kubectl
 kubernetes
 minio
