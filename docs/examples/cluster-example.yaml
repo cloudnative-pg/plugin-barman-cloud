@@ -7,6 +7,7 @@ spec:
   imagePullPolicy: Always
   plugins:
   - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
     parameters:
       barmanObjectName: minio-store
 
