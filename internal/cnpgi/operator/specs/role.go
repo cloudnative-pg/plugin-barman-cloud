@@ -35,35 +35,49 @@ func BuildRole(
 		}
 	}
 
-	role.Rules = append(role.Rules, rbacv1.PolicyRule{
-		APIGroups: []string{
-			"barmancloud.cnpg.io",
+	role.Rules = append(
+		role.Rules,
+		rbacv1.PolicyRule{
+			APIGroups: []string{
+				"barmancloud.cnpg.io",
+			},
+			Verbs: []string{
+				"get",
+				"watch",
+				"list",
+			},
+			Resources: []string{
+				"objectstores",
+			},
+			ResourceNames: barmanObjectsSet.ToSortedList(),
 		},
-		Verbs: []string{
-			"get",
-			"watch",
-			"list",
+		rbacv1.PolicyRule{
+			APIGroups: []string{
+				"barmancloud.cnpg.io",
+			},
+			Verbs: []string{
+				"update",
+			},
+			Resources: []string{
+				"objectstores/status",
+			},
+			ResourceNames: barmanObjectsSet.ToSortedList(),
 		},
-		Resources: []string{
-			"objectstores",
+		rbacv1.PolicyRule{
+			APIGroups: []string{
+				"",
+			},
+			Resources: []string{
+				"secrets",
+			},
+			Verbs: []string{
+				"get",
+				"watch",
+				"list",
+			},
+			ResourceNames: secretsSet.ToSortedList(),
 		},
-		ResourceNames: barmanObjectsSet.ToSortedList(),
-	})
-
-	role.Rules = append(role.Rules, rbacv1.PolicyRule{
-		APIGroups: []string{
-			"",
-		},
-		Resources: []string{
-			"secrets",
-		},
-		Verbs: []string{
-			"get",
-			"watch",
-			"list",
-		},
-		ResourceNames: secretsSet.ToSortedList(),
-	})
+	)
 
 	return role
 }

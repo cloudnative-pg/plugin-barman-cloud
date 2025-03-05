@@ -40,9 +40,7 @@ spec:
             description: ObjectStoreSpec defines the desired state of ObjectStore.
             properties:
               configuration:
-                description: |-
-                  BarmanObjectStoreConfiguration contains the backup configuration
-                  using Barman against an S3-compatible object storage
+                description: The configuration for the barman-cloud tool suite
                 properties:
                   azureCredentials:
                     description: The credentials to use to upload data to Azure Blob
@@ -502,12 +500,49 @@ spec:
                       - name
                       type: object
                     type: array
+                  retentionPolicyIntervalSeconds:
+                    default: 1800
+                    description: |-
+                      The retentionCheckInterval defines the frequency at which the
+                      system checks and enforces retention policies.
+                    type: integer
                 type: object
+              retentionPolicy:
+                description: |-
+                  RetentionPolicy is the retention policy to be used for backups
+                  and WALs (i.e. '60d'). The retention policy is expressed in the form
+                  of `XXu` where `XX` is a positive integer and `u` is in `[dwm]` -
+                  days, weeks, months.
+                pattern: ^[1-9][0-9]*[dwm]$
+                type: string
             required:
             - configuration
             type: object
           status:
             description: ObjectStoreStatus defines the observed state of ObjectStore.
+            properties:
+              serverRecoveryWindow:
+                additionalProperties:
+                  description: |-
+                    RecoveryWindow represents the time span between the first
+                    recoverability point and the last successful backup of a PostgreSQL
+                    server, defining the period during which data can be restored.
+                  properties:
+                    firstRecoverabilityPoint:
+                      description: |-
+                        The first recoverability point in a PostgreSQL server refers to
+                        the earliest point in time to which the database can be
+                        restored.
+                      format: date-time
+                      type: string
+                    lastSuccussfulBackupTime:
+                      description: The last successful backup time
+                      format: date-time
+                      type: string
+                  type: object
+                description: ServerRecoveryWindow maps each server to its recovery
+                  window
+                type: object
             type: object
         required:
         - metadata

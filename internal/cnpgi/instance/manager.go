@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,7 +27,10 @@ func Start(ctx context.Context) error {
 
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
+
 	podName := viper.GetString("pod-name")
+	clusterName := viper.GetString("cluster-name")
+	namespace := viper.GetString("namespace")
 
 	controllerOptions := ctrl.Options{
 		Scheme: scheme,
@@ -36,6 +40,7 @@ func Start(ctx context.Context) error {
 					&corev1.Secret{},
 					&barmancloudv1.ObjectStore{},
 					&cnpgv1.Cluster{},
+					&cnpgv1.Backup{},
 				},
 			},
 		},
@@ -47,16 +52,30 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
+	customCacheClient := extendedclient.NewExtendedClient(mgr.GetClient())
+
 	if err := mgr.Add(&CNPGI{
-		Client:       extendedclient.NewExtendedClient(mgr.GetClient()),
-		InstanceName: podName,
-		// TODO: improve
+		Client:         customCacheClient,
+		InstanceName:   podName,
 		PGDataPath:     viper.GetString("pgdata"),
 		PGWALPath:      path.Join(viper.GetString("pgdata"), "pg_wal"),
 		SpoolDirectory: viper.GetString("spool-directory"),
 		PluginPath:     viper.GetString("plugin-path"),
 	}); err != nil {
 		setupLog.Error(err, "unable to create CNPGI runnable")
+		return err
+	}
+
+	if err := mgr.Add(&RetentionPolicyRunnable{
+		Client:   customCacheClient,
+		Recorder: mgr.GetEventRecorderFor("policy-runnable"),
+		ClusterKey: types.NamespacedName{
+			Namespace: namespace,
+			Name:      clusterName,
+		},
+		PodName: podName,
+	}); err != nil {
+		setupLog.Error(err, "unable to policy enforcement runnable")
 		return err
 	}
 

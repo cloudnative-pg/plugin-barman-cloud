@@ -3,6 +3,9 @@ kind: ObjectStore
 metadata:
   name: minio-store
 spec:
+  retentionPolicy: "1m"
+  instanceSidecarConfiguration:
+    retentionPolicyIntervalSeconds: 30
   configuration:
     endpointCA:
       name: minio-server-tls

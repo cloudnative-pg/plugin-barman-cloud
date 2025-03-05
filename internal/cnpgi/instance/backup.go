@@ -153,6 +153,8 @@ func (b BackupServiceImplementation) Backup(
 			"version":     metadata.Data.Version,
 			"name":        metadata.Data.Name,
 			"displayName": metadata.Data.DisplayName,
+			"clusterUID":  string(configuration.Cluster.ObjectMeta.UID),
+			"pluginName":  metadata.PluginName,
 		},
 	}, nil
 }
