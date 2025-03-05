@@ -67,10 +67,8 @@ func newGCSDeployment(namespace, name string) *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name: name,
-							// TODO: use the official image when https://github.com/fsouza/fake-gcs-server/pull/1827
-							//   is merged and released
-							Image: "ghcr.io/fcanovai/fake-gcs-server:latest",
+							Name:  name,
+							Image: "fsouza/fake-gcs-server:latest",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 4443,
