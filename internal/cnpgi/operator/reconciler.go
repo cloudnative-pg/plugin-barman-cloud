@@ -11,7 +11,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -61,10 +60,10 @@ func (r ReconcilerImplementation) Pre(
 
 	contextLogger.Debug("parsing cluster definition")
 	var cluster cnpgv1.Cluster
-	if err := decoder.DecodeObject(
+	if err := decoder.DecodeObjectLenient(
 		request.GetResourceDefinition(),
 		&cluster,
-		cnpgv1.SchemeGroupVersion.WithKind("Cluster")); err != nil {
+	); err != nil {
 		return nil, err
 	}
 
@@ -142,11 +141,7 @@ func (r ReconcilerImplementation) ensureRole(
 			"namespace", newRole.Namespace,
 		)
 
-		if err := ctrl.SetControllerReference(
-			cluster,
-			newRole,
-			r.Client.Scheme(),
-		); err != nil {
+		if err := setOwnerReference(cluster, newRole); err != nil {
 			return err
 		}
 
@@ -193,7 +188,7 @@ func (r ReconcilerImplementation) createRoleBinding(
 	cluster *cnpgv1.Cluster,
 ) error {
 	roleBinding := specs.BuildRoleBinding(cluster)
-	if err := ctrl.SetControllerReference(cluster, roleBinding, r.Client.Scheme()); err != nil {
+	if err := setOwnerReference(cluster, roleBinding); err != nil {
 		return err
 	}
 	return r.Client.Create(ctx, roleBinding)

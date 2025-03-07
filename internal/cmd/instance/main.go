@@ -36,6 +36,8 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
+	_ = viper.BindEnv("custom-cnpg-group", "CUSTOM_CNPG_GROUP")
+	_ = viper.BindEnv("custom-cnpg-version", "CUSTOM_CNPG_VERSIONXS")
 
 	return cmd
 }

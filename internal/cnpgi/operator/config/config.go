@@ -5,7 +5,6 @@ import (
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
@@ -101,19 +100,11 @@ func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.Namespa
 	return result
 }
 
-func getClusterGVK() schema.GroupVersionKind {
-	return schema.GroupVersionKind{
-		Group:   cnpgv1.SchemeGroupVersion.Group,
-		Version: cnpgv1.SchemeGroupVersion.Version,
-		Kind:    cnpgv1.ClusterKind,
-	}
-}
-
 // NewFromClusterJSON decodes a JSON representation of a cluster.
 func NewFromClusterJSON(clusterJSON []byte) (*PluginConfiguration, error) {
 	var result cnpgv1.Cluster
 
-	if err := decoder.DecodeObject(clusterJSON, &result, getClusterGVK()); err != nil {
+	if err := decoder.DecodeObjectLenient(clusterJSON, &result); err != nil {
 		return nil, err
 	}
 
