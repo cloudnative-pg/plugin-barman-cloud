@@ -8,26 +8,22 @@ import (
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	extendedclient "github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/instance/internal/client"
 )
 
-var scheme = runtime.NewScheme()
-
-func init() {
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
-	utilruntime.Must(cnpgv1.AddToScheme(scheme))
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-}
-
 // Start starts the sidecar informers and CNPG-i server
 func Start(ctx context.Context) error {
+	scheme := generateScheme(ctx)
+
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
 	podName := viper.GetString("pod-name")
@@ -69,4 +65,36 @@ func Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// generateScheme creates a runtime.Scheme object with all the
+// definition needed to support the sidecar. This allows
+// the plugin to be used in every CNPG-based operator.
+func generateScheme(ctx context.Context) *runtime.Scheme {
+	result := runtime.NewScheme()
+
+	utilruntime.Must(barmancloudv1.AddToScheme(result))
+	utilruntime.Must(clientgoscheme.AddToScheme(result))
+
+	cnpgGroup := viper.GetString("custom-cnpg-group")
+	cnpgVersion := viper.GetString("custom-cnpg-version")
+	if len(cnpgGroup) == 0 {
+		cnpgGroup = cnpgv1.SchemeGroupVersion.Group
+	}
+	if len(cnpgVersion) == 0 {
+		cnpgVersion = cnpgv1.SchemeGroupVersion.Version
+	}
+
+	// Proceed with custom registration of the CNPG scheme
+	schemeGroupVersion := schema.GroupVersion{Group: cnpgGroup, Version: cnpgVersion}
+	schemeBuilder := &scheme.Builder{GroupVersion: schemeGroupVersion}
+	schemeBuilder.Register(&cnpgv1.Cluster{}, &cnpgv1.ClusterList{})
+	schemeBuilder.Register(&cnpgv1.Backup{}, &cnpgv1.BackupList{})
+	schemeBuilder.Register(&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{})
+	utilruntime.Must(schemeBuilder.AddToScheme(result))
+
+	schemeLog := log.FromContext(ctx)
+	schemeLog.Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)
+
+	return result
 }

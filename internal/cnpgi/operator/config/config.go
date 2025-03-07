@@ -113,7 +113,7 @@ func getClusterGVK() schema.GroupVersionKind {
 func NewFromClusterJSON(clusterJSON []byte) (*PluginConfiguration, error) {
 	var result cnpgv1.Cluster
 
-	if err := decoder.DecodeObject(clusterJSON, &result, getClusterGVK()); err != nil {
+	if err := decoder.DecodeObjectLenient(clusterJSON, &result); err != nil {
 		return nil, err
 	}
 
