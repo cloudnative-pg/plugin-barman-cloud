@@ -659,7 +659,7 @@ zstandard==0.23.0 \
     # via barman
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==75.8.2 \
-    --hash=sha256:4880473a969e5f23f2a2be3646b2dfd84af9028716d398e46192f84bc36900d2 \
-    --hash=sha256:558e47c15f1811c1fa7adbd0096669bf76c1d3f433f58324df69f3f5ecac4e8f
+setuptools==75.9.0 \
+    --hash=sha256:4be25497f46470c1e57c79073368e51d5506bdcb34f88935ead7556e17fff36d \
+    --hash=sha256:5cc49d9e66c286c5f5fd8051852cca8cc8ccc354647247fd1c6f97c832c1d903
     # via -r sidecar-requirements.in
