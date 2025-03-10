@@ -87,7 +87,12 @@ func (impl JobHookImpl) Restore(
 			return nil, err
 		}
 
-		if err := impl.checkBackupDestination(ctx, configuration.Cluster, &targetObjectStore.Spec.Configuration); err != nil {
+		if err := impl.checkBackupDestination(
+			ctx,
+			configuration.Cluster,
+			&targetObjectStore.Spec.Configuration,
+			targetObjectStore.Name,
+		); err != nil {
 			return nil, err
 		}
 	}
@@ -98,6 +103,7 @@ func (impl JobHookImpl) Restore(
 		impl.Client,
 		configuration.Cluster,
 		&recoveryObjectStore.Spec.Configuration,
+		recoveryObjectStore.Name,
 		configuration.RecoveryServerName,
 	)
 	if err != nil {
@@ -220,13 +226,16 @@ func (impl *JobHookImpl) checkBackupDestination(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
+	objectStoreName string,
 ) error {
 	// Get environment from cache
-	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(ctx,
+	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(ctx,
 		impl.Client,
 		cluster.Namespace,
 		barmanConfiguration,
-		os.Environ())
+		os.Environ(),
+		path.Join(metadata.BarmanCertificatesPath, objectStoreName, metadata.BarmanCertificatesFileName),
+	)
 	if err != nil {
 		return fmt.Errorf("can't get credentials for cluster %v: %w", cluster.Name, err)
 	}
@@ -329,6 +338,7 @@ func loadBackupObjectFromExternalCluster(
 	typedClient client.Client,
 	cluster *cnpgv1.Cluster,
 	recoveryObjectStore *api.BarmanObjectStoreConfiguration,
+	recoveryObjectStoreName string,
 	serverName string,
 ) (*cnpgv1.Backup, []string, error) {
 	contextLogger := log.FromContext(ctx)
@@ -337,12 +347,13 @@ func loadBackupObjectFromExternalCluster(
 		"serverName", serverName,
 		"objectStore", recoveryObjectStore)
 
-	env, err := barmanCredentials.EnvSetRestoreCloudCredentials(
+	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		typedClient,
 		cluster.Namespace,
 		recoveryObjectStore,
-		os.Environ())
+		os.Environ(),
+		path.Join(metadata.BarmanCertificatesPath, recoveryObjectStoreName, metadata.BarmanCertificatesFileName))
 	if err != nil {
 		return nil, nil, err
 	}

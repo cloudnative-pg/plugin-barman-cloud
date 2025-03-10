@@ -136,3 +136,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.5.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/cloudnative-pg/barman-cloud => github.com/leonardoce/barman-cloud v0.0.0-20250310163530-1a3fac818111

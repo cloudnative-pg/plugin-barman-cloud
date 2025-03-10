@@ -77,12 +77,14 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	envArchive, err := barmanCredentials.EnvSetBackupCloudCredentials(
+	envArchive, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		w.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
-		os.Environ())
+		os.Environ(),
+		path.Join(metadata.BarmanCertificatesPath, objectStore.Name, metadata.BarmanCertificatesFileName),
+	)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
 			return nil, errors.New("backup credentials don't yet have access permissions. Will retry reconciliation loop")
@@ -191,12 +193,13 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	barmanConfiguration := &objectStore.Spec.Configuration
 
 	env := GetRestoreCABundleEnv(barmanConfiguration)
-	credentialsEnv, err := barmanCredentials.EnvSetBackupCloudCredentials(
+	credentialsEnv, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		w.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
 		os.Environ(),
+		path.Join(metadata.BarmanCertificatesPath, objectStore.Name, metadata.BarmanCertificatesFileName),
 	)
 	if err != nil {
 		return fmt.Errorf("while getting recover credentials: %w", err)
