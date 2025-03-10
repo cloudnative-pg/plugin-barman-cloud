@@ -32,14 +32,10 @@ const defaultRetentionPolicyInterval = time.Minute * 5
 // RetentionPolicyRunnable executes the retention policy described
 // in the BarmanObjectStore object periodically.
 type RetentionPolicyRunnable struct {
-	Client   client.Client
-	Recorder record.EventRecorder
-
-	// ClusterKey are the coordinates at which the cluster is stored
-	ClusterKey types.NamespacedName
-
-	// PodName is the current pod name
-	PodName string
+	Client         client.Client
+	Recorder       record.EventRecorder
+	ClusterKey     types.NamespacedName
+	CurrentPodName string
 }
 
 // Start enforce the backup retention policies periodically, using the
@@ -61,15 +57,11 @@ func (c *RetentionPolicyRunnable) Start(ctx context.Context) error {
 
 		// Wait before running another cycle
 		t := time.NewTimer(period)
-		defer func() {
-			t.Stop()
-		}()
+		defer t.Stop()
 
 		select {
 		case <-ctx.Done():
-			// The context was canceled
 			return nil
-
 		case <-t.C:
 		}
 	}
@@ -107,32 +99,30 @@ func (c *RetentionPolicyRunnable) applyRetentionPolicy(
 	objectStore *barmancloudv1.ObjectStore,
 ) error {
 	contextLogger := log.FromContext(ctx)
-
 	configuration := config.NewFromCluster(cluster)
-
 	retentionPolicy := objectStore.Spec.RetentionPolicy
+
 	if len(retentionPolicy) == 0 {
 		contextLogger.Info("Skipping retention policy enforcement, no retention policy specified")
 		return nil
 	}
-	if cluster.Status.CurrentPrimary != c.PodName {
+
+	if cluster.Status.CurrentPrimary != c.CurrentPodName {
 		contextLogger.Info(
 			"Skipping retention policy enforcement, not the current primary",
-			"currentPrimary", cluster.Status.CurrentPrimary, "podName", c.PodName)
+			"currentPrimary", cluster.Status.CurrentPrimary, "podName", c.CurrentPodName)
 		return nil
 	}
 
 	contextLogger.Info("Applying backup retention policy",
 		"retentionPolicy", retentionPolicy)
 
-	osEnvironment := os.Environ()
-	caBundleEnvironment := common.GetRestoreCABundleEnv(&objectStore.Spec.Configuration)
 	env, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
 		c.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
-		common.MergeEnv(osEnvironment, caBundleEnvironment))
+		common.MergeEnv(os.Environ(), common.GetRestoreCABundleEnv(&objectStore.Spec.Configuration)))
 	if err != nil {
 		contextLogger.Error(err, "while setting backup cloud credentials")
 		return err
@@ -182,26 +172,20 @@ func (c *RetentionPolicyRunnable) updateRecoveryWindow(
 		if t == nil {
 			return nil
 		}
-
 		return ptr.To(metav1.NewTime(*t))
 	}
 
-	firstRecoverabilityPoint := backupList.GetFirstRecoverabilityPoint()
-	lastSuccessfulBackupTime := backupList.GetLastSuccessfulBackupTime()
 	recoveryWindow := barmancloudv1.RecoveryWindow{
-		FirstRecoverabilityPoint: convertTime(firstRecoverabilityPoint),
-		LastSuccessfulBackupTime: convertTime(lastSuccessfulBackupTime),
+		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
+		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
 	}
 
 	if objectStore.Status.ServerRecoveryWindow == nil {
 		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
 	}
 	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
-	if err := c.Client.Status().Update(ctx, objectStore); err != nil {
-		return err
-	}
 
-	return nil
+	return c.Client.Status().Update(ctx, objectStore)
 }
 
 // deleteBackupsNotInCatalog deletes all Backup objects pointing to the given cluster that are not
@@ -234,8 +218,7 @@ func deleteBackupsNotInCatalog(
 	// We chose to go with B
 
 	backups := cnpgv1.BackupList{}
-	err := cli.List(ctx, &backups, client.InNamespace(cluster.GetNamespace()))
-	if err != nil {
+	if err := cli.List(ctx, &backups, client.InNamespace(cluster.GetNamespace())); err != nil {
 		return fmt.Errorf("while getting backups: %w", err)
 	}
 
@@ -250,8 +233,7 @@ func deleteBackupsNotInCatalog(
 		// here we could add further checks, e.g. if the backup is not found but would still
 		// be in the retention policy we could either not delete it or update it is status
 		if !slices.Contains(backupIDs, backup.Status.BackupID) {
-			err := cli.Delete(ctx, &backups.Items[id])
-			if err != nil {
+			if err := cli.Delete(ctx, &backups.Items[id]); err != nil {
 				errors = append(errors, fmt.Errorf(
 					"while deleting backup %s/%s: %w",
 					backup.Namespace,
@@ -262,7 +244,7 @@ func deleteBackupsNotInCatalog(
 		}
 	}
 
-	if errors != nil {
+	if len(errors) > 0 {
 		return fmt.Errorf("got errors while deleting Backups not in the cluster: %v", errors)
 	}
 
@@ -271,15 +253,10 @@ func deleteBackupsNotInCatalog(
 
 // useSameBackupLocation checks whether the given backup was taken using the same configuration as provided
 func useSameBackupLocation(backup *cnpgv1.BackupStatus, cluster *cnpgv1.Cluster) bool {
-	if cluster.Spec.Backup == nil {
-		return false
-	}
-
-	if backup.Method != cnpgv1.BackupMethodPlugin {
+	if cluster.Spec.Backup == nil || backup.Method != cnpgv1.BackupMethodPlugin {
 		return false
 	}
 
 	meta := newBackupResultMetadataFromMap(backup.PluginMetadata)
-
 	return meta.clusterUID == string(cluster.UID) && meta.pluginName == metadata.PluginName
 }
