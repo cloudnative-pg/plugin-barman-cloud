@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
@@ -331,31 +332,16 @@ func reconcilePodSpec(
 	for _, container := range spec.Containers {
 		if container.Name == mainContainerName {
 			for _, env := range container.Env {
-				found := false
-				for _, existingEnv := range sidecarConfig.Env {
-					if existingEnv.Name == env.Name {
-						found = true
-						break
-					}
-				}
-				if !found {
+				if !slices.Contains(sidecarConfig.Env, env) {
 					sidecarConfig.Env = append(sidecarConfig.Env, env)
 				}
 			}
-			break
 		}
 	}
 
 	// merge the default envs if they aren't already set
 	for _, env := range envs {
-		found := false
-		for _, existingEnv := range sidecarConfig.Env {
-			if existingEnv.Name == env.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(sidecarConfig.Env, env) {
 			sidecarConfig.Env = append(sidecarConfig.Env, env)
 		}
 	}
