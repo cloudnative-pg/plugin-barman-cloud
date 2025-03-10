@@ -73,7 +73,7 @@ func Start(ctx context.Context) error {
 			Namespace: namespace,
 			Name:      clusterName,
 		},
-		PodName: podName,
+		CurrentPodName: podName,
 	}); err != nil {
 		setupLog.Error(err, "unable to policy enforcement runnable")
 		return err
