@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
-	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
@@ -79,10 +79,9 @@ func (impl LifecycleImplementation) LifecycleHook(
 	}
 
 	var cluster cnpgv1.Cluster
-	if err := decoder.DecodeObject(
+	if err := decoder.DecodeObjectLenient(
 		request.GetClusterDefinition(),
 		&cluster,
-		cnpgv1.SchemeGroupVersion.WithKind("Cluster"),
 	); err != nil {
 		return nil, err
 	}
@@ -184,7 +183,7 @@ func reconcileJob(
 	}
 
 	var job batchv1.Job
-	if err := decoder.DecodeObject(
+	if err := decoder.DecodeObjectStrict(
 		request.GetObjectDefinition(),
 		&job,
 		batchv1.SchemeGroupVersion.WithKind("Job"),
@@ -197,7 +196,7 @@ func reconcileJob(
 		WithValues("jobName", job.Name)
 	contextLogger.Debug("starting job reconciliation")
 
-	if job.Spec.Template.Labels[utils.JobRoleLabelName] != "full-recovery" {
+	if getCNPGJobRole(&job) != "full-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
 		return nil, nil
 	}
@@ -306,6 +305,14 @@ func reconcilePodSpec(
 			// should we mount an emptyDir volume just for that?
 			Name:  "SPOOL_DIRECTORY",
 			Value: "/controller/wal-restore-spool",
+		},
+		{
+			Name:  "CUSTOM_CNPG_GROUP",
+			Value: cluster.GetObjectKind().GroupVersionKind().Group,
+		},
+		{
+			Name:  "CUSTOM_CNPG_VERSION",
+			Value: cluster.GetObjectKind().GroupVersionKind().Version,
 		},
 	}
 
@@ -454,4 +461,16 @@ func InjectPluginSidecarPodSpec(
 	spec.InitContainers = append(spec.InitContainers, *sidecar)
 
 	return nil
+}
+
+// getCNPGJobRole gets the role associated to a CNPG job
+func getCNPGJobRole(job *batchv1.Job) string {
+	const jobRoleLabelSuffix = "/jobRole"
+	for k, v := range job.Spec.Template.Labels {
+		if strings.HasSuffix(k, jobRoleLabelSuffix) {
+			return v
+		}
+	}
+
+	return ""
 }
