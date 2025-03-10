@@ -18,6 +18,7 @@ func NewCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			requiredSettings := []string{
 				"namespace",
+				"cluster-name",
 				"pod-name",
 				"spool-directory",
 			}
@@ -33,6 +34,7 @@ func NewCmd() *cobra.Command {
 	}
 
 	_ = viper.BindEnv("namespace", "NAMESPACE")
+	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
 	_ = viper.BindEnv("pgdata", "PGDATA")
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
