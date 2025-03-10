@@ -279,6 +279,7 @@ func useSameBackupLocation(backup *cnpgv1.BackupStatus, cluster *cnpgv1.Cluster)
 		return false
 	}
 
-	return backup.PluginMetadata["clusterUID"] == string(cluster.UID) &&
-		backup.PluginMetadata["pluginName"] == metadata.PluginName
+	meta := newBackupResultMetadataFromMap(backup.PluginMetadata)
+
+	return meta.clusterUID == string(cluster.UID) && meta.pluginName == metadata.PluginName
 }
