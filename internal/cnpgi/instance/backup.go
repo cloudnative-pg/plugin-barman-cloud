@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
@@ -20,7 +19,6 @@ import (
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
@@ -148,13 +146,6 @@ func (b BackupServiceImplementation) Backup(
 		EndLsn:     executedBackupInfo.EndLSN,
 		InstanceId: b.InstanceName,
 		Online:     true,
-		Metadata: map[string]string{
-			"timeline":    strconv.Itoa(executedBackupInfo.TimeLine),
-			"version":     metadata.Data.Version,
-			"name":        metadata.Data.Name,
-			"displayName": metadata.Data.DisplayName,
-			"clusterUID":  string(configuration.Cluster.ObjectMeta.UID),
-			"pluginName":  metadata.PluginName,
-		},
+		Metadata:   newBackupResultMetadata(configuration.Cluster.ObjectMeta.UID, executedBackupInfo.TimeLine).toMap(),
 	}, nil
 }
