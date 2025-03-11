@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -234,7 +235,7 @@ func (impl *JobHookImpl) checkBackupDestination(
 		cluster.Namespace,
 		barmanConfiguration,
 		os.Environ(),
-		path.Join(metadata.BarmanCertificatesPath, objectStoreName, metadata.BarmanCertificatesFileName),
+		common.BuildCertificateFilePath(objectStoreName),
 	)
 	if err != nil {
 		return fmt.Errorf("can't get credentials for cluster %v: %w", cluster.Name, err)
@@ -353,7 +354,7 @@ func loadBackupObjectFromExternalCluster(
 		cluster.Namespace,
 		recoveryObjectStore,
 		os.Environ(),
-		path.Join(metadata.BarmanCertificatesPath, recoveryObjectStoreName, metadata.BarmanCertificatesFileName))
+		common.BuildCertificateFilePath(recoveryObjectStoreName))
 	if err != nil {
 		return nil, nil, err
 	}

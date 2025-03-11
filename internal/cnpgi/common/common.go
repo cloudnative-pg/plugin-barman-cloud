@@ -2,9 +2,12 @@ package common
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // TODO: refactor.
@@ -69,4 +72,9 @@ func MergeEnv(env []string, incomingEnv []string) []string {
 	}
 
 	return result
+}
+
+// BuildCertificateFilePath builds the path to the barman objectStore certificate
+func BuildCertificateFilePath(objectStoreName string) string {
+	return path.Join(metadata.BarmanCertificatesPath, objectStoreName, metadata.BarmanCertificatesFileName)
 }

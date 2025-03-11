@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"strconv"
 	"time"
 
@@ -105,7 +104,7 @@ func (b BackupServiceImplementation) Backup(
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
 		common.MergeEnv(osEnvironment, caBundleEnvironment),
-		path.Join(metadata.BarmanCertificatesPath, objectStore.Name, metadata.BarmanCertificatesFileName),
+		common.BuildCertificateFilePath(objectStore.Name),
 	)
 	if err != nil {
 		contextLogger.Error(err, "while setting backup cloud credentials")

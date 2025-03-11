@@ -83,7 +83,7 @@ func (w WALServiceImplementation) Archive(
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
 		os.Environ(),
-		path.Join(metadata.BarmanCertificatesPath, objectStore.Name, metadata.BarmanCertificatesFileName),
+		BuildCertificateFilePath(objectStore.Name),
 	)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
@@ -199,7 +199,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
 		os.Environ(),
-		path.Join(metadata.BarmanCertificatesPath, objectStore.Name, metadata.BarmanCertificatesFileName),
+		BuildCertificateFilePath(objectStore.Name),
 	)
 	if err != nil {
 		return fmt.Errorf("while getting recover credentials: %w", err)
