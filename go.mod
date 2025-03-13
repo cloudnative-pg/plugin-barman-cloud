@@ -7,12 +7,12 @@ toolchain go1.24.1
 require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/cloudnative-pg/api v1.25.1
-	github.com/cloudnative-pg/barman-cloud v0.1.0
+	github.com/cloudnative-pg/barman-cloud v0.2.0
 	github.com/cloudnative-pg/cloudnative-pg v1.25.1
 	github.com/cloudnative-pg/cnpg-i v0.1.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.1.2
 	github.com/cloudnative-pg/machinery v0.1.0
-	github.com/onsi/ginkgo/v2 v2.22.2
+	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
@@ -118,7 +118,7 @@ require (
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
-	golang.org/x/tools v0.28.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect

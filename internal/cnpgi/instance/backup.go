@@ -98,12 +98,14 @@ func (b BackupServiceImplementation) Backup(
 	// PGHOST (and the like) to be available
 	osEnvironment := os.Environ()
 	caBundleEnvironment := common.GetRestoreCABundleEnv(&objectStore.Spec.Configuration)
-	env, err := barmanCredentials.EnvSetBackupCloudCredentials(
+	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		b.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
-		common.MergeEnv(osEnvironment, caBundleEnvironment))
+		common.MergeEnv(osEnvironment, caBundleEnvironment),
+		common.BuildCertificateFilePath(objectStore.Name),
+	)
 	if err != nil {
 		contextLogger.Error(err, "while setting backup cloud credentials")
 		return nil, err

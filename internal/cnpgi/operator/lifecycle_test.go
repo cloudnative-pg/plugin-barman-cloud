@@ -107,7 +107,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: jobJSON,
 			}
 
-			response, err := reconcileJob(ctx, cluster, request, nil)
+			response, err := reconcileJob(ctx, cluster, request, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.JsonPatch).NotTo(BeEmpty())
@@ -128,7 +128,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: jobJSON,
 			}
 
-			response, err := reconcileJob(ctx, cluster, request, nil)
+			response, err := reconcileJob(ctx, cluster, request, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
@@ -138,7 +138,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: []byte("invalid-json"),
 			}
 
-			response, err := reconcileJob(ctx, cluster, request, nil)
+			response, err := reconcileJob(ctx, cluster, request, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
@@ -165,7 +165,7 @@ var _ = Describe("LifecycleImplementation", func() {
 					ObjectDefinition: jobJSON,
 				}
 
-				response, err := reconcileJob(ctx, cluster, request, nil)
+				response, err := reconcileJob(ctx, cluster, request, nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response).To(BeNil())
 			})
@@ -185,7 +185,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: podJSON,
 			}
 
-			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, nil)
+			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.JsonPatch).NotTo(BeEmpty())
@@ -203,7 +203,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: []byte("invalid-json"),
 			}
 
-			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, nil)
+			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
