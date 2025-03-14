@@ -11,12 +11,12 @@ import (
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
@@ -209,8 +209,11 @@ func deleteBackupsNotInCatalog(
 	// A can violate 1 and 2
 	// A + B can still violate 2
 	// B satisfies 1 and 2
-
+	//
 	// We chose to go with B
+
+	contextLogger := log.FromContext(ctx)
+	contextLogger.Debug("Checking the catalog to delete backups not present anymore")
 
 	backups := cnpgv1.BackupList{}
 	if err := cli.List(ctx, &backups, client.InNamespace(cluster.GetNamespace())); err != nil {
@@ -228,6 +231,7 @@ func deleteBackupsNotInCatalog(
 		// here we could add further checks, e.g. if the backup is not found but would still
 		// be in the retention policy we could either not delete it or update it is status
 		if !slices.Contains(backupIDs, backup.Status.BackupID) {
+			contextLogger.Info("Deleting backup not in the catalog", "backup", backup.Name)
 			if err := cli.Delete(ctx, &backups.Items[id]); err != nil {
 				errors = append(errors, fmt.Errorf(
 					"while deleting backup %s/%s: %w",
@@ -248,7 +252,7 @@ func deleteBackupsNotInCatalog(
 
 // useSameBackupLocation checks whether the given backup was taken using the same configuration as provided
 func useSameBackupLocation(backup *cnpgv1.BackupStatus, cluster *cnpgv1.Cluster) bool {
-	if cluster.Spec.Backup == nil || backup.Method != cnpgv1.BackupMethodPlugin {
+	if backup.Method != cnpgv1.BackupMethodPlugin {
 		return false
 	}
 
