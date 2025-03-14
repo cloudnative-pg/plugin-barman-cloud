@@ -25,7 +25,7 @@ import (
 )
 
 // defaultRetentionPolicyInterval is the retention policy interval
-// that is used when the current cluster or barman object store can't
+// used when the current cluster or barman object store can't
 // be read or when the enforcement process failed
 const defaultRetentionPolicyInterval = time.Minute * 5
 
@@ -38,7 +38,7 @@ type RetentionPolicyRunnable struct {
 	CurrentPodName string
 }
 
-// Start enforce the backup retention policies periodically, using the
+// Start enforces the backup retention policies periodically, using the
 // period specified in the BarmanObjectStore object
 func (c *RetentionPolicyRunnable) Start(ctx context.Context) error {
 	contextLogger := log.FromContext(ctx)
@@ -55,14 +55,10 @@ func (c *RetentionPolicyRunnable) Start(ctx context.Context) error {
 			period = defaultRetentionPolicyInterval
 		}
 
-		// Wait before running another cycle
-		t := time.NewTimer(period)
-		defer t.Stop()
-
 		select {
+		case <-time.After(period):
 		case <-ctx.Done():
 			return nil
-		case <-t.C:
 		}
 	}
 }
@@ -102,20 +98,12 @@ func (c *RetentionPolicyRunnable) applyRetentionPolicy(
 	configuration := config.NewFromCluster(cluster)
 	retentionPolicy := objectStore.Spec.RetentionPolicy
 
-	if len(retentionPolicy) == 0 {
-		contextLogger.Info("Skipping retention policy enforcement, no retention policy specified")
-		return nil
-	}
-
 	if cluster.Status.CurrentPrimary != c.CurrentPodName {
 		contextLogger.Info(
 			"Skipping retention policy enforcement, not the current primary",
 			"currentPrimary", cluster.Status.CurrentPrimary, "podName", c.CurrentPodName)
 		return nil
 	}
-
-	contextLogger.Info("Applying backup retention policy",
-		"retentionPolicy", retentionPolicy)
 
 	env, err := barmanCredentials.EnvSetBackupCloudCredentials(
 		ctx,
@@ -128,16 +116,23 @@ func (c *RetentionPolicyRunnable) applyRetentionPolicy(
 		return err
 	}
 
-	if err := barmanCommand.DeleteBackupsByPolicy(
-		ctx,
-		&objectStore.Spec.Configuration,
-		configuration.ServerName,
-		env,
-		retentionPolicy,
-	); err != nil {
-		contextLogger.Error(err, "while enforcing retention policies")
-		c.Recorder.Event(cluster, "Warning", "RetentionPolicyFailed", "Retention policy failed")
-		return err
+	if len(retentionPolicy) == 0 {
+		contextLogger.Info("Skipping retention policy enforcement, no retention policy specified")
+	} else {
+		contextLogger.Info("Applying backup retention policy",
+			"retentionPolicy", retentionPolicy)
+
+		if err := barmanCommand.DeleteBackupsByPolicy(
+			ctx,
+			&objectStore.Spec.Configuration,
+			configuration.ServerName,
+			env,
+			retentionPolicy,
+		); err != nil {
+			contextLogger.Error(err, "while enforcing retention policies")
+			c.Recorder.Event(cluster, "Warning", "RetentionPolicyFailed", "Retention policy failed")
+			return err
+		}
 	}
 
 	backupList, err := barmanCommand.GetBackupList(
