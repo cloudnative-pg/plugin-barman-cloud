@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
