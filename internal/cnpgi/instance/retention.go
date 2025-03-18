@@ -29,9 +29,8 @@ import (
 // be read or when the enforcement process failed
 const defaultRetentionPolicyInterval = time.Minute * 5
 
-// RetentionPolicyRunnable executes the retention policy described
-// in the BarmanObjectStore object periodically.
-type RetentionPolicyRunnable struct {
+// CatalogMaintenanceRunnable executes all the barman catalog maintenance operations
+type CatalogMaintenanceRunnable struct {
 	Client         client.Client
 	Recorder       record.EventRecorder
 	ClusterKey     types.NamespacedName
@@ -40,7 +39,7 @@ type RetentionPolicyRunnable struct {
 
 // Start enforces the backup retention policies periodically, using the
 // period specified in the BarmanObjectStore object
-func (c *RetentionPolicyRunnable) Start(ctx context.Context) error {
+func (c *CatalogMaintenanceRunnable) Start(ctx context.Context) error {
 	contextLogger := log.FromContext(ctx)
 	contextLogger.Info("Starting retention policy runnable")
 
@@ -65,7 +64,7 @@ func (c *RetentionPolicyRunnable) Start(ctx context.Context) error {
 
 // cycle enforces the retention policies. On success, it returns the amount
 // of time to wait to the next check.
-func (c *RetentionPolicyRunnable) cycle(ctx context.Context) (time.Duration, error) {
+func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, error) {
 	var cluster cnpgv1.Cluster
 	var barmanObjectStore barmancloudv1.ObjectStore
 
@@ -78,7 +77,7 @@ func (c *RetentionPolicyRunnable) cycle(ctx context.Context) (time.Duration, err
 		return 0, err
 	}
 
-	if err := c.applyRetentionPolicy(ctx, &cluster, &barmanObjectStore); err != nil {
+	if err := c.maintenance(ctx, &cluster, &barmanObjectStore); err != nil {
 		return 0, err
 	}
 
@@ -87,9 +86,14 @@ func (c *RetentionPolicyRunnable) cycle(ctx context.Context) (time.Duration, err
 	return nextCheckInterval, nil
 }
 
-// applyRetentionPolicy applies the retention policy to the object
-// store and deletes the stale Kubernetes backup objects.
-func (c *RetentionPolicyRunnable) applyRetentionPolicy(
+// maintenance executes a collection of operations:
+//
+// - applies the retention policy to the object.
+//
+// - store and deletes the stale Kubernetes backup objects.
+//
+// - updates the first recoverability point.
+func (c *CatalogMaintenanceRunnable) maintenance(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	objectStore *barmancloudv1.ObjectStore,
@@ -156,7 +160,7 @@ func (c *RetentionPolicyRunnable) applyRetentionPolicy(
 
 // updateRecoveryWindow updates the recovery window inside the object
 // store status subresource
-func (c *RetentionPolicyRunnable) updateRecoveryWindow(
+func (c *CatalogMaintenanceRunnable) updateRecoveryWindow(
 	ctx context.Context,
 	backupList *catalog.Catalog,
 	objectStore *barmancloudv1.ObjectStore,

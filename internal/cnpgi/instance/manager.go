@@ -66,7 +66,7 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
-	if err := mgr.Add(&RetentionPolicyRunnable{
+	if err := mgr.Add(&CatalogMaintenanceRunnable{
 		Client:   customCacheClient,
 		Recorder: mgr.GetEventRecorderFor("policy-runnable"),
 		ClusterKey: types.NamespacedName{
