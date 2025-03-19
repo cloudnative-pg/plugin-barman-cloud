@@ -153,18 +153,17 @@ func (impl JobHookImpl) restoreDataDir(
 ) error {
 	var options []string
 
+	options, err := barmanCommand.AppendCloudProviderOptionsFromConfiguration(ctx, options, barmanConfiguration)
+	if err != nil {
+		return err
+	}
+
 	if backup.Status.EndpointURL != "" {
 		options = append(options, "--endpoint-url", backup.Status.EndpointURL)
 	}
 	options = append(options, backup.Status.DestinationPath)
 	options = append(options, backup.Status.ServerName)
 	options = append(options, backup.Status.BackupID)
-
-	options, err := barmanCommand.AppendCloudProviderOptionsFromConfiguration(ctx, options, barmanConfiguration)
-	if err != nil {
-		return err
-	}
-
 	options = append(options, impl.PgDataPath)
 
 	log.Info("Starting barman-cloud-restore",
