@@ -26,6 +26,8 @@ github.com/cloudnative-pg/cloudnative-pg v1.25.1 h1:Yc6T7ikQ1AiWXBQht+6C3DoihrIp
 github.com/cloudnative-pg/cloudnative-pg v1.25.1/go.mod h1:96b9bRFLSr3uFWHjhytPdcvKIKwy9H6AG7cH0O6jefs=
 github.com/cloudnative-pg/cnpg-i v0.1.0 h1:QH2xTsrODMhEEc6B25GbOYe7ZIttDmSkYvXotfU5dfs=
 github.com/cloudnative-pg/cnpg-i v0.1.0/go.mod h1:G28BhgUEHqrxEyyQeHz8BbpMVAsGuLhJm/tHUbDi8Sw=
+github.com/cloudnative-pg/cnpg-i v0.1.1-0.20250321093050-de4ab51537cb h1:FPORwCxjZwlnKnF7dOkuOAz0GBSQ3Hrn+8lm4uMiWeM=
+github.com/cloudnative-pg/cnpg-i v0.1.1-0.20250321093050-de4ab51537cb/go.mod h1:n+kbHm3rzRCY5IJKuE1tGMbG6JaeYz8yycYoLt7BeKo=
 github.com/cloudnative-pg/cnpg-i-machinery v0.2.0 h1:htNuKirdAOYrc7Hu5mLDoOES+nKSyPaXNDLgbV5dLSI=
 github.com/cloudnative-pg/cnpg-i-machinery v0.2.0/go.mod h1:MHVxMMbLeCRnEM8PLWW4C2CsHqOeAU2OsrwWMKy3tPA=
 github.com/cloudnative-pg/machinery v0.1.0 h1:tjRmsqQmsO/OlaT0uFmkEtVqgr+SGPM88cKZOHYKLBo=

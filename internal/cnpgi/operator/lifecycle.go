@@ -44,6 +44,9 @@ func (impl LifecycleImplementation) GetCapabilities(
 					{
 						Type: lifecycle.OperatorOperationType_TYPE_PATCH,
 					},
+					{
+						Type: lifecycle.OperatorOperationType_TYPE_EVALUATE,
+					},
 				},
 			},
 			{
