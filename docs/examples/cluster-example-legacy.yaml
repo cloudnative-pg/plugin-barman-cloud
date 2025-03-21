@@ -4,12 +4,14 @@ metadata:
   name: cluster-example
 spec:
   instances: 3
-  imagePullPolicy: Always
 
   backup:
     barmanObjectStore:
+      endpointCA:
+        name: minio-server-tls
+        key: tls.crt
       destinationPath: s3://backups/
-      endpointURL: http://minio:9000
+      endpointURL: https://minio:9000
       s3Credentials:
         accessKeyId:
           name: minio
