@@ -21,10 +21,12 @@ const (
 	BarmanCertificatesFileName = "barman-ca.crt"
 )
 
+const Version = "0.2.0"
+
 // Data is the metadata of this plugin.
 var Data = identity.GetPluginMetadataResponse{
 	Name:          PluginName,
-	Version:       "0.0.1",
+	Version:       Version,
 	DisplayName:   "BarmanCloudInstance",
 	ProjectUrl:    "https://github.com/cloudnative-pg/plugin-barman-cloud",
 	RepositoryUrl: "https://github.com/cloudnative-pg/plugin-barman-cloud",
