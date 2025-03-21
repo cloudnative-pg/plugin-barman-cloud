@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.2.0...v0.3.0) (2025-03-21)
+
+
+### Features
+
+* Implement evaluate lifecycle hook ([#222](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/222)) ([a7ef56b](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a7ef56b6e7a8abfcf312f42190b5c3828f9b2a79))
+* Lenient decoding of CNPG resources ([#192](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/192)) ([13e3fab](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/13e3fab2688ec6ea342ed7304680025f98e6af27))
+* Retention policy ([#191](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/191)) ([fecd1e9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fecd1e9513ce1748a289840f735a2f23a0ce5218))
+* Support custom CA certificates ([#198](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/198)) ([fcbc472](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fcbc47209222f712178ba422020c88eef7d50c08))
+* Support lz4, xz, and zstandard compressions ([#201](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/201)) ([795313f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/795313f4aa2f4888fdf2cb711de74aaea7b045a7)), closes [#200](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/200)
+* Upgrade Barman to 3.13.0 ([#209](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/209)) ([56d8cce](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/56d8cceb3b8c7a17f3dcdd2dc14b48a725aaea9f)), closes [#208](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/208)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#213](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/213)) ([a5b8649](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a5b8649bd0eac1df6e51291ff197a6a548d0f479))
+
 ## [0.2.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.1.0...v0.2.0) (2025-03-05)
 
 
