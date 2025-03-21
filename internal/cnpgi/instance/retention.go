@@ -109,12 +109,14 @@ func (c *CatalogMaintenanceRunnable) maintenance(
 		return nil
 	}
 
-	env, err := barmanCredentials.EnvSetBackupCloudCredentials(
+	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		c.Client,
 		objectStore.Namespace,
 		&objectStore.Spec.Configuration,
-		common.MergeEnv(os.Environ(), common.GetRestoreCABundleEnv(&objectStore.Spec.Configuration)))
+		os.Environ(),
+		common.BuildCertificateFilePath(objectStore.Name),
+	)
 	if err != nil {
 		contextLogger.Error(err, "while setting backup cloud credentials")
 		return err
