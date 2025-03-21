@@ -16,6 +16,10 @@ spec:
       labels:
         app: barman-cloud
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: plugin-barman-cloud
       containers:
       - image: plugin-barman-cloud:latest
@@ -48,6 +52,16 @@ spec:
         - mountPath: /client
           name: client
         resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 10001
+          runAsUser: 10001
+          seccompProfile:
+            type: RuntimeDefault
       volumes:
       - name: server
         secret:

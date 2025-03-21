@@ -871,11 +871,25 @@ spec:
           tcpSocket:
             port: 9090
         resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 10001
+          runAsUser: 10001
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /server
           name: server
         - mountPath: /client
           name: client
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: plugin-barman-cloud
       volumes:
       - name: server

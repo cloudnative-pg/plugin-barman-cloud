@@ -299,6 +299,18 @@ func reconcilePodSpec(
 	sidecarConfig.Image = viper.GetString("sidecar-image")
 	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
 	sidecarConfig.StartupProbe = baseProbe.DeepCopy()
+	sidecarConfig.SecurityContext = &corev1.SecurityContext{
+		AllowPrivilegeEscalation: ptr.To(false),
+		RunAsNonRoot:             ptr.To(true),
+		Privileged:               ptr.To(false),
+		ReadOnlyRootFilesystem:   ptr.To(true),
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: corev1.SeccompProfileTypeRuntimeDefault,
+		},
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		},
+	}
 
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
