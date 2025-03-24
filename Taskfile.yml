@@ -69,6 +69,21 @@ tasks:
     sources:
       - ./**
 
+  apidoc:
+    desc: Update the API Reference section of the documentation
+    env:
+      # renovate: datasource=git-refs depName=genref lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_UNCOMMITTED_SHA: ac27cc7677fc42ea129fd3c1aa2b2894aad3a246
+    cmds:
+      - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/genref@${DAGGER_UNCOMMITTED_SHA} genref --source .
+        --args "-c=config.yaml" --args "-o=src" --args "-include=plugin-barman-cloud"
+        file --path src/plugin-barman-cloud.v1.md
+        export --path docs/src/plugin-barman-cloud.v1.md
+    sources:
+      - ./api/**/*.go
+    generates:
+      - ./docs/src/plugin-barman-cloud.v1.md
+
   go-test:
     desc: Run go test
     env:
