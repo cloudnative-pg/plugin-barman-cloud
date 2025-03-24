@@ -37,7 +37,8 @@ func (impl LifecycleImplementation) collectAdditionalCertificates(
 		result = append(result, envs...)
 	}
 
-	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 {
+	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 &&
+		pluginConfiguration.RecoveryBarmanObjectName != pluginConfiguration.BarmanObjectName {
 		envs, err := impl.collectObjectStoreCertificates(
 			ctx,
 			types.NamespacedName{
