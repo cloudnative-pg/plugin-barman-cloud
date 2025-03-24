@@ -20,9 +20,12 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_GOLANGCI_LINT_SHA: 21f771e7e26b6e4779af3a11fa290e689a8e0239
+      # renovate: datasource=docker depName=golangci/golangci-lint versioning=semver
+      GOLANGCI_LINT_VERSION: v1.64.8
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        --version ${GOLANGCI_LINT_VERSION}
         with-linter-cache --cache golangci-lint
         with-build-cache --cache go-build
         with-module-cache --cache go-mod
