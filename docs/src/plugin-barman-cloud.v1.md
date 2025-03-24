@@ -30,13 +30,18 @@
 <a href="#barmancloud-cnpg-io-v1-ObjectStoreSpec"><i>ObjectStoreSpec</i></a>
 </td>
 <td>
-   <span class="text-muted">No description provided.</span></td>
+   <p>Specification of the desired behavior of the ObjectStore.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</p>
+</td>
 </tr>
 <tr><td><code>status</code><br/>
 <a href="#barmancloud-cnpg-io-v1-ObjectStoreStatus"><i>ObjectStoreStatus</i></a>
 </td>
 <td>
-   <span class="text-muted">No description provided.</span></td>
+   <p>Most recently observed status of the ObjectStore. This data may not be up to
+date. Populated by the system. Read-only.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -108,7 +113,8 @@ days, weeks, months.</p>
 <a href="#barmancloud-cnpg-io-v1-InstanceSidecarConfiguration"><i>InstanceSidecarConfiguration</i></a>
 </td>
 <td>
-   <span class="text-muted">No description provided.</span></td>
+   <p>The configuration for the sidecar that runs in the instance pods</p>
+</td>
 </tr>
 </tbody>
 </table>
