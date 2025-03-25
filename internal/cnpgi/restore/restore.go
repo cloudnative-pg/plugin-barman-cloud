@@ -10,11 +10,11 @@ import (
 
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
-	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCatalog "github.com/cloudnative-pg/barman-cloud/pkg/catalog"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
+	barmanUtils "github.com/cloudnative-pg/barman-cloud/pkg/utils"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
@@ -169,13 +169,13 @@ func (impl JobHookImpl) restoreDataDir(
 	log.Info("Starting barman-cloud-restore",
 		"options", options)
 
-	cmd := exec.Command(barmanCapabilities.BarmanCloudRestore, options...) // #nosec G204
+	cmd := exec.Command(barmanUtils.BarmanCloudRestore, options...) // #nosec G204
 	cmd.Env = env
-	err = execlog.RunStreaming(cmd, barmanCapabilities.BarmanCloudRestore)
+	err = execlog.RunStreaming(cmd, barmanUtils.BarmanCloudRestore)
 	if err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
-			err = barmanCommand.UnmarshalBarmanCloudRestoreExitCode(ctx, exitError.ExitCode())
+			err = barmanCommand.UnmarshalBarmanCloudRestoreExitCode(exitError.ExitCode())
 		}
 
 		log.Error(err, "Can't restore backup")

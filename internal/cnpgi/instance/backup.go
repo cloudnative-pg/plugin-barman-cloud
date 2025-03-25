@@ -7,7 +7,6 @@ import (
 	"time"
 
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
-	barmanCapabilities "github.com/cloudnative-pg/barman-cloud/pkg/capabilities"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
@@ -28,16 +27,6 @@ type BackupServiceImplementation struct {
 	Client       client.Client
 	InstanceName string
 	backup.UnimplementedBackupServer
-}
-
-// This is an implementation of the barman executor
-// that always instruct the barman library to use the
-// "--name" option for backups. We don't support old
-// Barman versions that do not implement that option.
-type barmanCloudExecutor struct{}
-
-func (barmanCloudExecutor) ShouldForceLegacyBackup() bool {
-	return false
 }
 
 // GetCapabilities implements the BackupService interface
@@ -82,15 +71,7 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
-	capabilities, err := barmanCapabilities.CurrentCapabilities()
-	if err != nil {
-		contextLogger.Error(err, "while getting capabilities")
-		return nil, err
-	}
-	backupCmd := barmanBackup.NewBackupCommand(
-		&objectStore.Spec.Configuration,
-		capabilities,
-	)
+	backupCmd := barmanBackup.NewBackupCommand(&objectStore.Spec.Configuration)
 
 	// We need to connect to PostgreSQL and to do that we need
 	// PGHOST (and the like) to be available
@@ -116,7 +97,6 @@ func (b BackupServiceImplementation) Backup(
 		backupName,
 		configuration.ServerName,
 		env,
-		barmanCloudExecutor{},
 		postgres.BackupTemporaryDirectory,
 	); err != nil {
 		contextLogger.Error(err, "while taking backup")
@@ -127,7 +107,6 @@ func (b BackupServiceImplementation) Backup(
 		ctx,
 		backupName,
 		configuration.ServerName,
-		barmanCloudExecutor{},
 		env)
 	if err != nil {
 		contextLogger.Error(err, "while getting executed backup info")
