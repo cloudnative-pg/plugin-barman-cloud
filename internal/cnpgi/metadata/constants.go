@@ -24,7 +24,7 @@ const (
 // Data is the metadata of this plugin.
 var Data = identity.GetPluginMetadataResponse{
 	Name:          PluginName,
-	Version:       "0.0.1",
+	Version:       "0.2.0", // x-release-please-version
 	DisplayName:   "BarmanCloudInstance",
 	ProjectUrl:    "https://github.com/cloudnative-pg/plugin-barman-cloud",
 	RepositoryUrl: "https://github.com/cloudnative-pg/plugin-barman-cloud",
