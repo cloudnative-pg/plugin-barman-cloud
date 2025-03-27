@@ -40,9 +40,9 @@ const (
 func GetRestoreCABundleEnv(configuration *barmanapi.BarmanObjectStoreConfiguration) []string {
 	var env []string
 
-	if configuration.EndpointCA != nil && configuration.BarmanCredentials.AWS != nil {
+	if configuration.EndpointCA != nil && configuration.AWS != nil {
 		env = append(env, fmt.Sprintf("AWS_CA_BUNDLE=%s", BarmanBackupEndpointCACertificateLocation))
-	} else if configuration.EndpointCA != nil && configuration.BarmanCredentials.Azure != nil {
+	} else if configuration.EndpointCA != nil && configuration.Azure != nil {
 		env = append(env, fmt.Sprintf("REQUESTS_CA_BUNDLE=%s", BarmanBackupEndpointCACertificateLocation))
 	}
 	return env
