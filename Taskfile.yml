@@ -166,7 +166,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.16.3
+      DAGGER_VERSION: 0.17.2
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
