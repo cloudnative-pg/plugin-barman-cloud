@@ -37,7 +37,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: ObjectStoreSpec defines the desired state of ObjectStore.
+            description: |-
+              Specification of the desired behavior of the ObjectStore.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
             properties:
               configuration:
                 description: The configuration for the barman-cloud tool suite
@@ -381,8 +383,8 @@ spec:
                 - destinationPath
                 type: object
               instanceSidecarConfiguration:
-                description: InstanceSidecarConfiguration defines the configuration
-                  for the sidecar that runs in the instance pods.
+                description: The configuration for the sidecar that runs in the instance
+                  pods
                 properties:
                   env:
                     description: The environment to be explicitly passed to the sidecar
@@ -523,7 +525,10 @@ spec:
             - configuration
             type: object
           status:
-            description: ObjectStoreStatus defines the observed state of ObjectStore.
+            description: |-
+              Most recently observed status of the ObjectStore. This data may not be up to
+              date. Populated by the system. Read-only.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
             properties:
               serverRecoveryWindow:
                 additionalProperties:
