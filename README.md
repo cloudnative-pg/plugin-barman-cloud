@@ -17,6 +17,7 @@ plugin for [CloudNativePG](https://cloudnative-pg.io/).
   - [Backup](#backup)
   - [Restore](#restore)
   - [Replica clusters](#replica-clusters)
+- [API Reference](#api-reference)
 
 ## Features
 
@@ -335,3 +336,8 @@ spec:
       parameters:
         barmanObjectName: minio-store-b
 ```
+
+## API Reference
+
+You can find the API reference on its
+[dedicated page](./docs/src/plugin-barman-cloud.v1.md).
