@@ -1,0 +1,24 @@
+hiddenMemberFields:
+  - "TypeMeta"
+
+externalPackages:
+  - match: ^k8s\.io/(api|apimachinery/pkg/apis)/
+    target: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#{{- lower .TypeIdentifier -}}-{{- arrIndex .PackageSegments -1 -}}-{{- arrIndex .PackageSegments -2 -}}
+  - match: ^github\.com/cloudnative-pg/barman-cloud
+    target: https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api/#{{- .TypeIdentifier }}
+
+hideTypePatterns:
+  - "ParseError$"
+  - "\\.ObjectStoreList$"
+
+markdownDisabled: false
+
+stripPrefix:
+  - k8s.io/api/
+  - k8s.io/apimachinery/pkg/apis/
+
+apis:
+  - name: plugin-barman-cloud
+    title: API Reference
+    package: github.com/cloudnative-pg/plugin-barman-cloud
+    path: api/v1

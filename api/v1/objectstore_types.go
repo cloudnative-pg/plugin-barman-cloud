@@ -48,6 +48,7 @@ type ObjectStoreSpec struct {
 	// +optional
 	RetentionPolicy string `json:"retentionPolicy,omitempty"`
 
+	// The configuration for the sidecar that runs in the instance pods
 	// +optional
 	InstanceSidecarConfiguration InstanceSidecarConfiguration `json:"instanceSidecarConfiguration,omitempty"`
 }
@@ -81,7 +82,12 @@ type ObjectStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// Specification of the desired behavior of the ObjectStore.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	Spec ObjectStoreSpec `json:"spec"`
+	// Most recently observed status of the ObjectStore. This data may not be up to
+	// date. Populated by the system. Read-only.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
 	Status ObjectStoreStatus `json:"status,omitempty"`
 }
