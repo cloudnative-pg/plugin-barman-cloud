@@ -73,7 +73,7 @@ tasks:
     desc: Update the API Reference section of the documentation
     env:
       # renovate: datasource=git-refs depName=genref lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_APIDOC_SHA: ac27cc7677fc42ea129fd3c1aa2b2894aad3a246
+      DAGGER_APIDOC_SHA: 00cead9710f409ceb3a818fe5fd7ba683ee93ac8
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/genref@${DAGGER_APIDOC_SHA} genref --source .
         --args "-c=config.yaml" --args "-o=src" --args "-include=plugin-barman-cloud"
