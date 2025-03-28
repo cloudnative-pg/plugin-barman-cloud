@@ -3,6 +3,7 @@ BarmanObjectStore
 BarmanObjectStoreConfiguration
 BarmanObjectStores
 CloudNativePG
+Docusaurus
 EnvVar
 Gi
 IfNotPresent
@@ -13,6 +14,7 @@ ObjectStore
 ObjectStoreSpec
 ObjectStoreStatus
 PITR
+README
 RecoveryWindow
 RetentionPolicy
 ServerRecoveryWindow
@@ -42,12 +44,14 @@ gcs
 gf
 github
 hostpath
+http
 https
 imagePullPolicy
 io
 isWALArchiver
 kubectl
 kubernetes
+localhost
 md
 minio
 namespace

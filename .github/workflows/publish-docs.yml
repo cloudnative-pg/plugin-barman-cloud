@@ -1,0 +1,64 @@
+# This workflow builds and deploys the Docusaurus documentation to GitHub Pages
+# when changes are pushed to the main branch.
+name: Deploy Docusaurus to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'web/docs/**'
+
+# Prevent parallel deployments when multiple commits are pushed to main
+# in a short time.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Use the latest LTS version of Node.js already installed on the runner.
+          node-version: latest
+          check-latest: 'false'
+          cache: yarn
+          cache-dependency-path: web/package-lock.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        working-directory: web
+        run: yarn install --frozen-lockfile --non-interactive
+
+      - name: Build website
+        working-directory: web
+        run: yarn build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/build
+
+  deploy:
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
