@@ -109,7 +109,7 @@ Use `kubectl` to apply the manifest for the latest commit in the `main` branch:
 <!-- x-release-please-start-version -->
 ```sh
 kubectl apply -f \
-  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.2.0/manifest.yaml
+  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.3.0/manifest.yaml
 ```
 <!-- x-release-please-end -->
 
