@@ -58,6 +58,7 @@ tasks:
     desc: Check for uncommitted changes
     deps:
       - manifest-main
+      - apidoc
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: db65290569cb7723a32e72fcfb134668e7b998c8
@@ -68,17 +69,26 @@ tasks:
 
   apidoc:
     desc: Update the API Reference section of the documentation
+    deps:
+      - controller-gen
     env:
-      # renovate: datasource=git-refs depName=genref lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_APIDOC_SHA: db65290569cb7723a32e72fcfb134668e7b998c8
+      # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_CRDGENREF_SHA: ba865842d907910c469d016c3ecfa009e4c66915
     cmds:
-      - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/genref@${DAGGER_APIDOC_SHA} genref --source .
-        --args "-c=config.yaml" --args "-o=src" --args "-include=plugin-barman-cloud"
-        file --path src/plugin-barman-cloud.v1.md
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/crd-ref-docs@${DAGGER_CRDGENREF_SHA} generate
+        --src .
+        --source-path api/v1
+        --config-file docs/config.yaml
+        --renderer markdown
+        --templates-dir docs/markdown
+        file --path out.md
         export --path docs/src/plugin-barman-cloud.v1.md
     sources:
       - ./api/**/*.go
       - ./docs/config.yaml
+      - ./docs/markdown/**/*.tpl
+      - ./Taskfile.yml
     generates:
       - ./docs/src/plugin-barman-cloud.v1.md
 
@@ -338,6 +348,7 @@ tasks:
 
   controller-gen:
     desc: Run controller-gen
+    run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_CONTROLLER_GEN_SHA: db65290569cb7723a32e72fcfb134668e7b998c8
