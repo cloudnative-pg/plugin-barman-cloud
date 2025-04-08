@@ -89,7 +89,7 @@ tasks:
     desc: Run go test
     env:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.24.1
+      GOLANG_IMAGE_VERSION: 1.24.2
       # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
@@ -265,7 +265,7 @@ tasks:
       - start-kind-cluster
     vars:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.24.1
+      GOLANG_IMAGE_VERSION: 1.24.2
       KUBECONFIG_PATH:
         sh: mktemp -t kubeconfig-XXXXX
     env:
@@ -284,7 +284,7 @@ tasks:
       - build-images
     vars:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.24.1
+      GOLANG_IMAGE_VERSION: 1.24.2
     env:
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
