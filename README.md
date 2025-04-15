@@ -56,6 +56,7 @@ To use this plugin, ensure the following prerequisites are met:
 
 - [**CloudNativePG**](https://cloudnative-pg.io) version **1.25** or newer.
 - [**cert-manager**](https://cert-manager.io/) for enabling **TLS communication** between the plugin and the operator.
+- [**Kubernetes Version >= 1.29**](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) **Sidecar Containers** need kubernetes v1.29 or above to work.
 
 ## Installation
 
