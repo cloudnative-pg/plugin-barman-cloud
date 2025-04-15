@@ -13,10 +13,10 @@ plugin for [CloudNativePG](https://cloudnative-pg.io/).
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [WAL Archiving](#wal-archiving)
-  - [Backup](#backup)
-  - [Restore](#restore)
-  - [Replica clusters](#replica-clusters)
+  - [WAL Archiving](#configuring-wal-archiving)
+  - [Backup](#performing-a-base-backup)
+  - [Restore](#restoring-a-cluster)
+  - [Replica clusters](#configuring-replica-clusters)
 - [API Reference](#api-reference)
 
 ## Features
