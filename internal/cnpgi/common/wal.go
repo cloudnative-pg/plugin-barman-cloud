@@ -107,7 +107,12 @@ func (w WALServiceImplementation) Archive(
 	if err != nil {
 		return nil, err
 	}
-	walList := arch.GatherWALFilesToArchive(ctx, request.GetSourceFileName(), 1)
+	barmanConfiguration := &objectStore.Spec.Configuration
+        maxParallel := 1
+        if barmanConfiguration.Wal != nil && barmanConfiguration.Wal.MaxParallel > 1 {
+          maxParallel = barmanConfiguration.Wal.MaxParallel
+        }
+	walList := arch.GatherWALFilesToArchive(ctx, request.GetSourceFileName(), maxParallel)
 	result := arch.ArchiveList(ctx, walList, options)
 	for _, archiverResult := range result {
 		if archiverResult.Err != nil {
