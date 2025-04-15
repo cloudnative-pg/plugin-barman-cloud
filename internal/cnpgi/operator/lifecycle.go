@@ -153,7 +153,9 @@ func reconcileJob(
 		WithValues("jobName", job.Name)
 	contextLogger.Debug("starting job reconciliation")
 
-	if getCNPGJobRole(&job) != "full-recovery" {
+	jobRole := getCNPGJobRole(&job)
+	if jobRole != "full-recovery" &&
+		jobRole != "snapshot-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
 		return nil, nil
 	}
@@ -163,7 +165,7 @@ func reconcileJob(
 	if err := reconcilePodSpec(
 		cluster,
 		&mutatedJob.Spec.Template.Spec,
-		"full-recovery",
+		jobRole,
 		corev1.Container{
 			Args: []string{"restore"},
 		},
