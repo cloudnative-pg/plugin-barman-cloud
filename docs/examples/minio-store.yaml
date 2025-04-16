@@ -21,6 +21,7 @@ spec:
         key: ACCESS_SECRET_KEY
     wal:
       compression: gzip
+      maxParallel: 8
     data:
       additionalCommandArgs:
         - "--min-chunk-size=5MB"
