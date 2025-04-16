@@ -58,6 +58,7 @@ tasks:
     desc: Check for uncommitted changes
     deps:
       - manifest-main
+      - apidoc
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: 00cead9710f409ceb3a818fe5fd7ba683ee93ac8
@@ -68,19 +69,47 @@ tasks:
 
   apidoc:
     desc: Update the API Reference section of the documentation
+    deps:
+      - controller-gen
     env:
-      # renovate: datasource=git-refs depName=genref lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_APIDOC_SHA: 00cead9710f409ceb3a818fe5fd7ba683ee93ac8
+      # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      # TODO: this sha should come from main branch
+      DAGGER_CRDGENREF_SHA: 807009f26f001db92d552d23f58cef512af91f12
     cmds:
-      - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/genref@${DAGGER_APIDOC_SHA} genref --source .
-        --args "-c=config.yaml" --args "-o=src" --args "-include=plugin-barman-cloud"
-        file --path src/plugin-barman-cloud.v1.md
-        export --path docs/src/plugin-barman-cloud.v1.md
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/crd-ref-docs@${DAGGER_CRDGENREF_SHA} generate
+        --src .
+        --source-path api/v1
+        --config-file hack/crd-gen-refs/config.yaml
+        --renderer markdown
+        --templates-dir hack/crd-gen-refs/markdown
+        file --path out.md
+        export --path web/docs/plugin-barman-cloud.v1.md
     sources:
       - ./api/**/*.go
-      - ./docs/config.yaml
-    generates:
-      - ./docs/src/plugin-barman-cloud.v1.md
+      - ./hack/docs/crd-gen-refs/**/*
+      - ./Taskfile.yml
+
+  docusaurus-build-test:
+    desc: Check that the documentation builds
+    deps:
+    - apidoc
+    env:
+      # renovate: datasource=git-refs depName=docusaurus lookupname=https://github.com/levlaz/daggerverse currentValue=main
+      DAGGER_DOCUSAURUS_SHA: 47f5206067011dad0f581d4e7db7afddda32acd0
+    cmds:
+      - GITHUB_REF= dagger -s call -m github.com/levlaz/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
+        --src web --yarn build
+    src:
+      - ./web/**/*
+
+  docusaurus-version-is-aligned:
+    desc: Verify that a documentation version exists for the current version of the plugin
+    cmds:
+      - $(dagger -s call -m dagger/check-doc-version has-version-documentation --src .)
+    src:
+      - .release-please-manifest.json
+      - ./web/versions.json
 
   go-test:
     desc: Run go test
@@ -301,6 +330,8 @@ tasks:
       - lint
       - go-test
       - e2e-ephemeral
+      - docusaurus-build-test
+      - docusaurus-version-is-aligned
 
   publish:
     desc: Build and publish a container image for the plugin
@@ -338,6 +369,7 @@ tasks:
 
   controller-gen:
     desc: Run controller-gen
+    run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_CONTROLLER_GEN_SHA: 00cead9710f409ceb3a818fe5fd7ba683ee93ac8

@@ -1,0 +1,49 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #e63054;
+  --ifm-color-primary-dark: #d8244a;
+  --ifm-color-primary-darker: #cc2044;
+  --ifm-color-primary-darkest: #a81a38;
+  --ifm-color-primary-light: #e94a6a;
+  --ifm-color-primary-lighter: #eb5875;
+  --ifm-color-primary-lightest: #f07d94;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #ff3054;
+  --ifm-color-primary-dark: #ff1642;
+  --ifm-color-primary-darker: #ff0638;
+  --ifm-color-primary-darkest: #d4002d;
+  --ifm-color-primary-light: #ff4a66;
+  --ifm-color-primary-lighter: #ff5a74;
+  --ifm-color-primary-lightest: #ff899c;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Configuration for the GitHub link in the header */
+.header-github-link:hover {
+    opacity: 0.6;
+}
+
+.header-github-link:before {
+    content: '';
+    width: 24px;
+    height: 24px;
+    display: flex;
+    background: url("/img/github-mark.svg") no-repeat ;
+    background-size: 24px 24px;
+}
+
+html[data-theme='dark'] .header-github-link:before {
+    background: url("/img/github-mark-white.svg") no-repeat;
+    background-size: 24px 24px;
+}

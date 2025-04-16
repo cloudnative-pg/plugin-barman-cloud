@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1 contains API Schema definitions for the barmancloud v1 API group
-// +kubebuilder:object:generate=true
-// +groupName=barmancloud.cnpg.io
 package v1
 
 import (
