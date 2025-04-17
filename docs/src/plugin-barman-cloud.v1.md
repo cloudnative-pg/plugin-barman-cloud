@@ -1,179 +1,104 @@
 # API Reference
 
-<p>Package v1 contains API Schema definitions for the barmancloud v1 API group</p>
+## Packages
+- [barmancloud.cnpg.io/v1](#barmancloudcnpgiov1)
 
 
-## Resource Types
+## barmancloud.cnpg.io/v1
+
+Package v1 contains API Schema definitions for the barmancloud v1 API group
+
+### Resource Types
+- [ObjectStore](#objectstore)
 
 
-- [ObjectStore](#barmancloud-cnpg-io-v1-ObjectStore)
 
-## ObjectStore     {#barmancloud-cnpg-io-v1-ObjectStore}
-
+#### InstanceSidecarConfiguration
 
 
-<p>ObjectStore is the Schema for the objectstores API.</p>
+
+InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
 
 
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td><code>apiVersion</code> <B>[Required]</B><br/>string</td><td><code>barmancloud.cnpg.io/v1</code></td></tr>
-<tr><td><code>kind</code> <B>[Required]</B><br/>string</td><td><code>ObjectStore</code></td></tr>
-<tr><td><code>metadata</code> <B>[Required]</B><br/>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta"><i>meta/v1.ObjectMeta</i></a>
-</td>
-<td>
-   <span class="text-muted">No description provided.</span>Refer to the Kubernetes API documentation for the fields of the <code>metadata</code> field.</td>
-</tr>
-<tr><td><code>spec</code> <B>[Required]</B><br/>
-<a href="#barmancloud-cnpg-io-v1-ObjectStoreSpec"><i>ObjectStoreSpec</i></a>
-</td>
-<td>
-   <p>Specification of the desired behavior of the ObjectStore.
-More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</p>
-</td>
-</tr>
-<tr><td><code>status</code><br/>
-<a href="#barmancloud-cnpg-io-v1-ObjectStoreStatus"><i>ObjectStoreStatus</i></a>
-</td>
-<td>
-   <p>Most recently observed status of the ObjectStore. This data may not be up to
-date. Populated by the system. Read-only.
-More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status</p>
-</td>
-</tr>
-</tbody>
-</table>
 
-## InstanceSidecarConfiguration     {#barmancloud-cnpg-io-v1-InstanceSidecarConfiguration}
+_Appears in:_
+- [ObjectStoreSpec](#objectstorespec)
+
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core) array_ | The environment to be explicitly passed to the sidecar |  |  |  |
+| `retentionPolicyIntervalSeconds` _integer_ | The retentionCheckInterval defines the frequency at which the<br />system checks and enforces retention policies. |  | 1800 |  |
 
 
-**Appears in:**
-
-- [ObjectStoreSpec](#barmancloud-cnpg-io-v1-ObjectStoreSpec)
+#### ObjectStore
 
 
-<p>InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.</p>
+
+ObjectStore is the Schema for the objectstores API.
 
 
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td><code>env</code><br/>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#envvar-v1-core"><i>[]core/v1.EnvVar</i></a>
-</td>
-<td>
-   <p>The environment to be explicitly passed to the sidecar</p>
-</td>
-</tr>
-<tr><td><code>retentionPolicyIntervalSeconds</code><br/>
-<i>int</i>
-</td>
-<td>
-   <p>The retentionCheckInterval defines the frequency at which the
-system checks and enforces retention policies.</p>
-</td>
-</tr>
-</tbody>
-</table>
-
-## ObjectStoreSpec     {#barmancloud-cnpg-io-v1-ObjectStoreSpec}
 
 
-**Appears in:**
 
-- [ObjectStore](#barmancloud-cnpg-io-v1-ObjectStore)
-
-
-<p>ObjectStoreSpec defines the desired state of ObjectStore.</p>
-
-
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td><code>configuration</code> <B>[Required]</B><br/>
-<a href="https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api/#BarmanObjectStoreConfiguration"><i>github.com/cloudnative-pg/barman-cloud/pkg/api.BarmanObjectStoreConfiguration</i></a>
-</td>
-<td>
-   <p>The configuration for the barman-cloud tool suite</p>
-</td>
-</tr>
-<tr><td><code>retentionPolicy</code><br/>
-<i>string</i>
-</td>
-<td>
-   <p>RetentionPolicy is the retention policy to be used for backups
-and WALs (i.e. '60d'). The retention policy is expressed in the form
-of <code>XXu</code> where <code>XX</code> is a positive integer and <code>u</code> is in <code>[dwm]</code> -
-days, weeks, months.</p>
-</td>
-</tr>
-<tr><td><code>instanceSidecarConfiguration</code><br/>
-<a href="#barmancloud-cnpg-io-v1-InstanceSidecarConfiguration"><i>InstanceSidecarConfiguration</i></a>
-</td>
-<td>
-   <p>The configuration for the sidecar that runs in the instance pods</p>
-</td>
-</tr>
-</tbody>
-</table>
-
-## ObjectStoreStatus     {#barmancloud-cnpg-io-v1-ObjectStoreStatus}
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `apiVersion` _string_ | `barmancloud.cnpg.io/v1` | True | | |
+| `kind` _string_ | `ObjectStore` | True | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. | True |  |  |
+| `spec` _[ObjectStoreSpec](#objectstorespec)_ | Specification of the desired behavior of the ObjectStore.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status | True |  |  |
+| `status` _[ObjectStoreStatus](#objectstorestatus)_ | Most recently observed status of the ObjectStore. This data may not be up to<br />date. Populated by the system. Read-only.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status |  |  |  |
 
 
-**Appears in:**
-
-- [ObjectStore](#barmancloud-cnpg-io-v1-ObjectStore)
+#### ObjectStoreSpec
 
 
-<p>ObjectStoreStatus defines the observed state of ObjectStore.</p>
+
+ObjectStoreSpec defines the desired state of ObjectStore.
 
 
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td><code>serverRecoveryWindow</code> <B>[Required]</B><br/>
-<a href="#barmancloud-cnpg-io-v1-RecoveryWindow"><i>map[string]RecoveryWindow</i></a>
-</td>
-<td>
-   <p>ServerRecoveryWindow maps each server to its recovery window</p>
-</td>
-</tr>
-</tbody>
-</table>
 
-## RecoveryWindow     {#barmancloud-cnpg-io-v1-RecoveryWindow}
+_Appears in:_
+- [ObjectStore](#objectstore)
+
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `configuration` _[BarmanObjectStoreConfiguration](https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api#BarmanObjectStoreConfiguration)_ | The configuration for the barman-cloud tool suite | True |  |  |
+| `retentionPolicy` _string_ | RetentionPolicy is the retention policy to be used for backups<br />and WALs (i.e. '60d'). The retention policy is expressed in the form<br />of `XXu` where `XX` is a positive integer and `u` is in `[dwm]` -<br />days, weeks, months. |  |  | Pattern: `^[1-9][0-9]*[dwm]$` <br /> |
+| `instanceSidecarConfiguration` _[InstanceSidecarConfiguration](#instancesidecarconfiguration)_ | The configuration for the sidecar that runs in the instance pods |  |  |  |
 
 
-**Appears in:**
-
-- [ObjectStoreStatus](#barmancloud-cnpg-io-v1-ObjectStoreStatus)
+#### ObjectStoreStatus
 
 
-<p>RecoveryWindow represents the time span between the first
+
+ObjectStoreStatus defines the observed state of ObjectStore.
+
+
+
+_Appears in:_
+- [ObjectStore](#objectstore)
+
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `serverRecoveryWindow` _object (keys:string, values:[RecoveryWindow](#recoverywindow))_ | ServerRecoveryWindow maps each server to its recovery window | True |  |  |
+
+
+#### RecoveryWindow
+
+
+
+RecoveryWindow represents the time span between the first
 recoverability point and the last successful backup of a PostgreSQL
-server, defining the period during which data can be restored.</p>
+server, defining the period during which data can be restored.
 
 
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td><code>firstRecoverabilityPoint</code> <B>[Required]</B><br/>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta"><i>meta/v1.Time</i></a>
-</td>
-<td>
-   <p>The first recoverability point in a PostgreSQL server refers to
-the earliest point in time to which the database can be
-restored.</p>
-</td>
-</tr>
-<tr><td><code>lastSuccussfulBackupTime</code> <B>[Required]</B><br/>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#time-v1-meta"><i>meta/v1.Time</i></a>
-</td>
-<td>
-   <p>The last successful backup time</p>
-</td>
-</tr>
-</tbody>
-</table>
+
+_Appears in:_
+- [ObjectStoreStatus](#objectstorestatus)
+
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `firstRecoverabilityPoint` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | The first recoverability point in a PostgreSQL server refers to<br />the earliest point in time to which the database can be<br />restored. | True |  |  |
+| `lastSuccussfulBackupTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | The last successful backup time | True |  |  |
+
+

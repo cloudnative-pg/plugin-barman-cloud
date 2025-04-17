@@ -1,37 +1,49 @@
-{{ define "type" }}
+{{- define "type" -}}
+{{- $type := . -}}
+{{- if markdownShouldRenderType $type -}}
 
-## {{ .Name.Name }}     {#{{ .Anchor }}}
+#### {{ $type.Name }}
 
-{{ if eq .Kind "Alias" -}}
-(Alias of `{{ .Underlying }}`)
-{{ end }}
+{{ if $type.IsAlias }}_Underlying type:_ _{{ markdownRenderTypeLink $type.UnderlyingType  }}_{{ end }}
 
-{{- with .References }}
-**Appears in:**
-{{ range . }}
-{{ if or .Referenced .IsExported -}}
-- [{{ .DisplayName }}]({{ .Link }})
-{{ end -}}
-{{- end -}}
+{{ $type.Doc }}
+
+{{ if $type.Validation -}}
+_Validation:_
+{{- range $type.Validation }}
+- {{ . }}
+{{- end }}
 {{- end }}
 
-{{ if .GetComment -}}
-{{ .GetComment }}
-{{ end }}
-{{ if .GetMembers -}}
-<table class="table">
-<thead><tr><th width="30%">Field</th><th>Description</th></tr></thead>
-<tbody>
-    {{- /* . is a apiType */ -}}
-    {{- if .IsExported -}}
-{{- /* Add apiVersion and kind rows if deemed necessary */}}
-<tr><td><code>apiVersion</code> <B>[Required]</B><br/>string</td><td><code>{{- .APIGroup -}}</code></td></tr>
-<tr><td><code>kind</code> <B>[Required]</B><br/>string</td><td><code>{{- .Name.Name -}}</code></td></tr>
-    {{- end -}}
+{{ if $type.References -}}
+_Appears in:_
+{{- range $type.SortedReferences }}
+- {{ markdownRenderTypeLink . }}
+{{- end }}
+{{- end }}
 
-{{/* The actual list of members is in the following template */}}
-{{- template "members" . -}}
-</tbody>
-</table>
+{{ if $type.Members -}}
+| Field | Description | Required | Default | Validation |
+| --- | --- | --- | --- | --- |
+{{ if $type.GVK -}}
+| `apiVersion` _string_ | `{{ $type.GVK.Group }}/{{ $type.GVK.Version }}` | True | | |
+| `kind` _string_ | `{{ $type.GVK.Kind }}` | True | | |
+{{ end -}}
+
+{{ range $type.Members -}}
+| `{{ .Name  }}` _{{ markdownRenderType .Type }}_ | {{ template "type_members" . }} | {{ if not .Markers.optional -}}True{{- end }} | {{ markdownRenderDefault .Default }} | {{ range .Validation -}} {{ markdownRenderFieldDoc . }} <br />{{ end }} |
+{{ end -}}
+
+{{ end -}}
+
+{{ if $type.EnumValues -}} 
+| Field | Description |
+| --- | --- |
+{{ range $type.EnumValues -}}
+| `{{ .Name }}` | {{ markdownRenderFieldDoc .Doc }} |
+{{ end -}}
+{{ end -}}
+
+
 {{- end -}}
 {{- end -}}
