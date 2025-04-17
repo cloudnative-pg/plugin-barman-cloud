@@ -146,7 +146,7 @@ func (w WALServiceImplementation) Archive(
 		}
 	}
 	if isDeletedFromSpool {
-		contextLogger.Info("Archived WAL file (parallel)",
+		contextLogger.Info("WAL file already archived, skipping",
 			"walName", baseWalName)
 		return nil, nil
 	}
@@ -158,14 +158,15 @@ func (w WALServiceImplementation) Archive(
 	}
 
 	maxParallel := 1
-	if objectStore.Spec.Configuration.Wal != nil {
+	if objectStore.Spec.Configuration.Wal != nil && objectStore.Spec.Configuration.Wal.MaxParallel > 0 {
 		maxParallel = objectStore.Spec.Configuration.Wal.MaxParallel
 	}
 
+	maxResults := maxParallel - 1
 	walFilesList := walUtils.GatherReadyWALFiles(
 		ctx,
 		walUtils.GatherReadyWALFilesConfig{
-			MaxResults: maxParallel,
+			MaxResults: maxResults,
 			SkipWALs:   []string{baseWalName},
 			PgDataPath: w.PGDataPath,
 		},
@@ -174,6 +175,7 @@ func (w WALServiceImplementation) Archive(
 	// Ensure the requested WAL file is always the first one being
 	// archived
 	walFilesList.Ready = append([]string{request.GetSourceFileName()}, walFilesList.Ready...)
+	contextLogger.Debug("WAL files to archive: %v", "walFilesListReady", walFilesList.Ready)
 
 	result := arch.ArchiveList(ctx, walFilesList.ReadyItemsToSlice(), options)
 	for _, archiverResult := range result {
