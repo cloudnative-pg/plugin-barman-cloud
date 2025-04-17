@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.3.0...v0.4.0) (2025-04-17)
+
+
+### Features
+
+* Support snapshot recovery job ([#258](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/258)) ([e00024f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e00024f136996305999c0440ae9b48861828e160))
+
+
+### Bug Fixes
+
+* **docs:** Fix TOC links ([#261](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/261)) ([2bb5e90](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2bb5e90357b2defd6fdaa8ff9982e21f58bc5ecc))
+
 ## [0.3.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.2.0...v0.3.0) (2025-03-28)
 
 
