@@ -26,7 +26,7 @@ _Appears in:_
 
 | Field | Description | Required | Default | Validation |
 | --- | --- | --- | --- | --- |
-| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvar-v1-core) array_ | The environment to be explicitly passed to the sidecar |  |  |  |
+| `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core) array_ | The environment to be explicitly passed to the sidecar |  |  |  |
 | `retentionPolicyIntervalSeconds` _integer_ | The retentionCheckInterval defines the frequency at which the<br />system checks and enforces retention policies. |  | 1800 |  |
 
 
@@ -44,7 +44,7 @@ ObjectStore is the Schema for the objectstores API.
 | --- | --- | --- | --- | --- |
 | `apiVersion` _string_ | `barmancloud.cnpg.io/v1` | True | | |
 | `kind` _string_ | `ObjectStore` | True | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. | True |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. | True |  |  |
 | `spec` _[ObjectStoreSpec](#objectstorespec)_ | Specification of the desired behavior of the ObjectStore.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status | True |  |  |
 | `status` _[ObjectStoreStatus](#objectstorestatus)_ | Most recently observed status of the ObjectStore. This data may not be up to<br />date. Populated by the system. Read-only.<br />More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status |  |  |  |
 
@@ -98,7 +98,7 @@ _Appears in:_
 
 | Field | Description | Required | Default | Validation |
 | --- | --- | --- | --- | --- |
-| `firstRecoverabilityPoint` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | The first recoverability point in a PostgreSQL server refers to<br />the earliest point in time to which the database can be<br />restored. | True |  |  |
-| `lastSuccussfulBackupTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | The last successful backup time | True |  |  |
+| `firstRecoverabilityPoint` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | The first recoverability point in a PostgreSQL server refers to<br />the earliest point in time to which the database can be<br />restored. | True |  |  |
+| `lastSuccussfulBackupTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | The last successful backup time | True |  |  |
 
 
