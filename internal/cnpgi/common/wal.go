@@ -175,7 +175,7 @@ func (w WALServiceImplementation) Archive(
 	// Ensure the requested WAL file is always the first one being
 	// archived
 	walFilesList.Ready = append([]string{request.GetSourceFileName()}, walFilesList.Ready...)
-	contextLogger.Debug("WAL files to archive: %v", "walFilesListReady", walFilesList.Ready)
+	contextLogger.Debug("WAL files to archive", "walFilesListReady", walFilesList.Ready)
 
 	result := arch.ArchiveList(ctx, walFilesList.ReadyItemsToSlice(), options)
 	for _, archiverResult := range result {
