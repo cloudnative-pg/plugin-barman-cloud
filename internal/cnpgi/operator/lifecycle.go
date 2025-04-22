@@ -139,6 +139,7 @@ func reconcileJob(
 		return nil, nil
 	}
 
+	var barmanObjectStore barmancloudv1.ObjectStore
 	var job batchv1.Job
 	if err := decoder.DecodeObjectStrict(
 		request.GetObjectDefinition(),
@@ -171,6 +172,7 @@ func reconcileJob(
 		},
 		env,
 		certificates,
+		barmanObjectStore,
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
 	}
@@ -202,7 +204,13 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
-	return reconcilePod(ctx, cluster, request, pluginConfiguration, env, certificates)
+	var barmanObjectStore barmancloudv1.ObjectStore
+  	configuration := config.NewFromCluster(cluster)
+  	if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+    	return nil, err
+  	}
+
+	return reconcilePod(ctx, cluster, request, pluginConfiguration, env, certificates, barmanObjectStore)
 }
 
 func reconcilePod(
@@ -212,6 +220,7 @@ func reconcilePod(
 	pluginConfiguration *config.PluginConfiguration,
 	env []corev1.EnvVar,
 	certificates []corev1.VolumeProjection,
+	barmanObjectStore barmancloudv1.ObjectStore,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
@@ -234,6 +243,7 @@ func reconcilePod(
 			},
 			env,
 			certificates,
+			barmanObjectStore,
 		); err != nil {
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
@@ -259,6 +269,7 @@ func reconcilePodSpec(
 	sidecarConfig corev1.Container,
 	additionalEnvs []corev1.EnvVar,
 	certificates []corev1.VolumeProjection,
+	barmanObjectStore barmancloudv1.ObjectStore,
 ) error {
 	envs := []corev1.EnvVar{
 		{
@@ -314,6 +325,7 @@ func reconcilePodSpec(
 			Drop: []corev1.Capability{"ALL"},
 		},
 	}
+	sidecarConfig.Resources = barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources
 
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
