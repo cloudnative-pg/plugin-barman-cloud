@@ -27,10 +27,10 @@ kubectl get deployment -n cnpg-system cnpg-controller-manager -o yaml \
 Example output:
 
 ```output
-image: ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0
+image: ghcr.io/cloudnative-pg/cloudnative-pg:1.26.0
 ```
 
-Ensure that the version displayed is **1.25** or newer.
+Ensure that the version displayed is **1.26** or newer.
 
 Then, use the [cmctl](https://cert-manager.io/docs/reference/cmctl/#installation)
 tool to confirm that `cert-manager` is correctly installed:
@@ -54,7 +54,7 @@ Use `kubectl` to apply the manifest for the latest commit in the `main` branch:
 <!-- x-release-please-start-version -->
 ```sh
 kubectl apply -f \
-  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.2.0/manifest.yaml
+  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.3.0/manifest.yaml
 ```
 <!-- x-release-please-end -->
 
