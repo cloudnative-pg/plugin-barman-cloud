@@ -1,23 +1,28 @@
 ---
-sidebar_position: 4
+sidebar_position: 20
 ---
 
 # Installation
 
-**IMPORTANT NOTES:**
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
-1. The plugin **must** be installed in the same namespace where the operator is
-   installed (typically `cnpg-system`).
+:::important
+1. The plugin **must** be installed in the same namespace as the CloudNativePG
+   operator (typically `cnpg-system`).
 
-2. Be aware that the operator's **listening namespaces** may differ from its
-   installation namespace. Ensure you verify this distinction to avoid
-   configuration issues.
+2. Keep in mind that the operator's **listening namespaces** may differ from its
+   installation namespace. Double-check this to avoid configuration issues.
+:::
 
-Here’s an enhanced version of your instructions for verifying the prerequisites:
+## Verifying the Requirements
 
-## Step 1 - Verify the Prerequisites
+Before installing the plugin, make sure the [requirements](intro.md#requirements) are met.
 
-If CloudNativePG is installed in the default `cnpg-system` namespace, verify its version using the following command:
+### CloudNativePG Version
+
+Ensure you're running a version of CloudNativePG that is compatible with the
+plugin. If installed in the default `cnpg-system` namespace, you can verify the
+version with:
 
 ```sh
 kubectl get deployment -n cnpg-system cnpg-controller-manager -o yaml \
@@ -30,10 +35,12 @@ Example output:
 image: ghcr.io/cloudnative-pg/cloudnative-pg:1.26.0
 ```
 
-Ensure that the version displayed is **1.26** or newer.
+The version **must be 1.26 or newer**.
 
-Then, use the [cmctl](https://cert-manager.io/docs/reference/cmctl/#installation)
-tool to confirm that `cert-manager` is correctly installed:
+### cert-manager
+
+Use the [cmctl](https://cert-manager.io/docs/reference/cmctl/#installation)
+tool to confirm that `cert-manager` is installed and available:
 
 ```sh
 cmctl check api
@@ -45,17 +52,20 @@ Example output:
 The cert-manager API is ready
 ```
 
-Both checks are necessary to proceed with the installation.
+Both checks are required before proceeding with the installation.
 
-## Step 2 - Install the barman-cloud Plugin
+## Installing the Barman Cloud Plugin
 
-Use `kubectl` to apply the manifest for the latest commit in the `main` branch:
+Install the plugin using `kubectl` by applying the manifest for the latest
+release:
 
 <!-- x-release-please-start-version -->
+
 ```sh
 kubectl apply -f \
   https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.3.0/manifest.yaml
 ```
+
 <!-- x-release-please-end -->
 
 Example output:
@@ -80,8 +90,7 @@ certificate.cert-manager.io/barman-cloud-server created
 issuer.cert-manager.io/selfsigned-issuer created
 ```
 
-After these steps, the plugin will be successfully installed. Make sure it is
-ready to use by checking the deployment status as follows:
+Finally, check that the deployment is up and running:
 
 ```sh
 kubectl rollout status deployment \
@@ -94,4 +103,4 @@ Example output:
 deployment "barman-cloud" successfully rolled out
 ```
 
-This confirms that the plugin is deployed and operational.
+This confirms that the plugin is deployed and ready to use.

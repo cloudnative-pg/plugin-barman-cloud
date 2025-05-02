@@ -4,6 +4,8 @@ BarmanObjectStore
 BarmanObjectStoreConfiguration
 BarmanObjectStores
 CloudNativePG
+CRD
+DataBackupConfiguration
 DigitalOcean
 Docusaurus
 EKS
@@ -24,16 +26,23 @@ ObjectStore
 ObjectStoreSpec
 ObjectStoreStatus
 PITR
+PoR
+Postgres
+PostgreSQL
 README
 RecoveryWindow
 RetentionPolicy
+RPO
+RTO
 SAS
 SFO
 SPDX
 ServerRecoveryWindow
+SPDX
 TLS
 TODO
 Uncomment
+WALBackupConfiguration
 WAL
 WALs
 api
@@ -46,6 +55,7 @@ backend
 backends
 barmanObjectName
 barmancloud
+bzip
 cd
 cloudnative
 clusterrole
@@ -63,6 +73,7 @@ env
 externalClusters
 gcs
 gf
+gzip
 github
 hostpath
 http
@@ -89,6 +100,7 @@ rc
 recoverability
 repos
 retentionCheckInterval
+retentionPolicy
 rolebinding
 sc
 secretKeyRef

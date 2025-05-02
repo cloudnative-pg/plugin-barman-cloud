@@ -1,14 +1,28 @@
 ---
-sidebar_position: 5
+sidebar_position: 30
 ---
 
-# Usage
+# Using the Barman Cloud Plugin
 
-## Defining the `BarmanObjectStore`
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
-A `BarmanObjectStore` object should be created for each object store used in
-your PostgreSQL architecture. Below is an example configuration for using
-MinIO:
+After [installing the plugin](installation.md) in the same namespace as the
+CloudNativePG operator, enabling your PostgreSQL cluster to use the Barman
+Cloud Plugin involves just a few steps:
+
+- Defining the object store containing your WAL archive and base backups, using
+  your preferred [provider](object_stores.md)
+- Instructing the Postgres cluster to use the Barman Cloud Plugin
+
+From that moment, you’ll be able to issue on-demand backups or define a backup
+schedule, as well as rely on the object store for recovery operations.
+
+The rest of this page details each step, using MinIO as object store provider.
+
+## Defining the `ObjectStore`
+
+An `ObjectStore` resource must be created for each object store used in your
+PostgreSQL architecture. Here's an example configuration using MinIO:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -30,16 +44,15 @@ spec:
       compression: gzip
 ```
 
-The `.spec.configuration` API follows the same schema as the
+The `.spec.configuration` schema follows the same format as the
 [in-tree barman-cloud support](https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api#BarmanObjectStoreConfiguration).
 Refer to [the CloudNativePG documentation](https://cloudnative-pg.io/documentation/preview/backup_barmanobjectstore/)
-for detailed usage.
+for additional details.
 
 ## Configuring WAL Archiving
 
-Once the `BarmanObjectStore` is defined, you can configure a PostgreSQL cluster
-to archive WALs by referencing the store in the `.spec.plugins` section, as
-shown below:
+Once the `ObjectStore` is defined, you can configure your PostgreSQL cluster
+to archive WALs by referencing the store in the `.spec.plugins` section:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -62,9 +75,8 @@ This configuration enables both WAL archiving and data directory backups.
 
 ## Performing a Base Backup
 
-Once WAL archiving is enabled, the cluster is ready for backups. To create a
-backup, configure the `backup.spec.pluginConfiguration` section to specify this
-plugin:
+Once WAL archiving is enabled, the cluster is ready for backups. To issue an
+on-demand backup, use the following configuration with the plugin method:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -72,12 +84,16 @@ kind: Backup
 metadata:
   name: backup-example
 spec:
-  method: plugin
   cluster:
     name: cluster-example
+  method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
 ```
+
+:::note
+You can apply the same concept to the `ScheduledBackup` resource.
+:::
 
 ## Restoring a Cluster
 
@@ -106,8 +122,9 @@ spec:
     size: 1Gi
 ```
 
-**NOTE:** The above configuration does **not** enable WAL archiving for the
-restored cluster.
+:::important
+The above configuration does **not** enable WAL archiving for the restored cluster.
+:::
 
 To enable WAL archiving for the restored cluster, include the `.spec.plugins`
 section alongside the `externalClusters.plugin` section, as shown below:

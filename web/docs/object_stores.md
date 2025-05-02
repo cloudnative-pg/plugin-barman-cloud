@@ -1,5 +1,5 @@
 ---
-sidebar_position: 99
+sidebar_position: 50
 ---
 
 # Object Store Providers
@@ -359,7 +359,7 @@ write permissions to the bucket.
 ## MinIO Gateway
 
 MinIO Gateway can proxy requests to cloud object storage providers like S3 or GCS.
-For more information, please refer to [MinIO official documentation](https://docs.min.io/).
+For more information, refer to [MinIO official documentation](https://docs.min.io/).
 
 ### Setup
 
