@@ -178,9 +178,9 @@ spec:
 
 <!-- TODO: does this also apply to the plugin? -->
 :::note
-If you want ConfigMaps and Secrets to be **automatically** reloaded by
-instances, you can add a label with key `cnpg.io/reload` to the
-Secrets/ConfigMaps. Otherwise, you will have to reload the instances using the
+If you want `ConfigMaps` and `Secrets` to be **automatically** reloaded by
+instances, you can add a label with the key `cnpg.io/reload` to the
+`Secrets`/`ConfigMaps`. Otherwise, you will have to reload the instances using the
 `kubectl cnpg reload` subcommand.
 :::
 
@@ -336,8 +336,8 @@ spec:
 
 :::important
 This authentication method generates a JSON file within the container
-containing all the credentials required to access your Google Cloud Storage
-bucket. As a result, if someone gains access to the pod, they will also have
+with all the credentials required to access your Google Cloud Storage
+bucket. As a result, if someone gains access to the `Pod`, they will also have
 write permissions to the bucket.
 :::
 
