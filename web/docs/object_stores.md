@@ -4,6 +4,8 @@ sidebar_position: 99
 
 # Object Store Providers
 
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+
 The Barman Cloud Plugin enables the storage of PostgreSQL cluster backup files
 in any object storage service supported by the
 [Barman Cloud infrastructure](https://docs.pgbarman.org/release/latest/).
