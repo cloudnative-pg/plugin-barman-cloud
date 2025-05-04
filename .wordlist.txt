@@ -5,7 +5,6 @@ BarmanObjectStoreConfiguration
 BarmanObjectStores
 CloudNativePG
 DigitalOcean
-DigitalOcean
 Docusaurus
 EKS
 EnvVar
