@@ -17,6 +17,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -123,15 +124,29 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
-	return reconcileJob(ctx, cluster, request, env, certificates)
+	resources, err := impl.collectSidecarResources(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
+		env:          env,
+		certificates: certificates,
+		resources:    resources,
+	})
+}
+
+type sidecarConfiguration struct {
+	env          []corev1.EnvVar
+	certificates []corev1.VolumeProjection
+	resources    corev1.ResourceRequirements
 }
 
 func reconcileJob(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
-	env []corev1.EnvVar,
-	certificates []corev1.VolumeProjection,
+	config sidecarConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	contextLogger := log.FromContext(ctx).WithName("lifecycle")
 	if pluginConfig := cluster.GetRecoverySourcePlugin(); pluginConfig == nil || pluginConfig.Name != metadata.PluginName {
@@ -139,7 +154,6 @@ func reconcileJob(
 		return nil, nil
 	}
 
-	var barmanObjectStore barmancloudv1.ObjectStore
 	var job batchv1.Job
 	if err := decoder.DecodeObjectStrict(
 		request.GetObjectDefinition(),
@@ -170,9 +184,7 @@ func reconcileJob(
 		corev1.Container{
 			Args: []string{"restore"},
 		},
-		env,
-		certificates,
-		barmanObjectStore,
+		config,
 	); err != nil {
 		return nil, fmt.Errorf("while reconciling pod spec for job: %w", err)
 	}
@@ -204,13 +216,28 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
-	var barmanObjectStore barmancloudv1.ObjectStore
-  	configuration := config.NewFromCluster(cluster)
-  	if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
-    	return nil, err
-  	}
+	resources, err := impl.collectSidecarResources(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
 
-	return reconcilePod(ctx, cluster, request, pluginConfiguration, env, certificates, barmanObjectStore)
+	return reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+		env:          env,
+		certificates: certificates,
+		resources:    resources,
+	})
+}
+
+func (impl LifecycleImplementation) collectSidecarResources(
+	ctx context.Context,
+	configuration *config.PluginConfiguration,
+) (corev1.ResourceRequirements, error) {
+	var barmanObjectStore barmancloudv1.ObjectStore
+	if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+		return corev1.ResourceRequirements{}, err
+	}
+
+	return barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources, nil
 }
 
 func reconcilePod(
@@ -218,9 +245,7 @@ func reconcilePod(
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
 	pluginConfiguration *config.PluginConfiguration,
-	env []corev1.EnvVar,
-	certificates []corev1.VolumeProjection,
-	barmanObjectStore barmancloudv1.ObjectStore,
+	config sidecarConfiguration,
 ) (*lifecycle.OperatorLifecycleResponse, error) {
 	pod, err := decoder.DecodePodJSON(request.GetObjectDefinition())
 	if err != nil {
@@ -241,9 +266,7 @@ func reconcilePod(
 			corev1.Container{
 				Args: []string{"instance"},
 			},
-			env,
-			certificates,
-			barmanObjectStore,
+			config,
 		); err != nil {
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
@@ -266,10 +289,8 @@ func reconcilePodSpec(
 	cluster *cnpgv1.Cluster,
 	spec *corev1.PodSpec,
 	mainContainerName string,
-	sidecarConfig corev1.Container,
-	additionalEnvs []corev1.EnvVar,
-	certificates []corev1.VolumeProjection,
-	barmanObjectStore barmancloudv1.ObjectStore,
+	sidecarTemplate corev1.Container,
+	config sidecarConfiguration,
 ) error {
 	envs := []corev1.EnvVar{
 		{
@@ -296,7 +317,7 @@ func reconcilePodSpec(
 		},
 	}
 
-	envs = append(envs, additionalEnvs...)
+	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
 		FailureThreshold: 10,
@@ -309,11 +330,11 @@ func reconcilePodSpec(
 	}
 
 	// fixed values
-	sidecarConfig.Name = "plugin-barman-cloud"
-	sidecarConfig.Image = viper.GetString("sidecar-image")
-	sidecarConfig.ImagePullPolicy = cluster.Spec.ImagePullPolicy
-	sidecarConfig.StartupProbe = baseProbe.DeepCopy()
-	sidecarConfig.SecurityContext = &corev1.SecurityContext{
+	sidecarTemplate.Name = "plugin-barman-cloud"
+	sidecarTemplate.Image = viper.GetString("sidecar-image")
+	sidecarTemplate.ImagePullPolicy = cluster.Spec.ImagePullPolicy
+	sidecarTemplate.StartupProbe = baseProbe.DeepCopy()
+	sidecarTemplate.SecurityContext = &corev1.SecurityContext{
 		AllowPrivilegeEscalation: ptr.To(false),
 		RunAsNonRoot:             ptr.To(true),
 		Privileged:               ptr.To(false),
@@ -325,21 +346,21 @@ func reconcilePodSpec(
 			Drop: []corev1.Capability{"ALL"},
 		},
 	}
-	sidecarConfig.Resources = barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources
+	sidecarTemplate.Resources = config.resources
 
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
 		if container.Name == mainContainerName {
 			for _, env := range container.Env {
 				found := false
-				for _, existingEnv := range sidecarConfig.Env {
+				for _, existingEnv := range sidecarTemplate.Env {
 					if existingEnv.Name == env.Name {
 						found = true
 						break
 					}
 				}
 				if !found {
-					sidecarConfig.Env = append(sidecarConfig.Env, env)
+					sidecarTemplate.Env = append(sidecarTemplate.Env, env)
 				}
 			}
 			break
@@ -349,18 +370,18 @@ func reconcilePodSpec(
 	// merge the default envs if they aren't already set
 	for _, env := range envs {
 		found := false
-		for _, existingEnv := range sidecarConfig.Env {
+		for _, existingEnv := range sidecarTemplate.Env {
 			if existingEnv.Name == env.Name {
 				found = true
 				break
 			}
 		}
 		if !found {
-			sidecarConfig.Env = append(sidecarConfig.Env, env)
+			sidecarTemplate.Env = append(sidecarTemplate.Env, env)
 		}
 	}
 
-	if err := injectPluginSidecarPodSpec(spec, &sidecarConfig, mainContainerName); err != nil {
+	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
 		return err
 	}
 
@@ -370,7 +391,7 @@ func reconcilePodSpec(
 			Name: barmanCertificatesVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
-					Sources: certificates,
+					Sources: config.certificates,
 				},
 			},
 		})
