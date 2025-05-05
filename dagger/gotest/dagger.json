@@ -1,6 +1,7 @@
 {
   "name": "gotest",
-  "engineVersion": "v0.15.2",
-  "sdk": "go",
-  "source": "."
+  "engineVersion": "v0.18.5",
+  "sdk": {
+    "source": "go"
+  }
 }
