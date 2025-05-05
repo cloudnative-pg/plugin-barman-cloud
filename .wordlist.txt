@@ -29,6 +29,7 @@ RecoveryWindow
 RetentionPolicy
 SAS
 SFO
+SPDX
 ServerRecoveryWindow
 TLS
 TODO
