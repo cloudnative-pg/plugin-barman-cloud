@@ -24,8 +24,10 @@ To configure object storage with Barman Cloud, you must define an
 establishes the connection between your PostgreSQL cluster and the object
 storage backend.
 
-The configuration steps vary depending on the storage provider. The following
-sections detail the setup for each.
+Configuration details — particularly around authentication — will vary depending on
+the specific object storage provider you are using.
+
+The following sections detail the setup for each.
 
 ---
 
