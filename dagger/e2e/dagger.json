@@ -1,7 +1,9 @@
 {
   "name": "e2e",
-  "engineVersion": "v0.15.2",
-  "sdk": "go",
+  "engineVersion": "v0.18.5",
+  "sdk": {
+    "source": "go"
+  },
   "dependencies": [
     {
       "name": "go",
@@ -10,9 +12,8 @@
     },
     {
       "name": "k3s",
-      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.7",
-      "pin": "833ec36632b2457862f6e3bf1f7107ad65e3e515"
+      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.10",
+      "pin": "28eea1fcf3b6ecb38a628186107760acd717442f"
     }
-  ],
-  "source": "."
+  ]
 }
