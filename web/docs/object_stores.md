@@ -64,6 +64,7 @@ supports it.
 You can then reference the secret in your `ObjectStore` definition:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: aws-store
@@ -125,6 +126,7 @@ or **DigitalOcean Spaces** by specifying a custom `endpointURL`.
 Example with Linode (Akamai) Object Storage (`us-east1`):
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: linode-store
@@ -140,6 +142,7 @@ spec:
 Example with DigitalOcean Spaces (SFO3, path-style):
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: digitalocean-store
@@ -166,6 +169,7 @@ kubectl create secret generic my-ca-secret --from-file=ca.crt
 Then reference it:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: minio-store
@@ -206,6 +210,7 @@ This method avoids storing credentials in Kubernetes via the
 `.spec.configuration.inheritFromAzureAD` option:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: azure-store
@@ -232,6 +237,7 @@ kubectl create secret generic azure-creds \
 Then reference the required keys in your `ObjectStore`:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: azure-store
@@ -291,6 +297,7 @@ when running in GKE:
 For example, in the `ObjectStore` resource:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: google-store
@@ -323,6 +330,7 @@ kubectl create secret generic backup-creds --from-file=gcsCredentials=gcs_creden
 ```
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: google-store
@@ -429,6 +437,7 @@ Proceed by configuring MinIO Gateway service as the `endpointURL` in the
 `ObjectStore` definition, then choose a bucket name to replace `BUCKET_NAME`:
 
 ```yaml
+apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: minio-store
