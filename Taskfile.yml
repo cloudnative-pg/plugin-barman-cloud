@@ -35,6 +35,8 @@ tasks:
     cmds:
       - LANG=C LC_ALL=C sort .wordlist.txt > .wordlist.txt.new
       - mv -f .wordlist.txt.new .wordlist.txt
+    sources:
+      - .wordlist.txt
 
   spellcheck:
     desc: Run spellcheck
@@ -67,6 +69,7 @@ tasks:
     deps:
       - manifest-main
       - apidoc
+      - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: ba865842d907910c469d016c3ecfa009e4c66915
