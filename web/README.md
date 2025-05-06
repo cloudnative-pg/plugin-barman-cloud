@@ -3,6 +3,13 @@
 This website is built using [Docusaurus](https://docusaurus.io/), a modern
 static website generator.
 
+### Requirements
+
+- Docker
+- [Yarn](https://yarnpkg.com/)
+- [Dagger](https://dagger.io/)
+- [Task](https://taskfile.dev/)
+
 ### Installation
 
 ```shell
@@ -34,6 +41,14 @@ $ yarn serve
 ```
 
 By default, this will load your site at http://localhost:3000/.
+
+### Spellchecking
+
+From the top directory:
+
+```shell
+task spellcheck
+```
 
 ### Versioning
 
