@@ -30,8 +30,18 @@ tasks:
     sources:
       - ./**/*.go
 
+  wordlist-ordered:
+    desc: Order the word list file
+    cmds:
+      - LANG=C LC_ALL=C sort .wordlist.txt > .wordlist.txt.new
+      - mv -f .wordlist.txt.new .wordlist.txt
+    sources:
+      - .wordlist.txt
+
   spellcheck:
     desc: Run spellcheck
+    deps:
+      - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_SPELLCHECK_SHA: ba865842d907910c469d016c3ecfa009e4c66915
@@ -59,6 +69,7 @@ tasks:
     deps:
       - manifest-main
       - apidoc
+      - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: ba865842d907910c469d016c3ecfa009e4c66915
