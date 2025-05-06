@@ -11,6 +11,9 @@
   ],
   rebaseWhen: 'never',
   prConcurrentLimit: 5,
+  lockFileMaintenance: {
+    "enabled": true,
+  },
   "gomod": {
     // Do not manage the dagger go.mod file
     "ignorePaths": [
@@ -99,6 +102,13 @@
         "digest"
       ],
       "groupName": "all sagikazarmark daggerverse dependencies"
+    },
+    {
+      matchFileNames: [
+        "web/package.json",
+        "web/yarn.lock"
+      ],
+      groupName: "documentation dependencies"
     },
     {
       "matchUpdateTypes": [
