@@ -17,7 +17,6 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -124,7 +123,7 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
-	resources, err := impl.collectSidecarResources(ctx, pluginConfiguration)
+	resources, err := impl.collectSidecarResourcesForRecoveryJob(ctx, pluginConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +215,7 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
-	resources, err := impl.collectSidecarResources(ctx, pluginConfiguration)
+	resources, err := impl.collectSidecarResourcesForPod(ctx, pluginConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -226,18 +225,6 @@ func (impl LifecycleImplementation) reconcilePod(
 		certificates: certificates,
 		resources:    resources,
 	})
-}
-
-func (impl LifecycleImplementation) collectSidecarResources(
-	ctx context.Context,
-	configuration *config.PluginConfiguration,
-) (corev1.ResourceRequirements, error) {
-	var barmanObjectStore barmancloudv1.ObjectStore
-	if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
-		return corev1.ResourceRequirements{}, err
-	}
-
-	return barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources, nil
 }
 
 func reconcilePod(
