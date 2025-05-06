@@ -17,8 +17,7 @@
   "gomod": {
     // Do not manage the dagger go.mod file
     "ignorePaths": [
-      "dagger/gotest/go.mod",
-      "dagger/e2e/go.mod"
+      "dagger/**/go.mod",
     ]
   },
   "postUpdateOptions": [
