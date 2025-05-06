@@ -15,10 +15,10 @@ for space, speed, or a balance of both.
 
 - `bzip2`
 - `gzip`
-- `lz4` (wal only)
+- `lz4` (WAL only)
 - `snappy`
-- `xz` (wal only)
-- `zstd` (wal only)
+- `xz` (WAL only)
+- `zstd` (WAL only)
 
 Compression settings for base backups and WAL archives are configured
 independently. For implementation details, refer to the corresponding API
