@@ -12,6 +12,13 @@ enables online continuous physical backups of PostgreSQL clusters to object stor
 using the `barman-cloud` suite from the [Barman](https://docs.pgbarman.org/release/latest/)
 project.
 
+:::important
+If you plan to migrate your existing CloudNativePG cluster to the new
+plugin-based approach using the Barman Cloud Plugin, see
+["Migrating from Built-in CloudNativePG Backup"](migration.md)
+for detailed instructions.
+:::
+
 ## Requirements
 
 To use the Barman Cloud Plugin, you need:
