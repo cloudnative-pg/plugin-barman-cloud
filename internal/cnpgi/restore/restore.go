@@ -358,10 +358,12 @@ func loadBackupObjectFromExternalCluster(
 		return nil, nil, err
 	}
 
+	contextLogger.Info("Downloading backup catalog")
 	backupCatalog, err := barmanCommand.GetBackupList(ctx, recoveryObjectStore, serverName, env)
 	if err != nil {
 		return nil, nil, err
 	}
+	contextLogger.Info("Downloaded backup catalog", "backupCatalog", backupCatalog)
 
 	// We are now choosing the right backup to restore
 	var targetBackup *barmanCatalog.BarmanBackup
