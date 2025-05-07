@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"time"
 
 	"github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanArchiver "github.com/cloudnative-pg/barman-cloud/pkg/archiver"
@@ -363,7 +364,7 @@ func loadBackupObjectFromExternalCluster(
 	if err != nil {
 		return nil, nil, err
 	}
-	contextLogger.Info("Downloaded backup catalog", "backupCatalog", backupCatalog)
+	contextLogger.Info("Downloaded backup catalog", "backupCatalog", shortenedCatalog(backupCatalog))
 
 	// We are now choosing the right backup to restore
 	var targetBackup *barmanCatalog.BarmanBackup
@@ -409,4 +410,35 @@ func loadBackupObjectFromExternalCluster(
 			CommandError:      "",
 		},
 	}, env, nil
+}
+
+// ShortBackupCatalogEntry is used when logging the downloaded backup
+// catalog and contains only the fields used for debugging
+type ShortBackupCatalogEntry struct {
+	// BackupID is the backup ID
+	BackupID string `json:"backupID"`
+
+	// StartTime is the backup time
+	StartTime time.Time `json:"startTime"`
+
+	// EndTime is the end time
+	EndTime time.Time `json:"endTime"`
+}
+
+// shortenedCatalog creates a structure containing the debug information
+// of a backup catalog.
+func shortenedCatalog(catalog *barmanCatalog.Catalog) []ShortBackupCatalogEntry {
+	if catalog == nil {
+		return nil
+	}
+
+	result := make([]ShortBackupCatalogEntry, len(catalog.List))
+
+	for i, v := range catalog.List {
+		result[i].BackupID = v.BackupName
+		result[i].StartTime = v.BeginTime
+		result[i].EndTime = v.EndTime
+	}
+
+	return result
 }
