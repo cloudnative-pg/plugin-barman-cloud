@@ -41,6 +41,10 @@ WAL files are archived in the `wals` directory, while base backups are stored
 as **tarballs** in the `base` directory, following the
 [Barman Cloud convention](https://docs.pgbarman.org/cloud/latest/usage/#object-store-layout).
 
+The plugin also offers advanced capabilities, including
+[backup tagging](misc.md#backup-object-tagging) and
+[extra options for backups and WAL archiving](misc.md#extra-options-for-backup-and-wal-archiving).
+
 :::tip
 For details, refer to the
 [API reference for the `ObjectStore` resource](plugin-barman-cloud.v1.md#objectstorespec).
