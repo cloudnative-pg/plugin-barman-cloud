@@ -160,7 +160,13 @@ func (r ReconcilerImplementation) ensureRole(
 		"rules", newRole.Rules,
 	)
 
-	return r.Client.Patch(ctx, newRole, client.MergeFrom(&role))
+	oldRole := role.DeepCopy()
+
+	// Apply to the role the new rules
+	role.Rules = newRole.Rules
+
+	// Push it back to the API server
+	return r.Client.Patch(ctx, &role, client.MergeFrom(oldRole))
 }
 
 func (r ReconcilerImplementation) ensureRoleBinding(
