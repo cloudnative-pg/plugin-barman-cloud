@@ -30,15 +30,27 @@ func (impl LifecycleImplementation) collectSidecarResourcesForPod(
 	configuration *config.PluginConfiguration,
 ) (corev1.ResourceRequirements, error) {
 	if len(configuration.BarmanObjectName) > 0 {
-		// On a replica cluster, the designated primary will use both the
-		// replica source object store and the object store of the cluster.
-		// The designed primary role can change without the Pod being
-		// recreated.
+		// On a replica cluster that also archives, the designated primary
+		// will use both the replica source object store and the object store
+		// of the cluster.
 		// In this case, we use the cluster object store for configuring
-		// the resources created by the sidecar.
+		// the resources of the sidecar container.
 
 		var barmanObjectStore barmancloudv1.ObjectStore
 		if err := impl.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+			return corev1.ResourceRequirements{}, err
+		}
+
+		return barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources, nil
+	}
+
+	if len(configuration.RecoveryBarmanObjectName) > 0 {
+		// On a replica cluster that doesn't archive, the designated primary
+		// uses only the replica source object store.
+		// In this case, we use the replica source object store for configuring
+		// the resources of the sidecar container.
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &barmanObjectStore); err != nil {
 			return corev1.ResourceRequirements{}, err
 		}
 
