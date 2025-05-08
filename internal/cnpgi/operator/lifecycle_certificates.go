@@ -18,38 +18,16 @@ const barmanCertificatesVolumeName = "barman-certificates"
 
 func (impl LifecycleImplementation) collectAdditionalCertificates(
 	ctx context.Context,
-	namespace string,
 	pluginConfiguration *config.PluginConfiguration,
 ) ([]corev1.VolumeProjection, error) {
 	var result []corev1.VolumeProjection
 
-	if len(pluginConfiguration.BarmanObjectName) > 0 {
-		envs, err := impl.collectObjectStoreCertificates(
-			ctx,
-			types.NamespacedName{
-				Name:      pluginConfiguration.BarmanObjectName,
-				Namespace: namespace,
-			},
-		)
+	for _, barmanObjectKey := range pluginConfiguration.GetReferredBarmanObjectsKey() {
+		certs, err := impl.collectObjectStoreCertificates(ctx, barmanObjectKey)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, envs...)
-	}
-
-	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 &&
-		pluginConfiguration.RecoveryBarmanObjectName != pluginConfiguration.BarmanObjectName {
-		envs, err := impl.collectObjectStoreCertificates(
-			ctx,
-			types.NamespacedName{
-				Name:      pluginConfiguration.RecoveryBarmanObjectName,
-				Namespace: namespace,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, envs...)
+		result = append(result, certs...)
 	}
 
 	return result, nil

@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-replica
+spec:
+  instances: 3
+  bootstrap:
+    recovery:
+      source: source
+  replica:
+    enabled: true
+    source: source
+  externalClusters:
+  - name: source
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: minio-store
+        serverName: cluster-example
+  storage:
+    size: 1Gi
+
