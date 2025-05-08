@@ -102,7 +102,7 @@ As you can see, the contents of `barmanObjectStore` have been copied directly
 under the `configuration` field of the `ObjectStore` resource, using the same
 secret references.
 
-## Step 2: Update the `Cluster`
+## Step 2: Update the `Cluster` for plugin WAL archiving
 
 Once the `ObjectStore` resource is in place, update the `Cluster` resource as
 follows in a single atomic change:
@@ -174,3 +174,84 @@ spec:
 ```
 
 ---
+
+## Step 4: Update `externalClusters` configuration
+
+If the cluster has external clusters that use the built-in Barman
+Cloud integration, you'll need to update those configurations as well.
+
+When a cluster is configured as a replica using an external Barman Cloud backup,
+you need to:
+
+1. Create an `ObjectStore` resource for the external cluster, similar to the one
+   created in [step 1](#step-1-define-the-objectstore)
+2. Update the `externalClusters` section in your replica cluster to reference
+   the plugin
+
+### Example
+
+Original external cluster configuration using in-tree backup:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-us
+spec:
+  # [...]
+  externalClusters:
+  - name: pg-eu
+    barmanObjectStore:
+      destinationPath: s3://backups/
+      endpointURL: http://minio-eu:9000
+      serverName: pg-eu
+      s3Credentials:
+        accessKeyId:
+          name: minio-eu
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: minio-eu
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+```
+
+Create the `ObjectStore` resource for the external cluster:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: minio-eu
+spec:
+  configuration:
+    destinationPath: s3://backups/
+    endpointURL: http://minio-eu:9000
+    s3Credentials:
+    accessKeyId:
+        name: minio-eu
+        key: ACCESS_KEY_ID
+    secretAccessKey:
+        name: minio-eu
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+```
+
+Update the external cluster configuration to use the plugin:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-us
+spec:
+  # [...]
+  externalClusters:
+  - name: pg-eu
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: minio-eu
+        serverName: pg-eu
+```
