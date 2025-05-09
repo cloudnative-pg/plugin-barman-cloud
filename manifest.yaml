@@ -381,6 +381,11 @@ spec:
                 required:
                 - destinationPath
                 type: object
+                x-kubernetes-validations:
+                - fieldPath: .serverName
+                  message: use the 'serverName' plugin parameter in the Cluster resource
+                  reason: FieldValueForbidden
+                  rule: '!has(self.serverName)'
               instanceSidecarConfiguration:
                 description: The configuration for the sidecar that runs in the instance
                   pods
