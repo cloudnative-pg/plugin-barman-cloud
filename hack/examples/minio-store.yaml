@@ -5,7 +5,14 @@ metadata:
 spec:
   retentionPolicy: "1m"
   instanceSidecarConfiguration:
-    retentionPolicyIntervalSeconds: 30
+    retentionPolicyIntervalSeconds: 1800
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
   configuration:
     endpointCA:
       name: minio-server-tls
@@ -27,4 +34,3 @@ spec:
         - "--min-chunk-size=5MB"
         - "--read-timeout=60"
         - "-vv"
-    

@@ -33,6 +33,7 @@ README
 RPO
 RTO
 RecoveryWindow
+ResourceRequirements
 RetentionPolicy
 SAS
 SFO
@@ -64,6 +65,7 @@ cmctl
 cnpg
 codebase
 containerPort
+cpu
 creds
 csi
 customresourcedefinition
@@ -102,6 +104,7 @@ repos
 retentionCheckInterval
 retentionPolicy
 rolebinding
+rollout
 sc
 secretKeyRef
 selfsigned

@@ -17,6 +17,9 @@ func (impl LifecycleImplementation) collectAdditionalEnvs(
 ) ([]corev1.EnvVar, error) {
 	var result []corev1.EnvVar
 
+	// TODO: check if the environment variables are clashing and in
+	// that case raise an error
+
 	if len(pluginConfiguration.BarmanObjectName) > 0 {
 		envs, err := impl.collectObjectStoreEnvs(
 			ctx,
@@ -36,6 +39,20 @@ func (impl LifecycleImplementation) collectAdditionalEnvs(
 			ctx,
 			types.NamespacedName{
 				Name:      pluginConfiguration.RecoveryBarmanObjectName,
+				Namespace: namespace,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, envs...)
+	}
+
+	if len(pluginConfiguration.ReplicaSourceBarmanObjectName) > 0 {
+		envs, err := impl.collectObjectStoreEnvs(
+			ctx,
+			types.NamespacedName{
+				Name:      pluginConfiguration.ReplicaSourceBarmanObjectName,
 				Namespace: namespace,
 			},
 		)

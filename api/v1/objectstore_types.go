@@ -33,6 +33,10 @@ type InstanceSidecarConfiguration struct {
 	// +kubebuilder:default:=1800
 	// +optional
 	RetentionPolicyIntervalSeconds int `json:"retentionPolicyIntervalSeconds,omitempty"`
+
+	// Resources define cpu/memory requests and limits for the sidecar that runs in the instance pods.
+	// +optional
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.

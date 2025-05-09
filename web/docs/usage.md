@@ -210,3 +210,49 @@ spec:
       parameters:
         barmanObjectName: minio-store-b
 ```
+
+## Configuring the plugin instance sidecar
+
+The Barman Cloud Plugin runs as a sidecar container next to each PostgreSQL
+instance pod. It manages backup, WAL archiving, and restore processes.
+
+Configuration comes from multiple `ObjectStore` resources:
+
+1. The one referenced in the
+   `.spec.plugins` section of the `Cluster`. This is the
+   object store used for WAL archiving and base backups.
+2. The one referenced in the external cluster
+   used in the `.spec.replica.source` section of the `Cluster`. This is
+   used by the log-shipping designated primary to get the WAL files.
+3. The one referenced in the
+   `.spec.bootstrap.recovery.source` section of the `Cluster`. Used by
+   the initial recovery job to create the cluster from an existing backup.
+
+You can fine-tune sidecar behavior in the `.spec.instanceSidecarConfiguration`
+of your ObjectStore. These settings apply to all PostgreSQL instances that use
+this object store. Any updates take effect at the next `Cluster` reconciliation,
+and could generate a rollout of the `Cluster`.
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: minio-store
+spec:
+  configuration:
+  # [...]
+  instanceSidecarConfiguration:
+    retentionPolicyIntervalSeconds: 1800
+    resources:
+      requests:
+        memory: "XXX"
+        cpu: "YYY"
+      limits:
+        memory: "XXX"
+        cpu: "YYY"
+```
+
+:::note
+If more than one `ObjectStore` applies, the `instanceSidecarConfiguration` of
+the one set in `.spec.plugins` has priority.
+:::
