@@ -118,7 +118,7 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
-	certificates, err := impl.collectAdditionalCertificates(ctx, cluster.Namespace, pluginConfiguration)
+	certificates, err := impl.collectAdditionalCertificates(ctx, pluginConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
-	certificates, err := impl.collectAdditionalCertificates(ctx, cluster.Namespace, pluginConfiguration)
+	certificates, err := impl.collectAdditionalCertificates(ctx, pluginConfiguration)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,8 @@ func reconcilePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if len(pluginConfiguration.BarmanObjectName) != 0 {
+	if len(pluginConfiguration.BarmanObjectName) != 0 ||
+		len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
 		if err := reconcilePodSpec(
 			cluster,
 			&mutatedPod.Spec,

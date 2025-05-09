@@ -5,6 +5,7 @@ import (
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/decoder"
+	"github.com/cloudnative-pg/machinery/pkg/stringset"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
@@ -85,16 +86,23 @@ func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.Names
 // GetReferredBarmanObjectsKey gets the list of barman objects referred by this
 // plugin configuration
 func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.NamespacedName {
-	result := make([]types.NamespacedName, 0, 3)
-
+	objectNames := stringset.New()
 	if len(config.BarmanObjectName) > 0 {
-		result = append(result, config.GetBarmanObjectKey())
+		objectNames.Put(config.BarmanObjectName)
 	}
 	if len(config.RecoveryBarmanObjectName) > 0 {
-		result = append(result, config.GetRecoveryBarmanObjectKey())
+		objectNames.Put(config.RecoveryBarmanObjectName)
 	}
 	if len(config.ReplicaSourceBarmanObjectName) > 0 {
-		result = append(result, config.GetReplicaSourceBarmanObjectKey())
+		objectNames.Put(config.ReplicaSourceBarmanObjectName)
+	}
+
+	result := make([]types.NamespacedName, 0, 3)
+	for _, name := range objectNames.ToSortedList() {
+		result = append(result, types.NamespacedName{
+			Name:      name,
+			Namespace: config.Cluster.Namespace,
+		})
 	}
 
 	return result
