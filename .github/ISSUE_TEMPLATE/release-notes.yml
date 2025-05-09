@@ -22,7 +22,7 @@ body:
     id: minor
     attributes:
       label: Is this a new minor release?
-      description: Is this a new minor release for the BarmanCloudPlugin? If so, make sure you check the `contribute/release-notes-template.md` file.
+      description: Is this a new minor release for the BarmanCloudPlugin?
       options:
         - "No"
         - "Yes"
