@@ -214,7 +214,9 @@ spec:
 ## Configuring the plugin instance sidecar
 
 The Barman Cloud Plugin uses a sidecar container that runs alongside each
-PostgreSQL instance pod. This sidecar handles backup, WAL archiving, and restore
+PostgreSQL instance pod.
+
+This sidecar handles backup, WAL archiving, and restore
 operations. You can control how the sidecar works by setting the
 `.spec.instanceSidecarConfiguration` section in your `ObjectStore` resource.
 These settings apply to all PostgreSQL instances that use this object store.
@@ -238,10 +240,27 @@ spec:
         cpu: "500m"
 ```
 
-When the plugin is enabled, the sidecar is automatically injected into each
-PostgreSQL instance pod. Even if you define multiple `ObjectStore` resources,
-only one sidecar will run per instance. If a replica cluster also archives WALs
-to a different `ObjectStore`, the sidecar will use the resource settings from the
-`ObjectStore` referenced by the archiving plugin, not the one in the
-`.spec.externalClusters` section. Changes to the sidecar configuration will be
-applied on the next reconciliation of the `Cluster` resources it.
+The plugin injects a sidecar in the recovery job and in the PostgreSQL
+instance Pods when needed.
+
+When this happens, the sidecar will manage multiple `ObjectStore`
+resources:
+
+1. the target object store, where WAL files and backups will
+   be written
+
+2. the replica source object store, used by the log-shipping designated
+   primary to get the WAL files
+
+3. the recovery object store, used when creating the cluster from an
+   existing backup (used only by the recovery job)
+
+The resources defined by the recovery object store will be used when
+injecting the sidecar in the recovery job.
+
+If a sidecar is needed by PG instances pod, the resources defined in
+the target object store will be used. Should this object store be not
+defined, the replica object store will be used.
+
+Changes to the sidecar configuration will be applied on the next
+reconciliation of the `Cluster` resources it.
