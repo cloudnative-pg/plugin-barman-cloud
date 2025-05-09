@@ -20,6 +20,7 @@ Cloud Plugin, with **no downtime**. Follow these steps:
 - Modify the `Cluster` resource in a single atomic change to switch from
   in-tree backup to the plugin
 - Update any `ScheduledBackup` resources to use the plugin
+- Update the `externalClusters` configuration, where applicable
 
 :::tip
 For a working example, refer to [this commit](https://github.com/cloudnative-pg/cnpg-playground/commit/596f30e252896edf8f734991c3538df87630f6f7)
@@ -102,7 +103,7 @@ As you can see, the contents of `barmanObjectStore` have been copied directly
 under the `configuration` field of the `ObjectStore` resource, using the same
 secret references.
 
-## Step 2: Update the `Cluster`
+## Step 2: Update the `Cluster` for plugin WAL archiving
 
 Once the `ObjectStore` resource is in place, update the `Cluster` resource as
 follows in a single atomic change:
@@ -174,3 +175,85 @@ spec:
 ```
 
 ---
+
+## Step 4: Update the `externalClusters` configuration
+
+If your `Cluster` relies on one or more external clusters that use the in-tree
+Barman Cloud integration, you need to update those configurations to use the
+plugin-based architecture.
+
+When a replica cluster fetches WAL files or base backups from an external
+source that used the built-in backup method, follow these steps:
+
+1. Create a corresponding `ObjectStore` resource for the external cluster, as
+   shown in [Step 1](#step-1-define-the-objectstore)
+2. Update the `externalClusters` section of your replica cluster to use the
+   plugin instead of the in-tree `barmanObjectStore` field
+
+### Example
+
+Consider the original configuration using in-tree Barman Cloud:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-us
+spec:
+  # [...]
+  externalClusters:
+  - name: pg-eu
+    barmanObjectStore:
+      destinationPath: s3://backups/
+      endpointURL: http://minio-eu:9000
+      serverName: pg-eu
+      s3Credentials:
+        accessKeyId:
+          name: minio-eu
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: minio-eu
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+```
+
+Create the `ObjectStore` resource for the external cluster:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: minio-eu
+spec:
+  configuration:
+    destinationPath: s3://backups/
+    endpointURL: http://minio-eu:9000
+    s3Credentials:
+    accessKeyId:
+        name: minio-eu
+        key: ACCESS_KEY_ID
+    secretAccessKey:
+        name: minio-eu
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+```
+
+Update the external cluster configuration to use the plugin:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-us
+spec:
+  # [...]
+  externalClusters:
+  - name: pg-eu
+    plugin:
+      name: barman-cloud.cloudnative-pg.io
+      parameters:
+        barmanObjectName: minio-eu
+        serverName: pg-eu
+```
