@@ -20,6 +20,7 @@ Cloud Plugin, with **no downtime**. Follow these steps:
 - Modify the `Cluster` resource in a single atomic change to switch from
   in-tree backup to the plugin
 - Update any `ScheduledBackup` resources to use the plugin
+- Update the `externalClusters` configuration, where applicable
 
 :::tip
 For a working example, refer to [this commit](https://github.com/cloudnative-pg/cnpg-playground/commit/596f30e252896edf8f734991c3538df87630f6f7)
@@ -175,22 +176,23 @@ spec:
 
 ---
 
-## Step 4: Update `externalClusters` configuration
+## Step 4: Update the `externalClusters` configuration
 
-If the cluster has external clusters that use the built-in Barman
-Cloud integration, you'll need to update those configurations as well.
+If your `Cluster` relies on one or more external clusters that use the in-tree
+Barman Cloud integration, you need to update those configurations to use the
+plugin-based architecture.
 
-When a cluster is configured as a replica using an external Barman Cloud backup,
-you need to:
+When a replica cluster fetches WAL files or base backups from an external
+source that used the built-in backup method, follow these steps:
 
-1. Create an `ObjectStore` resource for the external cluster, similar to the one
-   created in [step 1](#step-1-define-the-objectstore)
-2. Update the `externalClusters` section in your replica cluster to reference
-   the plugin
+1. Create a corresponding `ObjectStore` resource for the external cluster, as
+   shown in [Step 1](#step-1-define-the-objectstore)
+2. Update the `externalClusters` section of your replica cluster to use the
+   plugin instead of the in-tree `barmanObjectStore` field
 
 ### Example
 
-Original external cluster configuration using in-tree backup:
+Consider the original configuration using in-tree Barman Cloud:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
