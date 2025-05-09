@@ -5,7 +5,7 @@ metadata:
 spec:
   retentionPolicy: "1m"
   instanceSidecarConfiguration:
-    retentionPolicyIntervalSeconds: 30
+    retentionPolicyIntervalSeconds: 1800
     resources:
       requests:
         memory: "64Mi"
@@ -34,4 +34,3 @@ spec:
         - "--min-chunk-size=5MB"
         - "--read-timeout=60"
         - "-vv"
-    

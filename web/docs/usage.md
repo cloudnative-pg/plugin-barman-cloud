@@ -228,7 +228,7 @@ spec:
   configuration:
     # [...]
   instanceSidecarConfiguration:
-    retentionPolicyIntervalSeconds: 30
+    retentionPolicyIntervalSeconds: 1800
     resources:
       requests:
         memory: "64Mi"
@@ -243,4 +243,5 @@ PostgreSQL instance pod. Even if you define multiple `ObjectStore` resources,
 only one sidecar will run per instance. If a replica cluster also archives WALs
 to a different `ObjectStore`, the sidecar will use the resource settings from the
 `ObjectStore` referenced by the archiving plugin, not the one in the
-`.spec.externalClusters` section.
+`.spec.externalClusters` section. Changes to the sidecar configuration will be
+applied on the next reconciliation of the `Cluster` resources it.
