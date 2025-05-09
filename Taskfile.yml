@@ -146,7 +146,8 @@ tasks:
     cmds:
       - > 
           mkdir -p certs &&
-          pushd certs &&
+          docker volume create certs &&
+          docker run -v certs:/certs -w /certs --name certs --entrypoint=/bin/bash ubuntu -c 'apt update && apt install openssl -y &&
           openssl genrsa -out ca-key.pem 4096 &&
           openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem \
               -subj "/O=CloudNativePG/OU=Barman Cloud Plugin Testing" &&
@@ -155,14 +156,12 @@ tasks:
           echo subjectAltName = DNS:{{ .REGISTRY_NAME }},IP:127.0.0.1 >> extfile.cnf &&
           echo extendedKeyUsage = serverAuth >> extfile.cnf &&
           openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \
-              -CAcreateserial -out server-cert.pem -extfile extfile.cnf &&
-          popd
+              -CAcreateserial -out server-cert.pem -extfile extfile.cnf'
+          docker cp certs:/certs/ca.pem certs/ca.pem &&
+          docker rm certs
     status:
-        - test -f certs/ca-key.pem
-        - test -f certs/ca.pem
-        - test -f certs/server-key.pem
-        - test -f certs/server.csr
-        - test -f certs/server-cert.pem
+      - docker volume inspect certs
+      - test -f certs/ca.pem
 
   start-build-network:
     desc: Create a docker network for image building used by the dagger engine and the registry
@@ -186,7 +185,7 @@ tasks:
         docker run -d --name {{ .REGISTRY_NAME }}
         -p {{ .REGISTRY_PORT }}:5000
         --network {{ .REGISTRY_NETWORK }}
-        -v $(pwd)/certs:/certs
+        -v certs:/certs
         -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server-cert.pem -e REGISTRY_HTTP_TLS_KEY=/certs/server-key.pem
         registry:${REGISTRY_VERSION}
     status:
@@ -208,7 +207,7 @@ tasks:
       - >
         docker run -d -v /var/lib/dagger --name "{{ .DAGGER_ENGINE_CONTAINER_NAME }}"
         --network={{ .REGISTRY_NETWORK }}
-        -v $(pwd)/certs/ca.pem:/usr/local/share/ca-certificates/ca.crt
+        -v certs:/usr/local/share/ca-certificates/
         --privileged {{ .DAGGER_ENGINE_IMAGE }}
     status:
       - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .DAGGER_ENGINE_CONTAINER_NAME }}" 2> /dev/null )" == 'true' \]
