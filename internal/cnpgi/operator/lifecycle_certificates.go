@@ -30,21 +30,6 @@ func (impl LifecycleImplementation) collectAdditionalCertificates(
 		result = append(result, certs...)
 	}
 
-	if len(pluginConfiguration.ReplicaSourceBarmanObjectName) > 0 &&
-		pluginConfiguration.ReplicaSourceBarmanObjectName != pluginConfiguration.BarmanObjectName {
-		envs, err := impl.collectObjectStoreCertificates(
-			ctx,
-			types.NamespacedName{
-				Name:      pluginConfiguration.RecoveryBarmanObjectName,
-				Namespace: namespace,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, envs...)
-	}
-
 	return result, nil
 }
 
