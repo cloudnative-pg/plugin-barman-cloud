@@ -1,5 +1,5 @@
 name: Release Notes
-description: Release notes for a new version of the plugin-barman-cloud
+description: Release notes for a new version of the BarmanCloudPlugin
 title: "[Release Notes]: BarmanCloudPlugin 1.XX.Y and 1.XX-1.Z"
 labels: ["triage", "documentation"]
 projects: ["coudnative-pg/plugin-barman-cloud"]
