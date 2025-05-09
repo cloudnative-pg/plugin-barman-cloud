@@ -104,3 +104,14 @@ deployment "barman-cloud" successfully rolled out
 ```
 
 This confirms that the plugin is deployed and ready to use.
+
+## Testing the latest development snapshot
+
+You can also test the latest development snapshot of the plugin with the
+following command:
+
+```sh
+kubectl apply -f \
+  https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/refs/heads/main/manifest.yaml
+```
+
