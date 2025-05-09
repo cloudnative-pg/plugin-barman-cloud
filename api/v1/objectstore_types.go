@@ -38,6 +38,7 @@ type InstanceSidecarConfiguration struct {
 // ObjectStoreSpec defines the desired state of ObjectStore.
 type ObjectStoreSpec struct {
 	// The configuration for the barman-cloud tool suite
+	// +kubebuilder:validation:XValidation:rule="!has(self.serverName)",fieldPath=".serverName",reason="FieldValueForbidden",message="use the 'serverName' plugin parameter in the Cluster resource"
 	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
 	// RetentionPolicy is the retention policy to be used for backups
