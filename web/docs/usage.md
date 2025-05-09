@@ -49,6 +49,12 @@ The `.spec.configuration` schema follows the same format as the
 Refer to [the CloudNativePG documentation](https://cloudnative-pg.io/documentation/preview/backup_barmanobjectstore/)
 for additional details.
 
+:::important
+The `serverName` parameter in the `ObjectStore` resource is retained solely for
+API compatibility with the in-tree `barmanObjectStore` and must always be left empty.
+When needed, use the `serverName` plugin parameter in the Cluster configuration instead.
+:::
+
 ## Configuring WAL Archiving
 
 Once the `ObjectStore` is defined, you can configure your PostgreSQL cluster

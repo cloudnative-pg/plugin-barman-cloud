@@ -13,6 +13,7 @@ The following parameters are available for the Barman Cloud Plugin:
 - `serverName`: Specifies the server name in the object store.
 
 :::important
-  The `serverName` parameter within the `ObjectStore` resource exists only for
-  API compatibility with the in-tree `barmanObjectStore` and is ignored by the
-  plugin. Use the `serverName` plugin parameter when needed.
+The `serverName` parameter in the `ObjectStore` resource is retained solely for
+API compatibility with the in-tree `barmanObjectStore` and must always be left empty.
+When needed, use the `serverName` plugin parameter in the Cluster configuration instead.
+:::
