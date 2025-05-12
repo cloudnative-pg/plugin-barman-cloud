@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.4.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.3.0...v0.4.0) (2025-05-12)
+
+
+### Features
+
+* Forbid usage of `.spec.configuration.serverName` in ObjectStore ([#336](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/336)) ([3420f43](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3420f430739ac8518c83cd3b23bf6a8e42b411f7)), closes [#334](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/334)
+* Log the downloaded backup catalog before restore ([#323](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/323)) ([9db184f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9db184f5d4c325ed18aeb4fba6c57c28b0e3ae40)), closes [#319](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/319)
+* **sidecar:** Add resource requirements and limits ([#307](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/307)) ([4bb3471](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4bb347121d3328783ca9eceb656863cde37cb8aa)), closes [#253](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/253)
+* Support snapshot recovery job ([#258](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/258)) ([e00024f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e00024f136996305999c0440ae9b48861828e160))
+* **wal:** Parallel WAL archiving ([#262](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/262)) ([88fd3e5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/88fd3e504f35e004fab47ca33a2e67dd40120e2c)), closes [#260](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/260) [#266](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/266)
+
+
+### Bug Fixes
+
+* [#260](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/260) ([88fd3e5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/88fd3e504f35e004fab47ca33a2e67dd40120e2c))
+* [#266](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/266) ([88fd3e5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/88fd3e504f35e004fab47ca33a2e67dd40120e2c))
+* **deps:** Update all non-major go dependencies ([#246](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/246)) ([ed1feaa](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ed1feaaddcddfabd48a2d9a28013e7585d8babd6))
+* **deps:** Update all non-major go dependencies ([#278](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/278)) ([010c9b9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/010c9b93d4e2d06eb89ba49219f15144c98515cf))
+* **deps:** Update k8s.io/utils digest to 0f33e8f ([#301](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/301)) ([ab398d7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ab398d7d30ebe241b2b682c42c4b129254955b24))
+* **deps:** Update kubernetes packages to v0.33.0 ([#281](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/281)) ([c6f36d5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c6f36d57562a99175e2d3d446ca2d7e7c36b09c3))
+* **deps:** Update react monorepo to v19.1.0 ([#286](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/286)) ([99f31a1](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/99f31a1e5e0313534699c49393edc6beabac60ec))
+* **docs:** Fix TOC links ([#261](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/261)) ([2bb5e90](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2bb5e90357b2defd6fdaa8ff9982e21f58bc5ecc))
+* Duplicate certificate projections ([#331](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/331)) ([8c20e4f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/8c20e4fe8578b5b18277ce2ae8ba11783b1cac84)), closes [#329](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/329)
+* Role patching ([#325](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/325)) ([f484b9e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f484b9e748ad776f7ecec0ed83a2b2424fde2dfc)), closes [#318](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/318)
+
 ## [0.3.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.2.0...v0.3.0) (2025-03-28)
 
 
