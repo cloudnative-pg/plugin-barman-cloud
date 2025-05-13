@@ -6,7 +6,7 @@ sidebar_position: 30
 
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
-After [installing the plugin](installation.md) in the same namespace as the
+After [installing the plugin](installation.mdx) in the same namespace as the
 CloudNativePG operator, enabling your PostgreSQL cluster to use the Barman
 Cloud Plugin involves just a few steps:
 

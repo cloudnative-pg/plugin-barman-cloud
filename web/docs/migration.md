@@ -13,7 +13,7 @@ If you're currently relying on the built-in Barman Cloud integration, you can
 migrate seamlessly to the new **plugin-based architecture** using the Barman
 Cloud Plugin, with **no downtime**. Follow these steps:
 
-- [Install the Barman Cloud Plugin](installation.md)
+- [Install the Barman Cloud Plugin](installation.mdx)
 - Create an `ObjectStore` resource by translating the contents of the
   `.spec.backup.barmanObjectStore` section from your existing `Cluster`
   definition

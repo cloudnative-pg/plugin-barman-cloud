@@ -6,6 +6,20 @@ sidebar_position: 20
 
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
+import { react } from 'react';
+import CodeBlock from '@theme/CodeBlock';
+import { useCurrentVersion } from '@site/src/hooks/versions';
+
+export function InstallationSnippet() {
+    const latest = useCurrentVersion('latestReleased');
+    return(
+<CodeBlock language="sh" >
+        {`kubectl apply -f \\
+  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v${latest}/manifest.yaml`}
+</CodeBlock>
+    );
+}
+
 :::important
 1. The plugin **must** be installed in the same namespace as the CloudNativePG
    operator (typically `cnpg-system`).
@@ -59,14 +73,7 @@ Both checks are required before proceeding with the installation.
 Install the plugin using `kubectl` by applying the manifest for the latest
 release:
 
-<!-- x-release-please-start-version -->
-
-```sh
-kubectl apply -f \
-  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.4.0/manifest.yaml
-```
-
-<!-- x-release-please-end -->
+<InstallationSnippet />
 
 Example output:
 
@@ -114,4 +121,3 @@ following command:
 kubectl apply -f \
   https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/refs/heads/main/manifest.yaml
 ```
-
