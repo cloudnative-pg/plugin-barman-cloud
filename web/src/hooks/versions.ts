@@ -19,6 +19,7 @@ export function useLatestReleasedVersion() {
     const versioned = versions.filter(v => v.name !== 'current');
 
     // Assuming the latest is the first in the list after sorting by semantic version
+    // in descending order
     const latestVersion = versioned.length > 0
         ? versioned.sort((a, b) => (b.name.localeCompare(a.name, undefined, {numeric: true, sensitivity: 'base'})))[0]
         : null;

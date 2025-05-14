@@ -4,22 +4,6 @@ sidebar_position: 20
 
 # Installation
 
-<!-- SPDX-License-Identifier: CC-BY-4.0 -->
-
-import { react } from 'react';
-import CodeBlock from '@theme/CodeBlock';
-import { useCurrentVersion } from '@site/src/hooks/versions';
-
-export function InstallationSnippet() {
-    const latest = useCurrentVersion('latestReleased');
-    return(
-<CodeBlock language="sh" >
-        {`kubectl apply -f \\
-  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v${latest}/manifest.yaml`}
-</CodeBlock>
-    );
-}
-
 :::important
 1. The plugin **must** be installed in the same namespace as the CloudNativePG
    operator (typically `cnpg-system`).
@@ -69,6 +53,8 @@ The cert-manager API is ready
 Both checks are required before proceeding with the installation.
 
 ## Installing the Barman Cloud Plugin
+
+import { InstallationSnippet } from '@site/src/components/Installation';
 
 Install the plugin using `kubectl` by applying the manifest for the latest
 release:
