@@ -4,8 +4,6 @@ sidebar_position: 20
 
 # Installation
 
-<!-- SPDX-License-Identifier: CC-BY-4.0 -->
-
 :::important
 1. The plugin **must** be installed in the same namespace as the CloudNativePG
    operator (typically `cnpg-system`).
@@ -56,17 +54,12 @@ Both checks are required before proceeding with the installation.
 
 ## Installing the Barman Cloud Plugin
 
+import { InstallationSnippet } from '@site/src/components/Installation';
+
 Install the plugin using `kubectl` by applying the manifest for the latest
 release:
 
-<!-- x-release-please-start-version -->
-
-```sh
-kubectl apply -f \
-  https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.4.0/manifest.yaml
-```
-
-<!-- x-release-please-end -->
+<InstallationSnippet />
 
 Example output:
 
@@ -114,4 +107,3 @@ following command:
 kubectl apply -f \
   https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/refs/heads/main/manifest.yaml
 ```
-
