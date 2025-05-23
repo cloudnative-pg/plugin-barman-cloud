@@ -11,7 +11,7 @@ from version 1.26** and will be removed in a future release.
 
 If you're currently relying on the built-in Barman Cloud integration, you can
 migrate seamlessly to the new **plugin-based architecture** using the Barman
-Cloud Plugin, with **no downtime**. Follow these steps:
+Cloud Plugin. Follow these steps:
 
 - [Install the Barman Cloud Plugin](installation.md)
 - Create an `ObjectStore` resource by translating the contents of the
