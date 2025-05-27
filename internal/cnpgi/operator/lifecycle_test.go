@@ -209,3 +209,44 @@ var _ = Describe("LifecycleImplementation", func() {
 		})
 	})
 })
+
+var _ = Describe("Volume utilities", func() {
+	Describe("volumeListEnsureVolume", func() {
+		It("adds a new volume if not present", func() {
+			volumes := []corev1.Volume{{Name: "vol1"}}
+			newVol := corev1.Volume{Name: "vol2"}
+			result := volumeListEnsureVolume(volumes, newVol)
+			Expect(result).To(HaveLen(2))
+			Expect(result[1]).To(Equal(newVol))
+		})
+
+		It("updates an existing volume", func() {
+			volumes := []corev1.Volume{{Name: "vol1"}}
+			updatedVol := corev1.Volume{Name: "vol1", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
+			result := volumeListEnsureVolume(volumes, updatedVol)
+			Expect(result).To(HaveLen(1))
+			Expect(result[0]).To(Equal(updatedVol))
+		})
+	})
+
+	Describe("volumeListRemoveVolume", func() {
+		It("removes the specified volume", func() {
+			volumes := []corev1.Volume{
+				{Name: "vol1"},
+				{Name: "vol2"},
+				{Name: "vol3"},
+			}
+			result := volumeListRemoveVolume(volumes, "vol2")
+			Expect(result).To(HaveLen(2))
+			for _, v := range result {
+				Expect(v.Name).NotTo(Equal("vol2"))
+			}
+		})
+
+		It("returns the same list if the volume is not present", func() {
+			volumes := []corev1.Volume{{Name: "vol1"}, {Name: "vol2"}}
+			result := volumeListRemoveVolume(volumes, "vol3")
+			Expect(result).To(Equal(volumes))
+		})
+	})
+})
