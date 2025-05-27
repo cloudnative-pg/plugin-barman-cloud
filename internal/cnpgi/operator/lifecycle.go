@@ -370,7 +370,7 @@ func reconcilePodSpec(
 	}
 
 	if len(config.certificates) > 0 {
-		sidecarTemplate.VolumeMounts = append(
+		sidecarTemplate.VolumeMounts = ensureVolumeMount(
 			sidecarTemplate.VolumeMounts,
 			corev1.VolumeMount{
 				Name:      barmanCertificatesVolumeName,
@@ -417,7 +417,7 @@ func InjectPluginVolumePodSpec(spec *corev1.PodSpec, mainContainerName string) {
 		return
 	}
 
-	spec.Volumes = append(spec.Volumes, corev1.Volume{
+	spec.Volumes = ensureVolume(spec.Volumes, corev1.Volume{
 		Name: pluginVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -426,7 +426,7 @@ func InjectPluginVolumePodSpec(spec *corev1.PodSpec, mainContainerName string) {
 
 	for i := range spec.Containers {
 		if spec.Containers[i].Name == mainContainerName {
-			spec.Containers[i].VolumeMounts = append(
+			spec.Containers[i].VolumeMounts = ensureVolumeMount(
 				spec.Containers[i].VolumeMounts,
 				corev1.VolumeMount{
 					Name:      pluginVolumeName,
@@ -450,7 +450,7 @@ func injectPluginSidecarPodSpec(
 	mainContainerFound := false
 	for i := range spec.Containers {
 		if spec.Containers[i].Name == mainContainerName {
-			sidecar.VolumeMounts = append(sidecar.VolumeMounts, spec.Containers[i].VolumeMounts...)
+			sidecar.VolumeMounts = ensureVolumeMount(sidecar.VolumeMounts, spec.Containers[i].VolumeMounts...)
 			mainContainerFound = true
 		}
 	}
@@ -489,6 +489,27 @@ func ensureVolume(volumes []corev1.Volume, volume corev1.Volume) []corev1.Volume
 	}
 
 	return volumes
+}
+
+// ensureVolumeMount makes sure the passed volume mounts are present in the list of volume mounts.
+// If a volume mount is already present, it is updated.
+func ensureVolumeMount(mounts []corev1.VolumeMount, volumeMounts ...corev1.VolumeMount) []corev1.VolumeMount {
+	for _, mount := range volumeMounts {
+		mountFound := false
+		for i := range mounts {
+			if mounts[i].Name == mount.Name {
+				mountFound = true
+				mounts[i] = mount
+				break
+			}
+		}
+
+		if !mountFound {
+			mounts = append(mounts, mount)
+		}
+	}
+
+	return mounts
 }
 
 // removeVolume removes a volume with a known name from a list of volumes.
