@@ -4,9 +4,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions: read-all
+
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
     steps:
       - name: Cleanup Disk
         uses: jlumbroso/free-disk-space@v1.3.1
