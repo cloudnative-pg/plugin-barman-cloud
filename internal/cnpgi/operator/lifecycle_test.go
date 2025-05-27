@@ -211,11 +211,11 @@ var _ = Describe("LifecycleImplementation", func() {
 })
 
 var _ = Describe("Volume utilities", func() {
-	Describe("volumeListEnsureVolume", func() {
+	Describe("ensureVolume", func() {
 		It("adds a new volume if not present", func() {
 			volumes := []corev1.Volume{{Name: "vol1"}}
 			newVol := corev1.Volume{Name: "vol2"}
-			result := volumeListEnsureVolume(volumes, newVol)
+			result := ensureVolume(volumes, newVol)
 			Expect(result).To(HaveLen(2))
 			Expect(result[1]).To(Equal(newVol))
 		})
@@ -223,20 +223,20 @@ var _ = Describe("Volume utilities", func() {
 		It("updates an existing volume", func() {
 			volumes := []corev1.Volume{{Name: "vol1"}}
 			updatedVol := corev1.Volume{Name: "vol1", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
-			result := volumeListEnsureVolume(volumes, updatedVol)
+			result := ensureVolume(volumes, updatedVol)
 			Expect(result).To(HaveLen(1))
 			Expect(result[0]).To(Equal(updatedVol))
 		})
 	})
 
-	Describe("volumeListRemoveVolume", func() {
+	Describe("removeVolume", func() {
 		It("removes the specified volume", func() {
 			volumes := []corev1.Volume{
 				{Name: "vol1"},
 				{Name: "vol2"},
 				{Name: "vol3"},
 			}
-			result := volumeListRemoveVolume(volumes, "vol2")
+			result := removeVolume(volumes, "vol2")
 			Expect(result).To(HaveLen(2))
 			for _, v := range result {
 				Expect(v.Name).NotTo(Equal("vol2"))
@@ -245,8 +245,37 @@ var _ = Describe("Volume utilities", func() {
 
 		It("returns the same list if the volume is not present", func() {
 			volumes := []corev1.Volume{{Name: "vol1"}, {Name: "vol2"}}
-			result := volumeListRemoveVolume(volumes, "vol3")
+			result := removeVolume(volumes, "vol3")
 			Expect(result).To(Equal(volumes))
 		})
+	})
+})
+
+var _ = Describe("removeVolumeMount", func() {
+	It("removes the specified volume mount", func() {
+		mounts := []corev1.VolumeMount{
+			{Name: "mount1"},
+			{Name: "mount2"},
+			{Name: "mount3"},
+		}
+		result := removeVolumeMount(mounts, "mount2")
+		Expect(result).To(HaveLen(2))
+		for _, m := range result {
+			Expect(m.Name).NotTo(Equal("mount2"))
+		}
+	})
+
+	It("returns the same list if the volume mount is not present", func() {
+		mounts := []corev1.VolumeMount{{Name: "mount1"}, {Name: "mount2"}}
+		result := removeVolumeMount(mounts, "mount3")
+		Expect(result).To(HaveLen(2))
+		Expect(result[0].Name).To(Equal("mount1"))
+		Expect(result[1].Name).To(Equal("mount2"))
+	})
+
+	It("handles empty input slice", func() {
+		var mounts []corev1.VolumeMount
+		result := removeVolumeMount(mounts, "mount1")
+		Expect(result).To(BeEmpty())
 	})
 })

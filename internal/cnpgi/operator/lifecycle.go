@@ -377,7 +377,7 @@ func reconcilePodSpec(
 				MountPath: metadata.BarmanCertificatesPath,
 			})
 
-		spec.Volumes = volumeListEnsureVolume(spec.Volumes, corev1.Volume{
+		spec.Volumes = ensureVolume(spec.Volumes, corev1.Volume{
 			Name: barmanCertificatesVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
@@ -386,7 +386,8 @@ func reconcilePodSpec(
 			},
 		})
 	} else {
-		spec.Volumes = volumeListRemoveVolume(spec.Volumes, barmanCertificatesVolumeName)
+		sidecarTemplate.VolumeMounts = removeVolumeMount(sidecarTemplate.VolumeMounts, barmanCertificatesVolumeName)
+		spec.Volumes = removeVolume(spec.Volumes, barmanCertificatesVolumeName)
 	}
 
 	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
@@ -472,9 +473,9 @@ func injectPluginSidecarPodSpec(
 	return nil
 }
 
-// volumeListEnsureVolume makes sure the passed volume is present in the list of volumes.
+// ensureVolume makes sure the passed volume is present in the list of volumes.
 // If the volume is already present, it is updated.
-func volumeListEnsureVolume(volumes []corev1.Volume, volume corev1.Volume) []corev1.Volume {
+func ensureVolume(volumes []corev1.Volume, volume corev1.Volume) []corev1.Volume {
 	volumeFound := false
 	for i := range volumes {
 		if volumes[i].Name == volume.Name {
@@ -490,16 +491,25 @@ func volumeListEnsureVolume(volumes []corev1.Volume, volume corev1.Volume) []cor
 	return volumes
 }
 
-// volumeListRemoveVolume removes a volume with a known name from a list of volumes.
-func volumeListRemoveVolume(volumes []corev1.Volume, name string) []corev1.Volume {
-	j := 0
+// removeVolume removes a volume with a known name from a list of volumes.
+func removeVolume(volumes []corev1.Volume, name string) []corev1.Volume {
+	var filteredVolumes []corev1.Volume
 	for _, volume := range volumes {
 		if volume.Name != name {
-			volumes[j] = volume
-			j++
+			filteredVolumes = append(filteredVolumes, volume)
 		}
 	}
-	return volumes[:j]
+	return filteredVolumes
+}
+
+func removeVolumeMount(mounts []corev1.VolumeMount, name string) []corev1.VolumeMount {
+	var filteredMounts []corev1.VolumeMount
+	for _, mount := range mounts {
+		if mount.Name != name {
+			filteredMounts = append(filteredMounts, mount)
+		}
+	}
+	return filteredMounts
 }
 
 // getCNPGJobRole gets the role associated to a CNPG job
