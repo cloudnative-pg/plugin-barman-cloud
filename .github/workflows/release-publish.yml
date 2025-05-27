@@ -7,6 +7,9 @@ jobs:
   release-publish-artifacts:
     runs-on: ubuntu-latest
     steps:
+      - uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2-52
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Task
