@@ -333,6 +333,7 @@ func reconcilePodSpec(
 			Drop: []corev1.Capability{"ALL"},
 		},
 	}
+	sidecarTemplate.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
 	sidecarTemplate.Resources = config.resources
 
 	// merge the main container envs if they aren't already set
@@ -368,13 +369,15 @@ func reconcilePodSpec(
 		}
 	}
 
-	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
-		return err
-	}
+	if len(config.certificates) > 0 {
+		sidecarTemplate.VolumeMounts = ensureVolumeMount(
+			sidecarTemplate.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      barmanCertificatesVolumeName,
+				MountPath: metadata.BarmanCertificatesPath,
+			})
 
-	// inject the volume containing the certificates if needed
-	if !volumeListHasVolume(spec.Volumes, barmanCertificatesVolumeName) {
-		spec.Volumes = append(spec.Volumes, corev1.Volume{
+		spec.Volumes = ensureVolume(spec.Volumes, corev1.Volume{
 			Name: barmanCertificatesVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				Projected: &corev1.ProjectedVolumeSource{
@@ -382,6 +385,13 @@ func reconcilePodSpec(
 				},
 			},
 		})
+	} else {
+		sidecarTemplate.VolumeMounts = removeVolumeMount(sidecarTemplate.VolumeMounts, barmanCertificatesVolumeName)
+		spec.Volumes = removeVolume(spec.Volumes, barmanCertificatesVolumeName)
+	}
+
+	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
+		return err
 	}
 
 	return nil
@@ -407,7 +417,7 @@ func InjectPluginVolumePodSpec(spec *corev1.PodSpec, mainContainerName string) {
 		return
 	}
 
-	spec.Volumes = append(spec.Volumes, corev1.Volume{
+	spec.Volumes = ensureVolume(spec.Volumes, corev1.Volume{
 		Name: pluginVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -416,7 +426,7 @@ func InjectPluginVolumePodSpec(spec *corev1.PodSpec, mainContainerName string) {
 
 	for i := range spec.Containers {
 		if spec.Containers[i].Name == mainContainerName {
-			spec.Containers[i].VolumeMounts = append(
+			spec.Containers[i].VolumeMounts = ensureVolumeMount(
 				spec.Containers[i].VolumeMounts,
 				corev1.VolumeMount{
 					Name:      pluginVolumeName,
@@ -428,10 +438,6 @@ func InjectPluginVolumePodSpec(spec *corev1.PodSpec, mainContainerName string) {
 }
 
 // injectPluginSidecarPodSpec injects a plugin sidecar into a CNPG Pod spec.
-//
-// If the "injectMainContainerVolumes" flag is true, this will append all the volume
-// mounts that are used in the instance manager Pod to the passed sidecar
-// container, granting it superuser access to the PostgreSQL instance.
 func injectPluginSidecarPodSpec(
 	spec *corev1.PodSpec,
 	sidecar *corev1.Container,
@@ -440,12 +446,11 @@ func injectPluginSidecarPodSpec(
 	sidecar = sidecar.DeepCopy()
 	InjectPluginVolumePodSpec(spec, mainContainerName)
 
-	var volumeMounts []corev1.VolumeMount
 	sidecarContainerFound := false
 	mainContainerFound := false
 	for i := range spec.Containers {
 		if spec.Containers[i].Name == mainContainerName {
-			volumeMounts = spec.Containers[i].VolumeMounts
+			sidecar.VolumeMounts = ensureVolumeMount(sidecar.VolumeMounts, spec.Containers[i].VolumeMounts...)
 			mainContainerFound = true
 		}
 	}
@@ -457,38 +462,75 @@ func injectPluginSidecarPodSpec(
 	for i := range spec.InitContainers {
 		if spec.InitContainers[i].Name == sidecar.Name {
 			sidecarContainerFound = true
+			spec.InitContainers[i] = *sidecar
 		}
 	}
 
-	if sidecarContainerFound {
-		// The sidecar container was already added
-		return nil
+	if !sidecarContainerFound {
+		spec.InitContainers = append(spec.InitContainers, *sidecar)
 	}
-
-	// Do not modify the passed sidecar definition
-	sidecar.VolumeMounts = append(
-		sidecar.VolumeMounts,
-		corev1.VolumeMount{
-			Name:      barmanCertificatesVolumeName,
-			MountPath: metadata.BarmanCertificatesPath,
-		})
-	sidecar.VolumeMounts = append(sidecar.VolumeMounts, volumeMounts...)
-	sidecar.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
-	spec.InitContainers = append(spec.InitContainers, *sidecar)
 
 	return nil
 }
 
-// volumeListHasVolume check if a volume with a known name exists
-// in the volume list
-func volumeListHasVolume(volumes []corev1.Volume, name string) bool {
+// ensureVolume makes sure the passed volume is present in the list of volumes.
+// If the volume is already present, it is updated.
+func ensureVolume(volumes []corev1.Volume, volume corev1.Volume) []corev1.Volume {
+	volumeFound := false
 	for i := range volumes {
-		if volumes[i].Name == name {
-			return true
+		if volumes[i].Name == volume.Name {
+			volumeFound = true
+			volumes[i] = volume
 		}
 	}
 
-	return false
+	if !volumeFound {
+		volumes = append(volumes, volume)
+	}
+
+	return volumes
+}
+
+// ensureVolumeMount makes sure the passed volume mounts are present in the list of volume mounts.
+// If a volume mount is already present, it is updated.
+func ensureVolumeMount(mounts []corev1.VolumeMount, volumeMounts ...corev1.VolumeMount) []corev1.VolumeMount {
+	for _, mount := range volumeMounts {
+		mountFound := false
+		for i := range mounts {
+			if mounts[i].Name == mount.Name {
+				mountFound = true
+				mounts[i] = mount
+				break
+			}
+		}
+
+		if !mountFound {
+			mounts = append(mounts, mount)
+		}
+	}
+
+	return mounts
+}
+
+// removeVolume removes a volume with a known name from a list of volumes.
+func removeVolume(volumes []corev1.Volume, name string) []corev1.Volume {
+	var filteredVolumes []corev1.Volume
+	for _, volume := range volumes {
+		if volume.Name != name {
+			filteredVolumes = append(filteredVolumes, volume)
+		}
+	}
+	return filteredVolumes
+}
+
+func removeVolumeMount(mounts []corev1.VolumeMount, name string) []corev1.VolumeMount {
+	var filteredMounts []corev1.VolumeMount
+	for _, mount := range mounts {
+		if mount.Name != name {
+			filteredMounts = append(filteredMounts, mount)
+		}
+	}
+	return filteredMounts
 }
 
 // getCNPGJobRole gets the role associated to a CNPG job
