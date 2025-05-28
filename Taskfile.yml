@@ -7,7 +7,7 @@ output: prefixed
 # Variables that are shared across tasks.
 vars:
   # renovate: datasource=docker depName=kindest/node versioning=semver
-  E2E_KUBERNETES_VERSION: v1.33.0
+  E2E_KUBERNETES_VERSION: v1.33.1
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
