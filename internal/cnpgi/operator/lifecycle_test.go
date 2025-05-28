@@ -249,86 +249,86 @@ var _ = Describe("Volume utilities", func() {
 			Expect(result).To(Equal(volumes))
 		})
 	})
-})
 
-var _ = Describe("removeVolumeMount", func() {
-	It("removes the specified volume mount", func() {
-		mounts := []corev1.VolumeMount{
-			{Name: "mount1"},
-			{Name: "mount2"},
-			{Name: "mount3"},
-		}
-		result := removeVolumeMount(mounts, "mount2")
-		Expect(result).To(HaveLen(2))
-		for _, m := range result {
-			Expect(m.Name).NotTo(Equal("mount2"))
-		}
+	Describe("removeVolumeMount", func() {
+		It("removes the specified volume mount", func() {
+			mounts := []corev1.VolumeMount{
+				{Name: "mount1"},
+				{Name: "mount2"},
+				{Name: "mount3"},
+			}
+			result := removeVolumeMount(mounts, "mount2")
+			Expect(result).To(HaveLen(2))
+			for _, m := range result {
+				Expect(m.Name).NotTo(Equal("mount2"))
+			}
+		})
+
+		It("returns the same list if the volume mount is not present", func() {
+			mounts := []corev1.VolumeMount{{Name: "mount1"}, {Name: "mount2"}}
+			result := removeVolumeMount(mounts, "mount3")
+			Expect(result).To(HaveLen(2))
+			Expect(result[0].Name).To(Equal("mount1"))
+			Expect(result[1].Name).To(Equal("mount2"))
+		})
+
+		It("handles empty input slice", func() {
+			var mounts []corev1.VolumeMount
+			result := removeVolumeMount(mounts, "mount1")
+			Expect(result).To(BeEmpty())
+		})
 	})
 
-	It("returns the same list if the volume mount is not present", func() {
-		mounts := []corev1.VolumeMount{{Name: "mount1"}, {Name: "mount2"}}
-		result := removeVolumeMount(mounts, "mount3")
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("mount1"))
-		Expect(result[1].Name).To(Equal("mount2"))
-	})
+	Describe("ensureVolumeMount", func() {
+		It("adds a new volume mount to an empty list", func() {
+			var mounts []corev1.VolumeMount
+			newMount := corev1.VolumeMount{Name: "mount1", MountPath: "/path1"}
+			result := ensureVolumeMount(mounts, newMount)
+			Expect(result).To(HaveLen(1))
+			Expect(result[0]).To(Equal(newMount))
+		})
 
-	It("handles empty input slice", func() {
-		var mounts []corev1.VolumeMount
-		result := removeVolumeMount(mounts, "mount1")
-		Expect(result).To(BeEmpty())
-	})
-})
+		It("adds a new volume mount to a non-empty list", func() {
+			mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
+			newMount := corev1.VolumeMount{Name: "mount2", MountPath: "/path2"}
+			result := ensureVolumeMount(mounts, newMount)
+			Expect(result).To(HaveLen(2))
+			Expect(result[0].Name).To(Equal("mount1"))
+			Expect(result[1].Name).To(Equal("mount2"))
+		})
 
-var _ = Describe("ensureVolumeMount", func() {
-	It("adds a new volume mount to an empty list", func() {
-		var mounts []corev1.VolumeMount
-		newMount := corev1.VolumeMount{Name: "mount1", MountPath: "/path1"}
-		result := ensureVolumeMount(mounts, newMount)
-		Expect(result).To(HaveLen(1))
-		Expect(result[0]).To(Equal(newMount))
-	})
+		It("updates an existing volume mount", func() {
+			mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
+			updatedMount := corev1.VolumeMount{Name: "mount1", MountPath: "/new-path"}
+			result := ensureVolumeMount(mounts, updatedMount)
+			Expect(result).To(HaveLen(1))
+			Expect(result[0].MountPath).To(Equal("/new-path"))
+		})
 
-	It("adds a new volume mount to a non-empty list", func() {
-		mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
-		newMount := corev1.VolumeMount{Name: "mount2", MountPath: "/path2"}
-		result := ensureVolumeMount(mounts, newMount)
-		Expect(result).To(HaveLen(2))
-		Expect(result[0].Name).To(Equal("mount1"))
-		Expect(result[1].Name).To(Equal("mount2"))
-	})
+		It("adds multiple new volume mounts", func() {
+			mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
+			newMount1 := corev1.VolumeMount{Name: "mount2", MountPath: "/path2"}
+			newMount2 := corev1.VolumeMount{Name: "mount3", MountPath: "/path3"}
+			result := ensureVolumeMount(mounts, newMount1, newMount2)
+			Expect(result).To(HaveLen(3))
+			Expect(result[0].Name).To(Equal("mount1"))
+			Expect(result[1].Name).To(Equal("mount2"))
+			Expect(result[2].Name).To(Equal("mount3"))
+		})
 
-	It("updates an existing volume mount", func() {
-		mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
-		updatedMount := corev1.VolumeMount{Name: "mount1", MountPath: "/new-path"}
-		result := ensureVolumeMount(mounts, updatedMount)
-		Expect(result).To(HaveLen(1))
-		Expect(result[0].MountPath).To(Equal("/new-path"))
-	})
-
-	It("adds multiple new volume mounts", func() {
-		mounts := []corev1.VolumeMount{{Name: "mount1", MountPath: "/path1"}}
-		newMount1 := corev1.VolumeMount{Name: "mount2", MountPath: "/path2"}
-		newMount2 := corev1.VolumeMount{Name: "mount3", MountPath: "/path3"}
-		result := ensureVolumeMount(mounts, newMount1, newMount2)
-		Expect(result).To(HaveLen(3))
-		Expect(result[0].Name).To(Equal("mount1"))
-		Expect(result[1].Name).To(Equal("mount2"))
-		Expect(result[2].Name).To(Equal("mount3"))
-	})
-
-	It("handles a mix of new and existing volume mounts", func() {
-		mounts := []corev1.VolumeMount{
-			{Name: "mount1", MountPath: "/path1"},
-			{Name: "mount2", MountPath: "/path2"},
-		}
-		updatedMount := corev1.VolumeMount{Name: "mount1", MountPath: "/new-path"}
-		newMount := corev1.VolumeMount{Name: "mount3", MountPath: "/path3"}
-		result := ensureVolumeMount(mounts, updatedMount, newMount)
-		Expect(result).To(HaveLen(3))
-		Expect(result[0].Name).To(Equal("mount1"))
-		Expect(result[0].MountPath).To(Equal("/new-path"))
-		Expect(result[1].Name).To(Equal("mount2"))
-		Expect(result[2].Name).To(Equal("mount3"))
+		It("handles a mix of new and existing volume mounts", func() {
+			mounts := []corev1.VolumeMount{
+				{Name: "mount1", MountPath: "/path1"},
+				{Name: "mount2", MountPath: "/path2"},
+			}
+			updatedMount := corev1.VolumeMount{Name: "mount1", MountPath: "/new-path"}
+			newMount := corev1.VolumeMount{Name: "mount3", MountPath: "/path3"}
+			result := ensureVolumeMount(mounts, updatedMount, newMount)
+			Expect(result).To(HaveLen(3))
+			Expect(result[0].Name).To(Equal("mount1"))
+			Expect(result[0].MountPath).To(Equal("/new-path"))
+			Expect(result[1].Name).To(Equal("mount2"))
+			Expect(result[2].Name).To(Equal("mount3"))
+		})
 	})
 })
