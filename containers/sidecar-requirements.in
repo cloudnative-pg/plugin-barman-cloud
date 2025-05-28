@@ -1,3 +1,2 @@
 barman[azure,cloud,google,snappy,zstandard,lz4]==3.14.0
 setuptools==80.9.0
-boto3==1.35.99
