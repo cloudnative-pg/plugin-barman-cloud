@@ -26,13 +26,14 @@ jobs:
           echo "-------------Disk info after cleanup----------------"
           df -h
           echo "-----------------------------------------------------"
-      - uses: docker/setup-qemu-action@v3
       - name: Checkout
         uses: actions/checkout@v4
         # We need the full history for the commitlint task
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v3
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger

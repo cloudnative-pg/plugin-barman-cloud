@@ -12,12 +12,14 @@ jobs:
       # TODO: googleapis/release-please-action cannot sign commits yet.
       #   We'll use the cli until there's a fix for
       #   https://github.com/googleapis/release-please/issues/2280.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - uses: docker/setup-qemu-action@v3
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v3
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger
