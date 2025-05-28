@@ -1,5 +1,9 @@
 # Changelog
 
+### Features
+
+* Add Helm chart ([#351](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/351))
+
 ## [0.4.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.3.0...v0.4.0) (2025-05-12)
 
 
