@@ -4,6 +4,7 @@ import (
 	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/objectstore"
@@ -119,6 +120,7 @@ func newSrcCluster(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": srcObjectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			PostgresConfiguration: cloudnativepgv1.PostgresConfiguration{
@@ -231,6 +233,7 @@ func newReplicaCluster(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": replicaObjectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			PostgresConfiguration: cloudnativepgv1.PostgresConfiguration{
