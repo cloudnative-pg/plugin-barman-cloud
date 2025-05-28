@@ -25,6 +25,7 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	pluginBarmanCloudV1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/objectstore"
@@ -292,6 +293,7 @@ func newSrcClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": objectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			PostgresConfiguration: cloudnativepgv1.PostgresConfiguration{
@@ -333,6 +335,7 @@ func newDstClusterWithPlugin(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": objectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			PostgresConfiguration: cloudnativepgv1.PostgresConfiguration{
@@ -439,6 +442,7 @@ func newDstClusterInTreeS3(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": objectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			ExternalClusters: []cloudnativepgv1.ExternalCluster{
@@ -536,6 +540,7 @@ func newDstClusterInTreeAzure(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": objectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			ExternalClusters: []cloudnativepgv1.ExternalCluster{
@@ -632,6 +637,7 @@ func newDstClusterInTreeGCS(namespace string) *cloudnativepgv1.Cluster {
 					Parameters: map[string]string{
 						"barmanObjectName": objectStoreName,
 					},
+					IsWALArchiver: ptr.To(true),
 				},
 			},
 			Env: []corev1.EnvVar{
