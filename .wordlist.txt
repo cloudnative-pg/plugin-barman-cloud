@@ -3,11 +3,13 @@ Azurite
 BarmanObjectStore
 BarmanObjectStoreConfiguration
 BarmanObjectStores
+CNCF
 CRD
 CloudNativePG
 DataBackupConfiguration
 DigitalOcean
 Docusaurus
+EDB
 EKS
 EnvVar
 GCP
@@ -40,6 +42,7 @@ SFO
 SPDX
 SPDX
 ServerRecoveryWindow
+Slonik
 TLS
 TODO
 Uncomment
