@@ -147,7 +147,7 @@ tasks:
       - > 
           mkdir -p certs &&
           docker volume create certs &&
-          docker run -v certs:/certs -w /certs --name certs --entrypoint=/bin/bash ubuntu -c 'apt update && apt install openssl -y &&
+          docker run -v certs:/certs -w /certs --name certs --entrypoint=/bin/sh alpine/openssl -c '
           openssl genrsa -out ca-key.pem 4096 &&
           openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem \
               -subj "/O=CloudNativePG/OU=Barman Cloud Plugin Testing" &&
