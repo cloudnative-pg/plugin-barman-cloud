@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.4.0...v0.4.1) (2025-05-29)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#366](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/366)) ([1097abb](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1097abbd1d26502a3cfc81f932bffd5bef2377a4))
+* **deps:** Update kubernetes packages to v0.33.1 ([#361](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/361)) ([9d4bc45](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9d4bc456b09b9d79c1ad58f686c8201885ffe4ce))
+* **deps:** Update module google.golang.org/grpc to v1.72.1 ([#345](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/345)) ([d9fd8dd](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/d9fd8dd8681e33ec64c911eade3516a73f793ac5))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.21.0 ([#367](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/367)) ([fecc2f7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fecc2f7d28e5ad58c6370f0a26014908ce4caaaf))
+* Do not add barman-certificates projection if not needed ([#354](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/354)) ([918823d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/918823dbf1c78e5460f83af50bf85be6c1aefafe))
+* **docs:** Replace "no downtime" with "without data loss" ([#349](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/349)) ([5e1b845](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/5e1b845caedb67cf79173af3a319d55260b21627))
+
 ## [0.4.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.3.0...v0.4.0) (2025-05-12)
 
 
