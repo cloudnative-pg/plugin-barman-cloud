@@ -8,7 +8,7 @@ on:
     branches:
       - main
     paths:
-      - 'web/docs/**'
+      - 'web/**'
 
 # Prevent parallel deployments when multiple commits are pushed to main
 # in a short time.
