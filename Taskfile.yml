@@ -270,6 +270,7 @@ tasks:
     deps:
       - install-kind
       - start-build-network
+      - generate-certs
     run: once
     cmds:
       - >
