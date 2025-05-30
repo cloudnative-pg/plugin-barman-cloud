@@ -42,9 +42,6 @@ func (impl LifecycleImplementation) GetCapabilities(
 						Type: lifecycle.OperatorOperationType_TYPE_CREATE,
 					},
 					{
-						Type: lifecycle.OperatorOperationType_TYPE_PATCH,
-					},
-					{
 						Type: lifecycle.OperatorOperationType_TYPE_EVALUATE,
 					},
 				},
@@ -92,15 +89,6 @@ func (impl LifecycleImplementation) LifecycleHook(
 	// barman object is required for both the archive and restore process
 	if err := pluginConfiguration.Validate(); err != nil {
 		contextLogger.Info("pluginConfiguration invalid, skipping lifecycle", "error", err)
-		return nil, nil
-	}
-
-	// Only allow modifications during EVALUATE or CREATE operations.
-	// For PATCH, UPDATE, or other operations, skip processing as the operator will handle changes during EVALUATE.
-	if *operation != lifecycle.OperatorOperationType_TYPE_EVALUATE &&
-		*operation != lifecycle.OperatorOperationType_TYPE_CREATE {
-		contextLogger.Trace("Skipping lifecycle hook: operation is not EVALUATE or CREATE",
-			"operation", operation.String())
 		return nil, nil
 	}
 
