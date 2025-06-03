@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.4.1...v0.5.0) (2025-06-03)
+
+
+### Features
+
+* **deps:** Update dependency barman to v3.14.0 ([#368](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/368)) ([3550013](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/35500130bf0fe25eb3a191bc78f4818c318acf26))
+
+
+### Bug Fixes
+
+* Remove lifecycle `Pod` `Patch` subscription ([#378](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/378)) ([40316b5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/40316b5f2d72deac0f042ceecd271a97b369a62f))
+
 ## [0.4.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.4.0...v0.4.1) (2025-05-29)
 
 
