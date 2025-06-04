@@ -106,7 +106,7 @@ tasks:
     - apidoc
     env:
       # renovate: datasource=git-refs depName=docusaurus lookupName=https://github.com/levlaz/daggerverse currentValue=main
-      DAGGER_DOCUSAURUS_SHA: 47f5206067011dad0f581d4e7db7afddda32acd0
+      DAGGER_DOCUSAURUS_SHA: 3b7d706c741b2d91d4f2ad8d0f4c4eb921cb18d6
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/levlaz/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
         --src web --yarn build
