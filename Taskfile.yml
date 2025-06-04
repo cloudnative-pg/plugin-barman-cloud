@@ -183,7 +183,6 @@ tasks:
     cmds:
       - >
         docker run -d --name {{ .REGISTRY_NAME }}
-        -p {{ .REGISTRY_PORT }}:5000
         --network {{ .REGISTRY_NETWORK }}
         -v certs:/certs
         -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server-cert.pem -e REGISTRY_HTTP_TLS_KEY=/certs/server-key.pem
