@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudnative-pg/machinery/pkg/log"
 	apimachineryTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kustomizeTypes "sigs.k8s.io/kustomize/api/types"
@@ -118,7 +119,10 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 	}
 
 	return []byte{}
-}, func(_ []byte) {})
+}, func(_ []byte) {
+	logFlags := &log.Flags{}
+	logFlags.ConfigureLogging()
+})
 
 // Run e2e tests using the Ginkgo runner.
 func TestE2E(t *testing.T) {

@@ -22,9 +22,9 @@ func main() {
 	logFlags := &log.Flags{}
 	rootCmd := &cobra.Command{
 		Use: "manager [cmd]",
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 			logFlags.ConfigureLogging()
-			return nil
+			cmd.SetContext(log.IntoContext(cmd.Context(), log.GetLogger()))
 		},
 	}
 
