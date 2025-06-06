@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.5.0...v0.5.1) (2025-06-06)
+
+
+### Bug Fixes
+
+* **deps:** Lock file maintenance documentation dependencies ([#379](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/379)) ([a0327ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a0327ea574558d6c1a913e13a12bb454818900a7))
+
 ## [0.5.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.4.1...v0.5.0) (2025-06-03)
 
 
