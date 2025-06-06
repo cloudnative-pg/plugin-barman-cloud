@@ -141,6 +141,25 @@ spec:
   [...]
 ```
 
+Due to recent changes to the [boto3](https://github.com/boto/boto3/issues/4392) [Data Integrity Protections for Amazon S3](https://docs.aws.amazon.com/sdkref/latest/guide/feature-dataintegrity.html) implementation, you could hit the [x-amz-content-sha256 Error](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/393).
+
+As a workaround set to following environment to the `ObjectStore`.
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: linode-store
+spec:
+  env:
+    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      value: when_required
+    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      value: when_required
+  [...]
+```
+
+
 Example with DigitalOcean Spaces (SFO3, path-style):
 
 ```yaml
