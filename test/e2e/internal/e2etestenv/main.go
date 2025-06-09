@@ -113,6 +113,7 @@ func Setup(ctx context.Context, cl client.Client, opts ...SetupOption) error {
 		return err
 	}
 
+	options.CNPGImageTag = "dev-config-plugin"
 	if err := installCNPG(ctx, cl, options); err != nil {
 		return err
 	}
