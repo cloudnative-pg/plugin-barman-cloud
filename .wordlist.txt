@@ -49,6 +49,7 @@ Uncomment
 WAL
 WALBackupConfiguration
 WALs
+amz
 api
 apiVersion
 apiextensions
@@ -59,6 +60,7 @@ backend
 backends
 barmanObjectName
 barmancloud
+boto
 bzip
 cd
 cloudnative
@@ -113,6 +115,7 @@ secretKeyRef
 selfsigned
 serverName
 serviceaccount
+sha
 sig
 storageClass
 subcommand
