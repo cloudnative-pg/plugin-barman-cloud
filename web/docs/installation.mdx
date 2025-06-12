@@ -23,14 +23,14 @@ plugin. If installed in the default `cnpg-system` namespace, you can verify the
 version with:
 
 ```sh
-kubectl get deployment -n cnpg-system cnpg-controller-manager -o yaml \
-  | grep ghcr.io/cloudnative-pg/cloudnative-pg
+kubectl get deployment -n cnpg-system cnpg-controller-manager \
+  -o jsonpath="{.spec.template.spec.containers[*].image}"
 ```
 
 Example output:
 
 ```output
-image: ghcr.io/cloudnative-pg/cloudnative-pg:1.26.0
+ghcr.io/cloudnative-pg/cloudnative-pg:1.26.0
 ```
 
 The version **must be 1.26 or newer**.
