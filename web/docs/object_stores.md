@@ -151,11 +151,12 @@ kind: ObjectStore
 metadata:
   name: linode-store
 spec:
-  env:
-    - name: AWS_REQUEST_CHECKSUM_CALCULATION
-      value: when_required
-    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
-      value: when_required
+  instanceSidecarConfiguration:
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
   [...]
 ```
 
