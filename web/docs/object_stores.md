@@ -141,9 +141,14 @@ spec:
   [...]
 ```
 
-Due to recent changes to the [boto3](https://github.com/boto/boto3/issues/4392) [Data Integrity Protections for Amazon S3](https://docs.aws.amazon.com/sdkref/latest/guide/feature-dataintegrity.html) implementation, you could hit the [x-amz-content-sha256 Error](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/393).
+Recent changes to the [boto3 implementation](https://github.com/boto/boto3/issues/4392)
+of [Amazon S3 Data Integrity Protections](https://docs.aws.amazon.com/sdkref/latest/guide/feature-dataintegrity.html)
+may lead to the `x-amz-content-sha256` error when using the Barman Cloud
+Plugin.
 
-As a workaround set to following environment to the `ObjectStore`.
+If you encounter this issue (see [GitHub issue #393](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/393)),
+you can apply the following workaround by setting specific environment
+variables in the `ObjectStore` resource:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -160,6 +165,9 @@ spec:
   [...]
 ```
 
+These settings ensure that checksum calculations and validations are only
+applied when explicitly required, avoiding compatibility issues with certain
+S3-compatible storage providers.
 
 Example with DigitalOcean Spaces (SFO3, path-style):
 
