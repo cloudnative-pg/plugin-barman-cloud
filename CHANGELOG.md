@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.5.0...v0.5.1) (2025-06-20)
+
+
+### Bug Fixes
+
+* **deps:** Lock file maintenance documentation dependencies ([#379](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/379)) ([a0327ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a0327ea574558d6c1a913e13a12bb454818900a7))
+* **deps:** Lock file maintenance documentation dependencies ([#399](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/399)) ([7146c51](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/7146c51de11a5d673aef23e36e07a2b0c528d3b7))
+* **deps:** Lock file maintenance documentation dependencies ([#407](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/407)) ([4d323c2](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4d323c2d3df2bcd52c126b369922bec67db68a2c))
+* **deps:** Update k8s.io/utils digest to 4c0f3b2 ([#392](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/392)) ([e58973c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e58973cd55b89c2e4615cf67c85b08627590aae1))
+* **deps:** Update module google.golang.org/grpc to v1.73.0 ([#394](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/394)) ([1365906](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1365906204d895cac78ef93d5753d0b5f717c9ac))
+
 ## [0.5.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.4.1...v0.5.0) (2025-06-03)
 
 
