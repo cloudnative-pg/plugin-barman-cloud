@@ -937,7 +937,7 @@ spec:
             secretKeyRef:
               key: SIDECAR_IMAGE
               name: plugin-barman-cloud-8tfddg42gf
-        image: ghcr.io/cloudnative-pg/plugin-barman-cloud-testing:main
+        image: ghcr.io/edkadigital/plugin-barman-cloud-testing:main
         name: barman-cloud
         ports:
         - containerPort: 9090

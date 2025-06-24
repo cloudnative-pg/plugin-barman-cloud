@@ -16,7 +16,7 @@ The Barman Cloud Plugin is distributed using two container images:
 
 The plugin image contains the logic required to operate the Barman Cloud Plugin
 within your Kubernetes environment with CloudNativePG. It is published on the
-GitHub Container Registry at `ghcr.io/cloudnative-pg/plugin-barman-cloud`.
+GitHub Container Registry at `ghcr.io/edkadigital/plugin-barman-cloud`.
 
 This image is built from the
 [`Dockerfile.plugin`](https://github.com/cloudnative-pg/plugin-barman-cloud/blob/main/containers/Dockerfile.plugin)
@@ -28,7 +28,7 @@ The sidecar image is used within each PostgreSQL pod in the cluster. It
 includes the latest supported version of Barman Cloud and is responsible for
 performing WAL archiving and backups on behalf of CloudNativePG.
 
-It is available at `ghcr.io/cloudnative-pg/plugin-barman-cloud-sidecar` and is
+It is available at `ghcr.io/edkadigital/plugin-barman-cloud-sidecar` and is
 built from the
 [`Dockerfile.sidecar`](https://github.com/cloudnative-pg/plugin-barman-cloud/blob/main/containers/Dockerfile.sidecar).
 
