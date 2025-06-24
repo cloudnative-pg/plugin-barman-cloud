@@ -176,14 +176,21 @@ func (c *CatalogMaintenanceRunnable) updateRecoveryWindow(
 		return ptr.To(metav1.NewTime(*t))
 	}
 
-	recoveryWindow := barmancloudv1.RecoveryWindow{
-		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
-		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
-	}
-
 	if objectStore.Status.ServerRecoveryWindow == nil {
 		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
 	}
+
+	// get existing recovery window to preserve WAL submission timing
+	existingWindow := objectStore.Status.ServerRecoveryWindow[serverName]
+
+	recoveryWindow := barmancloudv1.RecoveryWindow{
+		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
+		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
+		// preserve existing WAL submission timing
+		FirstWALSubmissionTime: existingWindow.FirstWALSubmissionTime,
+		LastWALSubmissionTime:  existingWindow.LastWALSubmissionTime,
+	}
+
 	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
 
 	return c.Client.Status().Update(ctx, objectStore)

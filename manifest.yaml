@@ -608,8 +608,18 @@ spec:
                         restored.
                       format: date-time
                       type: string
+                    firstWALSubmissionTime:
+                      description: The timestamp of the first WAL file successfully
+                        submitted to the object store
+                      format: date-time
+                      type: string
                     lastSuccussfulBackupTime:
                       description: The last successful backup time
+                      format: date-time
+                      type: string
+                    lastWALSubmissionTime:
+                      description: The timestamp of the last WAL file successfully
+                        submitted to the object store
                       format: date-time
                       type: string
                   type: object

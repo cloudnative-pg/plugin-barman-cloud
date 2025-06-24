@@ -75,6 +75,12 @@ type RecoveryWindow struct {
 
 	// The last successful backup time
 	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccussfulBackupTime,omitempty"`
+
+	// The timestamp of the first WAL file successfully submitted to the object store
+	FirstWALSubmissionTime *metav1.Time `json:"firstWALSubmissionTime,omitempty"`
+
+	// The timestamp of the last WAL file successfully submitted to the object store
+	LastWALSubmissionTime *metav1.Time `json:"lastWALSubmissionTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

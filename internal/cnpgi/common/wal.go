@@ -17,6 +17,7 @@ import (
 	walUtils "github.com/cloudnative-pg/machinery/pkg/fileutils/wals"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -182,6 +183,12 @@ func (w WALServiceImplementation) Archive(
 		if archiverResult.Err != nil {
 			return nil, archiverResult.Err
 		}
+	}
+
+	// Update WAL submission timing in ObjectStore status after successful archiving
+	if err := w.updateWALSubmissionTime(ctx, &objectStore, configuration.ServerName); err != nil {
+		contextLogger.Error(err, "failed to update WAL submission time in ObjectStore status")
+		// Don't fail the archiving operation for status update errors
 	}
 
 	return &wal.WALArchiveResult{}, nil
@@ -468,4 +475,31 @@ func isEndOfWALStream(results []barmanRestorer.Result) bool {
 	}
 
 	return false
+}
+
+// updateWALSubmissionTime updates the WAL submission timing in the ObjectStore status
+func (w WALServiceImplementation) updateWALSubmissionTime(
+	ctx context.Context,
+	objectStore *barmancloudv1.ObjectStore,
+	serverName string,
+) error {
+	now := metav1.NewTime(time.Now())
+
+	if objectStore.Status.ServerRecoveryWindow == nil {
+		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
+	}
+
+	recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
+
+	// Set first WAL submission time if not already set
+	if recoveryWindow.FirstWALSubmissionTime == nil {
+		recoveryWindow.FirstWALSubmissionTime = &now
+	}
+
+	// Always update last WAL submission time
+	recoveryWindow.LastWALSubmissionTime = &now
+
+	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+
+	return w.Client.Status().Update(ctx, objectStore)
 }
