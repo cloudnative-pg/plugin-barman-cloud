@@ -84,5 +84,7 @@ func NewCmd() *cobra.Command {
 
 	_ = viper.BindEnv("sidecar-image", "SIDECAR_IMAGE")
 
+	_ = viper.BindEnv("pprof-server", "PPROF_SERVER")
+
 	return cmd
 }

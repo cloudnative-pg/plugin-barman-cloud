@@ -332,7 +332,13 @@ func reconcilePodSpec(
 	}
 	sidecarTemplate.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
 	sidecarTemplate.Resources = config.resources
-
+	sidecarTemplate.Ports = []corev1.ContainerPort{
+		{
+			Name:          "pprof",
+			ContainerPort: 6061,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	}
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
 		if container.Name == mainContainerName {

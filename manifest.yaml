@@ -932,6 +932,9 @@ spec:
         ports:
         - containerPort: 9090
           protocol: TCP
+        - containerPort: 6060
+          name: pprof
+          protocol: TCP
         readinessProbe:
           initialDelaySeconds: 10
           periodSeconds: 10

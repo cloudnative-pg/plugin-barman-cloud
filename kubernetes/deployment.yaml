@@ -27,6 +27,9 @@ spec:
         ports:
         - containerPort: 9090
           protocol: TCP
+        - containerPort: 6060
+          protocol: TCP
+          name: "pprof"
         env:
         - name: SIDECAR_IMAGE
           valueFrom:

@@ -104,6 +104,7 @@ func Start(ctx context.Context) error {
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: viper.GetString("health-probe-bind-address"),
+		PprofBindAddress:       viper.GetString("pprof-server"),
 		LeaderElection:         viper.GetBool("leader-elect"),
 		LeaderElectionID:       "822e3f5c.cnpg.io",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily

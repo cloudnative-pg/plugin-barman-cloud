@@ -44,6 +44,7 @@ func Start(ctx context.Context) error {
 				},
 			},
 		},
+		PprofBindAddress: viper.GetString("pprof-server"),
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), controllerOptions)

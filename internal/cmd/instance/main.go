@@ -40,6 +40,7 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindEnv("spool-directory", "SPOOL_DIRECTORY")
 	_ = viper.BindEnv("custom-cnpg-group", "CUSTOM_CNPG_GROUP")
 	_ = viper.BindEnv("custom-cnpg-version", "CUSTOM_CNPG_VERSIONXS")
+	_ = viper.BindEnv("pprof-server", "PLUGIN_PPROF_SERVER")
 
 	return cmd
 }
