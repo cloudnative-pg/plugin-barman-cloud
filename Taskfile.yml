@@ -390,12 +390,18 @@ tasks:
         file --path api/v1/zz_generated.deepcopy.go export --path api/v1/zz_generated.deepcopy.go
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
-        controller-gen --source . --args rbac:roleName=plugin-barman-cloud --args crd --args webhook --args paths=./api/...
-        --args output:crd:artifacts:config=config/crd/bases directory --path config/crd/bases export --path config/crd/bases
+        controller-gen --source . --args rbac:roleName=plugin-barman-cloud --args crd --args webhook
+        --args paths=./api/... --args paths=./internal/... --args output:crd:artifacts:config=config/crd/bases
+        directory --path config/
+        filter --include crd/bases/,rbac/
+        export --path config/
     sources:
       - ./api/**/*.go
+      - ./internal/**/*.go
     generates:
       - ./api/v1/zz_generated.deepcopy.go
+      - ./config/rbac/role.yaml
+      - ./config/crd/bases/*.yaml
 
   manifest-main:
     deps:
