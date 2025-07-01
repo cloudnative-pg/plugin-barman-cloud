@@ -60,6 +60,10 @@ linters:
           - staticcheck
         path: api/
         text: 'ST1016:'
+      - linters:
+          - revive
+        path: internal/cnpgi/common/
+        text: avoid meaningless package names
     paths:
       - zz_generated.*
       - internal/operator/controller/suite_test.go
