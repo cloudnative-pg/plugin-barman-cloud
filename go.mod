@@ -3,13 +3,13 @@ module github.com/cloudnative-pg/plugin-barman-cloud
 go 1.24.1
 
 require (
-	github.com/cert-manager/cert-manager v1.18.1
+	github.com/cert-manager/cert-manager v1.18.2
 	github.com/cloudnative-pg/api v1.26.0-rc1
 	github.com/cloudnative-pg/barman-cloud v0.3.1
 	github.com/cloudnative-pg/cloudnative-pg v1.26.0
 	github.com/cloudnative-pg/cnpg-i v0.2.1
 	github.com/cloudnative-pg/cnpg-i-machinery v0.3.0
-	github.com/cloudnative-pg/machinery v0.2.0
+	github.com/cloudnative-pg/machinery v0.3.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/spf13/cobra v1.9.1
@@ -41,7 +41,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
