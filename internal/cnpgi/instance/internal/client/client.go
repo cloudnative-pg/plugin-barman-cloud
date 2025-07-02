@@ -11,6 +11,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	pluginBarman "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
 
 // DefaultTTLSeconds is the default TTL in seconds of cache entries
@@ -48,7 +50,7 @@ func (e *ExtendedClient) isObjectCached(obj client.Object) bool {
 		return true
 	}
 
-	if _, isObjectStore := obj.(*corev1.Secret); isObjectStore {
+	if _, isObjectStore := obj.(*pluginBarman.ObjectStore); isObjectStore {
 		return true
 	}
 
@@ -62,11 +64,11 @@ func (e *ExtendedClient) Get(
 	obj client.Object,
 	opts ...client.GetOption,
 ) error {
-	if !e.isObjectCached(obj) {
-		return e.Client.Get(ctx, key, obj, opts...)
+	if e.isObjectCached(obj) {
+		return e.getCachedObject(ctx, key, obj, opts...)
 	}
 
-	return e.getCachedObject(ctx, key, obj, opts...)
+	return e.Client.Get(ctx, key, obj, opts...)
 }
 
 func (e *ExtendedClient) getCachedObject(
