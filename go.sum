@@ -12,8 +12,8 @@ github.com/carapace-sh/carapace-shlex v1.0.1 h1:ww0JCgWpOVuqWG7k3724pJ18Lq8gh5pH
 github.com/carapace-sh/carapace-shlex v1.0.1/go.mod h1:lJ4ZsdxytE0wHJ8Ta9S7Qq0XpjgjU0mdfCqiI2FHx7M=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
-github.com/cert-manager/cert-manager v1.18.1 h1:5qa3UNrgkNc5Zpn0CyAVMyRIchfF3/RHji4JrazYmWw=
-github.com/cert-manager/cert-manager v1.18.1/go.mod h1:icDJx4kG9BCNpGjBvrmsFd99d+lXUvWdkkcrSSQdIiw=
+github.com/cert-manager/cert-manager v1.18.2 h1:H2P75ycGcTMauV3gvpkDqLdS3RSXonWF2S49QGA1PZE=
+github.com/cert-manager/cert-manager v1.18.2/go.mod h1:icDJx4kG9BCNpGjBvrmsFd99d+lXUvWdkkcrSSQdIiw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cloudnative-pg/api v1.26.0-rc1 h1:luc/hVcTexAs/tXtT0aPSHf225LI/cjVIA1hjKDmsX8=
@@ -26,8 +26,8 @@ github.com/cloudnative-pg/cnpg-i v0.2.1 h1:g96BE1ojdiFtDwtb7tg5wUF9a2kAh0eVg4Skj
 github.com/cloudnative-pg/cnpg-i v0.2.1/go.mod h1:kPfJpPGAKN1/2xvwBcC3WzMP46pj3sKLHLNB8NHr77U=
 github.com/cloudnative-pg/cnpg-i-machinery v0.3.0 h1:k/HBe7FGE/WDrYCMpRm9t5r/PG8FfJKLS3ZFhaM39Ik=
 github.com/cloudnative-pg/cnpg-i-machinery v0.3.0/go.mod h1:/+n6X/IT/Q7+N/oI/Ddh5Ot938BZ2F/vU5p53G1TZHo=
-github.com/cloudnative-pg/machinery v0.2.0 h1:x8OAwxdeL/6wkbxqorz+nX6UovTyx7/TBeCfiRebR2o=
-github.com/cloudnative-pg/machinery v0.2.0/go.mod h1:Kg8W8Tb/1UFGGtw3hR8S5SytSWddlHaCnJSgBo4x/nc=
+github.com/cloudnative-pg/machinery v0.3.0 h1:t1DzXGeK3RUYXS5KWIdIk30oh4EmwxZ+6sWM4wJDBac=
+github.com/cloudnative-pg/machinery v0.3.0/go.mod h1:6NhajP3JlioeecYceVuOBLD2lfsJty8qSZsFpSb/vmA=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -52,8 +52,8 @@ github.com/go-errors/errors v1.5.1/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3Bop
 github.com/go-faker/faker/v4 v4.4.1 h1:LY1jDgjVkBZWIhATCt+gkl0x9i/7wC61gZx73GTFb+Q=
 github.com/go-faker/faker/v4 v4.4.1/go.mod h1:HRLrjis+tYsbFtIHufEPTAIzcZiRu0rS9EYl2Ccwme4=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
-github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
-github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
+github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/go-logr/zapr v1.3.0 h1:XGdV8XW8zdwFiwOA2Dryh1gj2KRQyOOoNmBy4EplIcQ=
