@@ -60,3 +60,9 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - postgresql.cnpg.io
+  resources:
+  - clusters/finalizers
+  verbs:
+  - update
