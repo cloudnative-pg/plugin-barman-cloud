@@ -13,7 +13,9 @@ import (
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
+	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	walUtils "github.com/cloudnative-pg/machinery/pkg/fileutils/wals"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -125,18 +127,36 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
+	emptyWalArchiveFile := path.Join(w.PGDataPath, metadata.CheckEmptyWalArchiveFile)
 	arch, err := archiver.New(
 		ctx,
 		envArchive,
 		w.SpoolDirectory,
 		w.PGDataPath,
-		path.Join(w.PGDataPath, metadata.CheckEmptyWalArchiveFile),
+		emptyWalArchiveFile,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 2: check if this WAL file has not been already archived
+	// Step 2: Check if the archive location is safe to perform archiving
+	checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
+	if err != nil {
+		return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
+	}
+
+	if utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting {
+		if err := CheckBackupDestination(
+			ctx,
+			&objectStore.Spec.Configuration,
+			arch,
+			configuration.ServerName,
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	// Step 3: check if this WAL file has not been already archived
 	var isDeletedFromSpool bool
 	isDeletedFromSpool, err = arch.DeleteFromSpool(baseWalName)
 	if err != nil {
@@ -151,7 +171,7 @@ func (w WALServiceImplementation) Archive(
 		return nil, nil
 	}
 
-	// Step 3: gather the WAL files names to archive
+	// Step 4: gather the WAL files names to archive
 	options, err := arch.BarmanCloudWalArchiveOptions(ctx, &objectStore.Spec.Configuration, configuration.ServerName)
 	if err != nil {
 		return nil, err
