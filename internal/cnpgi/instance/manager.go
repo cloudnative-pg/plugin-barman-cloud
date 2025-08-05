@@ -35,6 +35,7 @@ func Start(ctx context.Context) error {
 	controllerOptions := ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
+			// NOTE WE WILL MODIFY THE GENERATE CLIENT WITH A CUSTOM CACHE
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
 					&corev1.Secret{},
