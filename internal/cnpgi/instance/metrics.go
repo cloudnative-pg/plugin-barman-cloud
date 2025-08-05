@@ -72,12 +72,14 @@ func (m metricsImpl) Define(
 				ValueType:      &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
 			},
 			{
-				FqName: firstRecoverabilityPointMetricName,
-				Help:   "The first point of recoverability for the cluster as a unix timestamp",
+				FqName:    firstRecoverabilityPointMetricName,
+				Help:      "The first point of recoverability for the cluster as a unix timestamp",
+				ValueType: &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
 			},
 			{
-				FqName: lastAvailableBackupTimestampMetricName,
-				Help:   "The last available backup as a unix timestamp",
+				FqName:    lastAvailableBackupTimestampMetricName,
+				Help:      "The last available backup as a unix timestamp",
+				ValueType: &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
 			},
 		},
 	}, nil
@@ -102,7 +104,19 @@ func (m metricsImpl) Collect(
 		return nil, err
 	}
 
-	x := objectStore.Status.ServerRecoveryWindow[configuration.ServerName]
+	x, ok := objectStore.Status.ServerRecoveryWindow[configuration.ServerName]
+	if !ok {
+		return nil, fmt.Errorf("no recovery window found for server %s", configuration.ServerName)
+	}
+
+	var firstRecoverabilityPoint float64
+	var lastAvailableBackup float64
+	if x.FirstRecoverabilityPoint != nil {
+		firstRecoverabilityPoint = float64(x.FirstRecoverabilityPoint.Unix())
+	}
+	if x.LastSuccessfulBackupTime != nil {
+		lastAvailableBackup = float64(x.LastSuccessfulBackupTime.Unix())
+	}
 
 	return &metrics.CollectMetricsResult{
 		Metrics: []*metrics.CollectMetric{
@@ -112,11 +126,11 @@ func (m metricsImpl) Collect(
 			},
 			{
 				FqName: firstRecoverabilityPointMetricName,
-				Value:  float64(x.FirstRecoverabilityPoint.Unix()),
+				Value:  firstRecoverabilityPoint,
 			},
 			{
 				FqName: lastAvailableBackupTimestampMetricName,
-				Value:  float64(x.LastSuccessfulBackupTime.Unix()),
+				Value:  lastAvailableBackup,
 			},
 		},
 	}, nil
