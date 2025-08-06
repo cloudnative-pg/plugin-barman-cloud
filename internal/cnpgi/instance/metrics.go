@@ -40,7 +40,7 @@ func (m metricsImpl) GetCapabilities(
 	_ *metrics.MetricsCapabilitiesRequest,
 ) (*metrics.MetricsCapabilitiesResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Info("metrics capabilities call received")
+	contextLogger.Trace("metrics capabilities call received")
 
 	return &metrics.MetricsCapabilitiesResult{
 		Capabilities: []*metrics.MetricsCapability{
@@ -60,7 +60,7 @@ func (m metricsImpl) Define(
 	_ *metrics.DefineMetricsRequest,
 ) (*metrics.DefineMetricsResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Info("metrics define call received")
+	contextLogger.Trace("metrics define call received")
 
 	return &metrics.DefineMetricsResult{
 		Metrics: []*metrics.Metric{
@@ -83,7 +83,7 @@ func (m metricsImpl) Collect(
 	req *metrics.CollectMetricsRequest,
 ) (*metrics.CollectMetricsResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Info("metrics collect call received")
+	contextLogger.Trace("metrics collect call received")
 
 	configuration, err := config.NewFromClusterJSON(req.ClusterDefinition)
 	if err != nil {
