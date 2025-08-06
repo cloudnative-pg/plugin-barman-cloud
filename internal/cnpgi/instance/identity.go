@@ -44,6 +44,13 @@ func (i IdentityImplementation) GetPluginCapabilities(
 					},
 				},
 			},
+			{
+				Type: &identity.PluginCapability_Service_{
+					Service: &identity.PluginCapability_Service{
+						Type: identity.PluginCapability_Service_TYPE_METRICS,
+					},
+				},
+			},
 		},
 	}, nil
 }

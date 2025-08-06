@@ -40,7 +40,7 @@ func (m metricsImpl) GetCapabilities(
 	_ *metrics.MetricsCapabilitiesRequest,
 ) (*metrics.MetricsCapabilitiesResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Trace("metrics capabilities call received")
+	contextLogger.Info("metrics capabilities call received")
 
 	return &metrics.MetricsCapabilitiesResult{
 		Capabilities: []*metrics.MetricsCapability{
@@ -60,17 +60,10 @@ func (m metricsImpl) Define(
 	_ *metrics.DefineMetricsRequest,
 ) (*metrics.DefineMetricsResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Trace("metrics define call received")
+	contextLogger.Info("metrics define call received")
 
 	return &metrics.DefineMetricsResult{
 		Metrics: []*metrics.Metric{
-			{
-				FqName:         testMetricName,
-				Help:           "this is a test metric",
-				VariableLabels: nil,
-				ConstLabels:    map[string]string{"test": "value"},
-				ValueType:      &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
-			},
 			{
 				FqName:    firstRecoverabilityPointMetricName,
 				Help:      "The first point of recoverability for the cluster as a unix timestamp",
@@ -90,7 +83,7 @@ func (m metricsImpl) Collect(
 	req *metrics.CollectMetricsRequest,
 ) (*metrics.CollectMetricsResult, error) {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Trace("metrics collect call received")
+	contextLogger.Info("metrics collect call received")
 
 	configuration, err := config.NewFromClusterJSON(req.ClusterDefinition)
 	if err != nil {
@@ -106,7 +99,18 @@ func (m metricsImpl) Collect(
 
 	x, ok := objectStore.Status.ServerRecoveryWindow[configuration.ServerName]
 	if !ok {
-		return nil, fmt.Errorf("no recovery window found for server %s", configuration.ServerName)
+		return &metrics.CollectMetricsResult{
+			Metrics: []*metrics.CollectMetric{
+				{
+					FqName: firstRecoverabilityPointMetricName,
+					Value:  0,
+				},
+				{
+					FqName: lastAvailableBackupTimestampMetricName,
+					Value:  0,
+				},
+			},
+		}, nil
 	}
 
 	var firstRecoverabilityPoint float64
@@ -120,10 +124,6 @@ func (m metricsImpl) Collect(
 
 	return &metrics.CollectMetricsResult{
 		Metrics: []*metrics.CollectMetric{
-			{
-				FqName: testMetricName,
-				Value:  42.0,
-			},
 			{
 				FqName: firstRecoverabilityPointMetricName,
 				Value:  firstRecoverabilityPoint,

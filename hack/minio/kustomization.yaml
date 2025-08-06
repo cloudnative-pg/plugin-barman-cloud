@@ -1,0 +1,8 @@
+resources:
+- minio-deployment.yaml
+- minio-pvc.yaml
+- minio-secret.yaml
+- minio-service.yaml
+- minio-certificate.yaml
+- selfsigned-issuer.yaml
+
