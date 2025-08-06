@@ -266,17 +266,9 @@ func (impl *JobHookImpl) checkBackupDestination(
 		}
 	}
 
-	// Get WAL archive options
-	checkWalOptions, err := walArchiver.BarmanCloudCheckWalArchiveOptions(
-		ctx, barmanConfiguration, serverName)
-	if err != nil {
-		log.Error(err, "while getting barman-cloud-wal-archive options")
-		return err
-	}
-
 	// Check if we're ok to archive in the desired destination
 	if utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) {
-		return walArchiver.CheckWalArchiveDestination(ctx, checkWalOptions)
+		return common.CheckBackupDestination(ctx, barmanConfiguration, walArchiver, serverName)
 	}
 
 	return nil
