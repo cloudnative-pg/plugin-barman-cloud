@@ -7,15 +7,12 @@ import (
 	"slices"
 	"time"
 
-	"github.com/cloudnative-pg/barman-cloud/pkg/catalog"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -157,36 +154,7 @@ func (c *CatalogMaintenanceRunnable) maintenance(
 		return err
 	}
 
-	return c.updateRecoveryWindow(ctx, backupList, objectStore, configuration.ServerName)
-}
-
-// updateRecoveryWindow updates the recovery window inside the object
-// store status subresource
-func (c *CatalogMaintenanceRunnable) updateRecoveryWindow(
-	ctx context.Context,
-	backupList *catalog.Catalog,
-	objectStore *barmancloudv1.ObjectStore,
-	serverName string,
-) error {
-	// Set the recovery window inside the barman object store object
-	convertTime := func(t *time.Time) *metav1.Time {
-		if t == nil {
-			return nil
-		}
-		return ptr.To(metav1.NewTime(*t))
-	}
-
-	recoveryWindow := barmancloudv1.RecoveryWindow{
-		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
-		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
-	}
-
-	if objectStore.Status.ServerRecoveryWindow == nil {
-		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
-	}
-	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
-
-	return c.Client.Status().Update(ctx, objectStore)
+	return updateRecoveryWindow(ctx, c.Client, backupList, objectStore, configuration.ServerName)
 }
 
 // deleteBackupsNotInCatalog deletes all Backup objects pointing to the given cluster that are not

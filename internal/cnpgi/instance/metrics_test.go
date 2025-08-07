@@ -98,7 +98,7 @@ var _ = Describe("Metrics Collect method", func() {
 		res, err := m.Collect(ctx, req)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(res).ToNot(BeNil())
-		Expect(res.Metrics).To(HaveLen(3))
+		Expect(res.Metrics).To(HaveLen(2))
 
 		// Verify the metrics
 		metricsMap := make(map[string]float64)

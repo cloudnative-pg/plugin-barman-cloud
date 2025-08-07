@@ -3,20 +3,19 @@ package instance
 import (
 	"context"
 	"fmt"
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/metrics"
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
-var (
-	// Sanitize the plugin name to be a valid Prometheus metric namespace
-	metricsDomain = strings.NewReplacer(".", "_", "-", "_").Replace(metadata.PluginName)
-)
+// Sanitize the plugin name to be a valid Prometheus metric namespace
+var metricsDomain = strings.NewReplacer(".", "_", "-", "_").Replace(metadata.PluginName)
 
 type metricsImpl struct {
 	// important the client should be one with a underlying cache
@@ -32,7 +31,6 @@ func buildFqName(name string) string {
 var (
 	firstRecoverabilityPointMetricName     = buildFqName("first_recoverability_point")
 	lastAvailableBackupTimestampMetricName = buildFqName("last_available_backup_timestamp")
-	testMetricName                         = buildFqName("test_metric")
 )
 
 func (m metricsImpl) GetCapabilities(
