@@ -15,7 +15,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"dagger/gotest/internal/dagger"
@@ -29,21 +28,21 @@ type Gotest struct {
 }
 
 func New(
-	// Go version
-	//
-	// +optional
-	// +default="latest"
+// Go version
+//
+// +optional
+// +default="latest"
 	goVersion string,
-	// setup-envtest version
-	// +optional
-	// +default="0.19.0"
+// setup-envtest version
+// +optional
+// +default="0.19.0"
 	setupEnvtestVersion string,
-	// Kubernetes version
-	// +optional
-	// +default="1.31.0"
+// Kubernetes version
+// +optional
+// +default="1.31.0"
 	kubeVersion string,
-	// Container to run the tests
-	// +optional
+// Container to run the tests
+// +optional
 	ctr *dagger.Container,
 ) *Gotest {
 	if ctr != nil {
@@ -78,11 +77,10 @@ func New(
 }
 
 func (m *Gotest) UnitTest(
-	ctx context.Context,
-	// Source directory
-	// +required
+// Source directory
+// +required
 	src *dagger.Directory,
-) (string, error) {
+) *dagger.Container {
 	envtestCmd := []string{"setup-envtest", "use", "-p", "path", m.KubeVersion}
 	return m.Ctr.WithDirectory("/src", src).
 		// Setup envtest. There is no proper way to install it from a git release, so we use the go install command
@@ -93,5 +91,5 @@ func (m *Gotest) UnitTest(
 		WithWorkdir("/src").
 		// Exclude the e2e tests, we don't want to run them here
 		WithoutDirectory("/src/test/e2e").
-		WithExec([]string{"go", "test", "./..."}).Stdout(ctx)
+		WithExec([]string{"go", "test", "./..."})
 }
