@@ -74,7 +74,7 @@ type RecoveryWindow struct {
 	FirstRecoverabilityPoint *metav1.Time `json:"firstRecoverabilityPoint,omitempty"`
 
 	// The last successful backup time
-	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccussfulBackupTime,omitempty"`
+	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccessfulBackupTime,omitempty"`
 
 	// The last failed backup time
 	LastFailedBackupTime *metav1.Time `json:"lastFailedBackupTime,omitempty"`
