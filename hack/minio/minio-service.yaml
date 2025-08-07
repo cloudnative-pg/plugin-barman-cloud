@@ -9,3 +9,8 @@ spec:
     - protocol: TCP
       port: 9000
       targetPort: 9000
+      name: api
+    - protocol: TCP
+      port: 36261
+      targetPort: 36261
+      name: webui

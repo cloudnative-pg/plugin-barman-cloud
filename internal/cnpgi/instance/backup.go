@@ -7,6 +7,7 @@ import (
 	"time"
 
 	barmanBackup "github.com/cloudnative-pg/barman-cloud/pkg/backup"
+	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
@@ -114,6 +115,43 @@ func (b BackupServiceImplementation) Backup(
 	}
 
 	contextLogger.Info("Backup completed", "backup", executedBackupInfo.ID)
+
+	// Refresh the recovery window
+	contextLogger.Info(
+		"Refreshing the recovery window",
+		"backupName", executedBackupInfo.BackupName,
+	)
+	backupList, err := barmanCommand.GetBackupList(
+		ctx,
+		&objectStore.Spec.Configuration,
+		configuration.ServerName,
+		env,
+	)
+	if err != nil {
+		contextLogger.Error(err, "while reading the backup list")
+		return nil, err
+	}
+
+	if err := updateRecoveryWindow(
+		ctx,
+		b.Client,
+		backupList,
+		&objectStore,
+		configuration.ServerName,
+	); err != nil {
+		contextLogger.Error(
+			err,
+			"Error while updating the recovery window in the ObjectStore status stanza. Skipping.",
+			"backupName", executedBackupInfo.BackupName,
+		)
+	} else {
+		contextLogger.Debug(
+			"backupName", executedBackupInfo.BackupName,
+			"Updated the recovery window in the ObjectStore status stanza",
+			"serverRecoveryWindow", objectStore.Status.ServerRecoveryWindow,
+		)
+	}
+
 	return &backup.BackupResult{
 		BackupId:   executedBackupInfo.ID,
 		BackupName: executedBackupInfo.BackupName,

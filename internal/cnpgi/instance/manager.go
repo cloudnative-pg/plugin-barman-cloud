@@ -35,6 +35,18 @@ func Start(ctx context.Context) error {
 	controllerOptions := ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
+			// Important: the caching options below are used by
+			// controller-runtime only.
+			// The plugin code uses an enhanced client with a
+			// custom caching strategy specifically for ObjectStores
+			// and Clusters.
+			//
+			// This custom strategy is necessary because we lack
+			// permission to list these resources at the namespace
+			// level. Additionally, controller-runtime does not
+			// support caching a closed (explicit) set of objects
+			// within a namespace - it can only cache either individual
+			// objects or all objects in a namespace.
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
 					&corev1.Secret{},

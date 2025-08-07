@@ -22,16 +22,20 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: data
+        - mountPath: /opt/minio/certs
+          name: certs
         args:
         - server
+        - --certs-dir
+        - /opt/minio/certs
         - /data
         env:
-        - name: MINIO_ACCESS_KEY
+        - name: MINIO_ROOT_USER
           valueFrom:
             secretKeyRef: 
               name: minio
               key: ACCESS_KEY_ID
-        - name: MINIO_SECRET_KEY
+        - name: MINIO_ROOT_PASSWORD
           valueFrom:
             secretKeyRef: 
               name: minio
@@ -40,3 +44,13 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: minio
+      - name: certs
+        projected:
+          sources:
+            - secret:
+                name: minio-server-tls
+                items:
+                  - key: tls.crt
+                    path: public.crt
+                  - key: tls.key
+                    path: private.key
