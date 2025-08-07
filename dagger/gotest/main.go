@@ -15,7 +15,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"dagger/gotest/internal/dagger"
@@ -78,11 +77,10 @@ func New(
 }
 
 func (m *Gotest) UnitTest(
-	ctx context.Context,
 	// Source directory
 	// +required
 	src *dagger.Directory,
-) (string, error) {
+) *dagger.Container {
 	envtestCmd := []string{"setup-envtest", "use", "-p", "path", m.KubeVersion}
 	return m.Ctr.WithDirectory("/src", src).
 		// Setup envtest. There is no proper way to install it from a git release, so we use the go install command
@@ -93,5 +91,5 @@ func (m *Gotest) UnitTest(
 		WithWorkdir("/src").
 		// Exclude the e2e tests, we don't want to run them here
 		WithoutDirectory("/src/test/e2e").
-		WithExec([]string{"go", "test", "./..."}).Stdout(ctx)
+		WithExec([]string{"go", "test", "./..."})
 }
