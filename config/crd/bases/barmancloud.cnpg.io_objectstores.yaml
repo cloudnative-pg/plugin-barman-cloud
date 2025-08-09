@@ -609,6 +609,10 @@ spec:
                         restored.
                       format: date-time
                       type: string
+                    lastFailedBackupTime:
+                      description: The last failed backup time
+                      format: date-time
+                      type: string
                     lastSuccussfulBackupTime:
                       description: The last successful backup time
                       format: date-time
