@@ -15,6 +15,7 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	pgTime "github.com/cloudnative-pg/machinery/pkg/postgres/time"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -101,6 +102,13 @@ func (b BackupServiceImplementation) Backup(
 		postgres.BackupTemporaryDirectory,
 	); err != nil {
 		contextLogger.Error(err, "while taking backup")
+
+		if failureHandlerError := b.handleBackupError(ctx, configuration); failureHandlerError != nil {
+			contextLogger.Error(
+				failureHandlerError,
+				"Error while handling backup failure, skipping. "+
+					"BarmanObjectStore object may be not up to date.")
+		}
 		return nil, err
 	}
 
@@ -165,4 +173,19 @@ func (b BackupServiceImplementation) Backup(
 		Online:     true,
 		Metadata:   newBackupResultMetadata(configuration.Cluster.ObjectMeta.UID, executedBackupInfo.TimeLine).toMap(),
 	}, nil
+}
+
+func (b BackupServiceImplementation) handleBackupError(ctx context.Context, cfg *config.PluginConfiguration) error {
+	return retry.RetryOnConflict(
+		retry.DefaultBackoff,
+		func() error {
+			return setLastFailedBackupTime(
+				ctx,
+				b.Client,
+				cfg.GetBarmanObjectKey(),
+				cfg.ServerName,
+				time.Now(),
+			)
+		},
+	)
 }

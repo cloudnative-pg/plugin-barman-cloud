@@ -101,5 +101,6 @@ _Appears in:_
 | --- | --- | --- | --- | --- |
 | `firstRecoverabilityPoint` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | The first recoverability point in a PostgreSQL server refers to<br />the earliest point in time to which the database can be<br />restored. | True |  |  |
 | `lastSuccussfulBackupTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | The last successful backup time | True |  |  |
+| `lastFailedBackupTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | The last failed backup time | True |  |  |
 
 

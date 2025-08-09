@@ -75,6 +75,9 @@ type RecoveryWindow struct {
 
 	// The last successful backup time
 	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccussfulBackupTime,omitempty"`
+
+	// The last failed backup time
+	LastFailedBackupTime *metav1.Time `json:"lastFailedBackupTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

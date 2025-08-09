@@ -31,6 +31,7 @@ func buildFqName(name string) string {
 var (
 	firstRecoverabilityPointMetricName     = buildFqName("first_recoverability_point")
 	lastAvailableBackupTimestampMetricName = buildFqName("last_available_backup_timestamp")
+	lastFailedBackupTimestampMetricName    = buildFqName("last_failed_backup_timestamp")
 )
 
 func (m metricsImpl) GetCapabilities(
@@ -72,6 +73,11 @@ func (m metricsImpl) Define(
 				Help:      "The last available backup as a unix timestamp",
 				ValueType: &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
 			},
+			{
+				FqName:    lastFailedBackupTimestampMetricName,
+				Help:      "The last failed backup as a unix timestamp",
+				ValueType: &metrics.MetricType{Type: metrics.MetricType_TYPE_GAUGE},
+			},
 		},
 	}, nil
 }
@@ -107,17 +113,27 @@ func (m metricsImpl) Collect(
 					FqName: lastAvailableBackupTimestampMetricName,
 					Value:  0,
 				},
+				{
+					FqName: lastFailedBackupTimestampMetricName,
+					Value:  0,
+				},
 			},
 		}, nil
 	}
 
+	fmt.Println("Arriva ", x)
+
 	var firstRecoverabilityPoint float64
 	var lastAvailableBackup float64
+	var lastFailedBackup float64
 	if x.FirstRecoverabilityPoint != nil {
 		firstRecoverabilityPoint = float64(x.FirstRecoverabilityPoint.Unix())
 	}
 	if x.LastSuccessfulBackupTime != nil {
 		lastAvailableBackup = float64(x.LastSuccessfulBackupTime.Unix())
+	}
+	if x.LastFailedBackupTime != nil {
+		lastFailedBackup = float64(x.LastFailedBackupTime.Unix())
 	}
 
 	return &metrics.CollectMetricsResult{
@@ -129,6 +145,10 @@ func (m metricsImpl) Collect(
 			{
 				FqName: lastAvailableBackupTimestampMetricName,
 				Value:  lastAvailableBackup,
+			},
+			{
+				FqName: lastFailedBackupTimestampMetricName,
+				Value:  lastFailedBackup,
 			},
 		},
 	}, nil
