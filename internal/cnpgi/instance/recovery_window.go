@@ -32,6 +32,7 @@ func updateRecoveryWindow(
 	recoveryWindow := barmancloudv1.RecoveryWindow{
 		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
 		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
+		LastSuccussfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
 	}
 
 	if objectStore.Status.ServerRecoveryWindow == nil {

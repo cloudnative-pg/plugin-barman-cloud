@@ -53,6 +53,7 @@ var _ = Describe("Metrics Collect method", func() {
 					clusterName: {
 						FirstRecoverabilityPoint: &firstRecoverabilityPoint,
 						LastSuccessfulBackupTime: &lastSuccessfulBackupTime,
+						LastSuccussfulBackupTime: &lastSuccessfulBackupTime,
 					},
 				},
 			},

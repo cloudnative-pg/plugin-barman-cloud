@@ -609,8 +609,12 @@ spec:
                         restored.
                       format: date-time
                       type: string
-                    lastSuccussfulBackupTime:
+                    lastSuccessfulBackupTime:
                       description: The last successful backup time
+                      format: date-time
+                      type: string
+                    lastSuccussfulBackupTime:
+                      description: 'Deprecated: typo of lastSuccessfulBackupTime'
                       format: date-time
                       type: string
                   type: object

@@ -153,6 +153,10 @@ func (in *RecoveryWindow) DeepCopyInto(out *RecoveryWindow) {
 		in, out := &in.FirstRecoverabilityPoint, &out.FirstRecoverabilityPoint
 		*out = (*in).DeepCopy()
 	}
+	if in.LastSuccussfulBackupTime != nil {
+		in, out := &in.LastSuccussfulBackupTime, &out.LastSuccussfulBackupTime
+		*out = (*in).DeepCopy()
+	}
 	if in.LastSuccessfulBackupTime != nil {
 		in, out := &in.LastSuccessfulBackupTime, &out.LastSuccessfulBackupTime
 		*out = (*in).DeepCopy()

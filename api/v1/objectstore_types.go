@@ -73,8 +73,11 @@ type RecoveryWindow struct {
 	// restored.
 	FirstRecoverabilityPoint *metav1.Time `json:"firstRecoverabilityPoint,omitempty"`
 
+	// Deprecated: typo of lastSuccessfulBackupTime
+	LastSuccussfulBackupTime *metav1.Time `json:"lastSuccussfulBackupTime,omitempty"`
+
 	// The last successful backup time
-	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccussfulBackupTime,omitempty"`
+	LastSuccessfulBackupTime *metav1.Time `json:"lastSuccessfulBackupTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
