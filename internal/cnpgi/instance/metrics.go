@@ -121,8 +121,6 @@ func (m metricsImpl) Collect(
 		}, nil
 	}
 
-	fmt.Println("Arriva ", x)
-
 	var firstRecoverabilityPoint float64
 	var lastAvailableBackup float64
 	var lastFailedBackup float64
