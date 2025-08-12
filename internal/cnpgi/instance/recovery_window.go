@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudnative-pg/barman-cloud/pkg/catalog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -29,10 +30,9 @@ func updateRecoveryWindow(
 		return ptr.To(metav1.NewTime(*t))
 	}
 
-	recoveryWindow := barmancloudv1.RecoveryWindow{
-		FirstRecoverabilityPoint: convertTime(backupList.GetFirstRecoverabilityPoint()),
-		LastSuccessfulBackupTime: convertTime(backupList.GetLastSuccessfulBackupTime()),
-	}
+	recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
+	recoveryWindow.FirstRecoverabilityPoint = convertTime(backupList.GetFirstRecoverabilityPoint())
+	recoveryWindow.LastSuccessfulBackupTime = convertTime(backupList.GetLastSuccessfulBackupTime())
 
 	if objectStore.Status.ServerRecoveryWindow == nil {
 		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
@@ -40,4 +40,26 @@ func updateRecoveryWindow(
 	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
 
 	return c.Status().Update(ctx, objectStore)
+}
+
+// setLastFailedBackupTime sets the last failed backup time in the
+// passed object store, for the passed server name.
+func setLastFailedBackupTime(
+	ctx context.Context,
+	c client.Client,
+	objectStoreKey client.ObjectKey,
+	serverName string,
+	lastFailedBackupTime time.Time,
+) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var objectStore barmancloudv1.ObjectStore
+
+		if err := c.Get(ctx, objectStoreKey, &objectStore); err != nil {
+			return err
+		}
+		recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
+		recoveryWindow.LastFailedBackupTime = ptr.To(metav1.NewTime(lastFailedBackupTime))
+		objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+		return c.Status().Update(ctx, &objectStore)
+	})
 }
