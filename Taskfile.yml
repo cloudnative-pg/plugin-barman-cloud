@@ -137,6 +137,7 @@ tasks:
         --kube-version ${K8S_VERSION}
         --setup-envtest-version ${SETUP_ENVTEST_VERSION}
         unit-test --src .
+        stdout
     sources:
       - ./**/*.go
 
