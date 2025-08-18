@@ -16,10 +16,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -55,8 +55,8 @@ jobs:
         with:
           image: "${{ env.IMAGE_NAME }}:latest"
           args: --severity-threshold=high --file=./containers/Dockerfile.barmanbase
-      -
-        name: Upload result to GitHub Code Scanning
+
+      - name: Upload result to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
