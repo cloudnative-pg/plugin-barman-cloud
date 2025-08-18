@@ -33,9 +33,9 @@ COPY ../internal/ internal/
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
-# Use plug-barman-cloud-base to get the dependencies
-# pip will build everything inside /usr/ since this is the case
-# Copy every file into a destination that will then copy into the distroless container
+# Use plugin-barman-cloud-base to get the dependencies.
+# pip will build everything inside /usr, so we copy every file into a new
+# destination that will then be copied into the distroless container
 FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:latest AS pythonbuilder
 # Prepare a new /usr/ directory with the files we'll need in the final image
 RUN mkdir /new-usr/ && \
