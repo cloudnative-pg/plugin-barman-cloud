@@ -387,17 +387,21 @@ write permissions to the bucket.
 ## MinIO Object Store
 
 In order to use the Tenant resource you first need to deploy the
-[MinIO operator](https://min.io/docs/minio/kubernetes/upstream/operations/installation.html).
-For the latest documentation on MinIO, please refer to the
-[MinIO official documentation](https://docs.min.io/).
+[MinIO operator](https://docs.min.io/community/minio-object-store/operations/deployments/installation.html).
+For the latest documentation of MinIO, please refer to the
+[MinIO official documentation](https://docs.min.io/community/minio-object-store/).
 
-MinIO Object Store's API is compatible with S3, the default configuration of the tenant
+MinIO Object Store's API is compatible with S3, and the default configuration of the Tenant
 will create these services:
 - `<tenant>-console` on port 9090 (with autocert) or 9443 (without autocert)
 - `<tenant>-hl` on port 9000
 Where `<tenant>` is the `metadata.name` you assigned to your Tenant resource.
 
-For example the following tenant:
+:::note
+The `<tenant>-console` service will only be available if you have enabled the
+[MinIO Console](https://docs.min.io/community/minio-object-store/administration/minio-console.html).
+
+For example, the following Tenant:
 ```yml
 apiVersion: minio.min.io/v2
 kind: Tenant
