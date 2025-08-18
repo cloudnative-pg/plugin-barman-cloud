@@ -378,7 +378,7 @@ tasks:
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
   publish-barman-base:
-    desc: Build and publish a barman-cloud base container image (sidecar)
+    desc: Build and publish a barman-cloud base container image
     vars:
       BARMAN_BASE_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-base{{if not (hasPrefix "refs/heads/main" .GITHUB_REF)}}-testing{{end}}
       BARMAN_VERSION:
