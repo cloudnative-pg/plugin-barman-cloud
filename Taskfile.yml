@@ -222,7 +222,7 @@ tasks:
       - start-dagger-engine-for-local-builds
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: bba3a4ee46fd663a5577337e2221db56c646a0b7
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
@@ -239,7 +239,7 @@ tasks:
       - start-dagger-engine-for-local-builds
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: bba3a4ee46fd663a5577337e2221db56c646a0b7
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
       - >
@@ -364,7 +364,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: bba3a4ee46fd663a5577337e2221db56c646a0b7
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
     cmds:
       - >
         dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
@@ -397,7 +397,7 @@ tasks:
         - REGISTRY_PASSWORD
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: bba3a4ee46fd663a5577337e2221db56c646a0b7
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
     cmds:
       - >
         dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
