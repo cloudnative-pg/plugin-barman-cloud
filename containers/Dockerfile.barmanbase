@@ -1,0 +1,7 @@
+FROM python:3.13-slim-bookworm
+COPY containers/sidecar-requirements.txt .
+RUN apt-get update && \
+    apt-get install -y postgresql-common build-essential && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y libpq-dev && \
+    pip install -r sidecar-requirements.txt
