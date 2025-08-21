@@ -384,87 +384,48 @@ write permissions to the bucket.
 ---
 
 
-## MinIO Gateway
+## MinIO Object Store
 
-MinIO Gateway can proxy requests to cloud object storage providers like S3 or GCS.
-For more information, refer to [MinIO official documentation](https://docs.min.io/).
+In order to use the Tenant resource you first need to deploy the
+[MinIO operator](https://docs.min.io/community/minio-object-store/operations/deployments/installation.html).
+For the latest documentation of MinIO, please refer to the
+[MinIO official documentation](https://docs.min.io/community/minio-object-store/).
 
-### Setup
+MinIO Object Store's API is compatible with S3, and the default configuration of the Tenant
+will create these services:
+- `<tenant>-console` on port 9090 (with autocert) or 9443 (without autocert)
+- `<tenant>-hl` on port 9000
+Where `<tenant>` is the `metadata.name` you assigned to your Tenant resource.
 
-Create MinIO access credentials:
+:::note
+The `<tenant>-console` service will only be available if you have enabled the
+[MinIO Console](https://docs.min.io/community/minio-object-store/administration/minio-console.html).
+
+For example, the following Tenant:
+```yml
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: cnpg-backups
+spec:
+  [...]
+```
+would have services called `cnpg-backups-console` and `cnpg-backups-hl` respectively.
+
+The `console` service is for managing the tenant, while the `hl` service exposes the S3
+compatible API. If your tenant is configured with `requestAutoCert` you will communicate
+to these services over HTTPS, if not you will use HTTP.
+
+For authentication you can use your username and password, or create an access key.
+Whichever method you choose, it has to be stored as a secret.
 
 ```sh
 kubectl create secret generic minio-creds \
-  --from-literal=MINIO_ACCESS_KEY=<minio access key> \
-  --from-literal=MINIO_SECRET_KEY=<minio secret key>
+  --from-literal=MINIO_ACCESS_KEY=<minio access key or username> \
+  --from-literal=MINIO_SECRET_KEY=<minio secret key or password>
 ```
 
-:::note
-Cloud Object Storage credentials will be used only by MinIO Gateway in this
-case.
-:::
-
-Expose MinIO Gateway via `ClusterIP`:
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio-gateway-service
-spec:
-  type: ClusterIP
-  ports:
-    - port: 9000
-      targetPort: 9000
-      protocol: TCP
-  selector:
-    app: minio
-```
-
-Here follows an excerpt of an example of deployment relaying to S3:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-[...]
-spec:
-  containers:
-  - name: minio
-    image: minio/minio:RELEASE.2020-06-03T22-13-49Z
-    args: ["gateway", "s3"]
-    ports:
-    - containerPort: 9000
-    env:
-    - name: MINIO_ACCESS_KEY
-      valueFrom:
-        secretKeyRef:
-          name: minio-creds
-          key: MINIO_ACCESS_KEY
-    - name: MINIO_SECRET_KEY
-      valueFrom:
-        secretKeyRef:
-          name: minio-creds
-          key: MINIO_SECRET_KEY
-    - name: AWS_ACCESS_KEY_ID
-      valueFrom:
-        secretKeyRef:
-          name: aws-creds
-          key: ACCESS_KEY_ID
-    - name: AWS_SECRET_ACCESS_KEY
-      valueFrom:
-        secretKeyRef:
-          name: aws-creds
-          key: ACCESS_SECRET_KEY
-# Uncomment the below section if session token is required
-#   - name: AWS_SESSION_TOKEN
-#     valueFrom:
-#       secretKeyRef:
-#         name: aws-creds
-#         key: ACCESS_SESSION_TOKEN
-```
-
-Proceed by configuring MinIO Gateway service as the `endpointURL` in the
-`ObjectStore` definition, then choose a bucket name to replace `BUCKET_NAME`:
+Finally, create the Barman ObjectStore:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -474,7 +435,7 @@ metadata:
 spec:
   configuration:
     destinationPath: s3://BUCKET_NAME/
-    endpointURL: http://minio-gateway-service:9000
+    endpointURL: http://<tenant>-hl:9000
     s3Credentials:
       accessKeyId:
         name: minio-creds

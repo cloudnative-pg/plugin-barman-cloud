@@ -55,6 +55,7 @@ apiVersion
 apiextensions
 args
 auth
+autocert
 aws
 backend
 backends
