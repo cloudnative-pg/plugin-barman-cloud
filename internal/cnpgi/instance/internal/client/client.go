@@ -21,11 +21,11 @@ const DefaultTTLSeconds = 10
 type cachedEntry struct {
 	entry         client.Object
 	fetchUnixTime int64
-	ttl           time.Duration
+	ttlSeconds    int64
 }
 
 func (e *cachedEntry) isExpired() bool {
-	return time.Now().Unix()-e.fetchUnixTime > int64(e.ttl)
+	return time.Now().Unix()-e.fetchUnixTime > e.ttlSeconds
 }
 
 // ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
@@ -71,6 +71,28 @@ func (e *ExtendedClient) Get(
 	return e.Client.Get(ctx, key, obj, opts...)
 }
 
+// addTypeInformationToObject adds TypeMeta information to a client.Object based upon the client Scheme
+// inspired by: https://github.com/kubernetes/cli-runtime/blob/v0.19.2/pkg/printers/typesetter.go#L41
+func (e *ExtendedClient) addTypeInformationToObject(obj client.Object) error {
+	gvks, _, err := e.Client.Scheme().ObjectKinds(obj)
+	if err != nil {
+		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
+	}
+
+	for _, gvk := range gvks {
+		if len(gvk.Kind) == 0 {
+			continue
+		}
+		if len(gvk.Version) == 0 || gvk.Version == runtime.APIVersionInternal {
+			continue
+		}
+		obj.GetObjectKind().SetGroupVersionKind(gvk)
+		break
+	}
+
+	return nil
+}
+
 func (e *ExtendedClient) getCachedObject(
 	ctx context.Context,
 	key client.ObjectKey,
@@ -80,6 +102,12 @@ func (e *ExtendedClient) getCachedObject(
 	contextLogger := log.FromContext(ctx).
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
+
+	// Make sure the object has GVK information
+	// This is needed to compare the object type with the cached one
+	if err := e.addTypeInformationToObject(obj); err != nil {
+		return fmt.Errorf("cannot add type metadata to object of type %T: %w", obj, err)
+	}
 
 	contextLogger.Trace("locking the cache")
 	e.mux.Lock()
@@ -120,9 +148,16 @@ func (e *ExtendedClient) getCachedObject(
 		return err
 	}
 
+	// Populate the GKV information again, as the client.Get() may have
+	// returned an object without this information set
+	if err := e.addTypeInformationToObject(obj); err != nil {
+		return fmt.Errorf("cannot add type metadata to object of type %T: %w", obj, err)
+	}
+
 	cs := cachedEntry{
-		entry:         obj.(runtime.Object).DeepCopyObject().(client.Object),
+		entry:         obj.DeepCopyObject().(client.Object),
 		fetchUnixTime: time.Now().Unix(),
+		ttlSeconds:    DefaultTTLSeconds,
 	}
 
 	contextLogger.Debug("setting object in the cache")
@@ -143,7 +178,7 @@ func (e *ExtendedClient) removeObject(object client.Object) {
 	for i, cache := range e.cachedObjects {
 		if cache.entry.GetNamespace() == object.GetNamespace() &&
 			cache.entry.GetName() == object.GetName() &&
-			cache.entry.GetObjectKind().GroupVersionKind() != object.GetObjectKind().GroupVersionKind() {
+			cache.entry.GetObjectKind().GroupVersionKind() == object.GetObjectKind().GroupVersionKind() {
 			e.cachedObjects = append(e.cachedObjects[:i], e.cachedObjects[i+1:]...)
 			return
 		}
