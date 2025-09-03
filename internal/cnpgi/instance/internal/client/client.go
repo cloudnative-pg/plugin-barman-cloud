@@ -9,7 +9,6 @@ import (
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	pluginBarman "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -71,28 +70,6 @@ func (e *ExtendedClient) Get(
 	return e.Client.Get(ctx, key, obj, opts...)
 }
 
-// addTypeInformationToObject adds TypeMeta information to a client.Object based upon the client Scheme
-// inspired by: https://github.com/kubernetes/cli-runtime/blob/v0.19.2/pkg/printers/typesetter.go#L41
-func (e *ExtendedClient) addTypeInformationToObject(obj client.Object) error {
-	gvks, _, err := e.Client.Scheme().ObjectKinds(obj)
-	if err != nil {
-		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
-	}
-
-	for _, gvk := range gvks {
-		if len(gvk.Kind) == 0 {
-			continue
-		}
-		if len(gvk.Version) == 0 || gvk.Version == runtime.APIVersionInternal {
-			continue
-		}
-		obj.GetObjectKind().SetGroupVersionKind(gvk)
-		break
-	}
-
-	return nil
-}
-
 func (e *ExtendedClient) getCachedObject(
 	ctx context.Context,
 	key client.ObjectKey,
@@ -102,12 +79,6 @@ func (e *ExtendedClient) getCachedObject(
 	contextLogger := log.FromContext(ctx).
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
-
-	// Make sure the object has GVK information
-	// This is needed to compare the object type with the cached one
-	if err := e.addTypeInformationToObject(obj); err != nil {
-		return fmt.Errorf("cannot add type metadata to object of type %T: %w", obj, err)
-	}
 
 	contextLogger.Trace("locking the cache")
 	e.mux.Lock()
@@ -119,7 +90,7 @@ func (e *ExtendedClient) getCachedObject(
 		if cacheEntry.entry.GetNamespace() != key.Namespace || cacheEntry.entry.GetName() != key.Name {
 			continue
 		}
-		if cacheEntry.entry.GetObjectKind().GroupVersionKind() != obj.GetObjectKind().GroupVersionKind() {
+		if reflect.TypeOf(cacheEntry.entry) != reflect.TypeOf(obj) {
 			continue
 		}
 		if cacheEntry.isExpired() {
@@ -148,12 +119,6 @@ func (e *ExtendedClient) getCachedObject(
 		return err
 	}
 
-	// Populate the GKV information again, as the client.Get() may have
-	// returned an object without this information set
-	if err := e.addTypeInformationToObject(obj); err != nil {
-		return fmt.Errorf("cannot add type metadata to object of type %T: %w", obj, err)
-	}
-
 	cs := cachedEntry{
 		entry:         obj.DeepCopyObject().(client.Object),
 		fetchUnixTime: time.Now().Unix(),
@@ -178,7 +143,7 @@ func (e *ExtendedClient) removeObject(object client.Object) {
 	for i, cache := range e.cachedObjects {
 		if cache.entry.GetNamespace() == object.GetNamespace() &&
 			cache.entry.GetName() == object.GetName() &&
-			cache.entry.GetObjectKind().GroupVersionKind() == object.GetObjectKind().GroupVersionKind() {
+			reflect.TypeOf(cache.entry) == reflect.TypeOf(object) {
 			e.cachedObjects = append(e.cachedObjects[:i], e.cachedObjects[i+1:]...)
 			return
 		}
