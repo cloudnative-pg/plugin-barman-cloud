@@ -32,8 +32,6 @@ func addToCache(c *ExtendedClient, obj client.Object, fetchUnixTime int64) {
 		ttlSeconds:    DefaultTTLSeconds,
 	}
 	ce.entry.SetResourceVersion("from cache")
-	err := c.addTypeInformationToObject(ce.entry)
-	Expect(err).ToNot(HaveOccurred())
 	c.cachedObjects = append(c.cachedObjects, ce)
 }
 
