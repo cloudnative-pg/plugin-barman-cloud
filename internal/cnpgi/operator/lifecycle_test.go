@@ -172,6 +172,53 @@ var _ = Describe("LifecycleImplementation", func() {
 	})
 
 	Describe("reconcilePod", func() {
+		It("returns a patch for a valid pod with probe configuration", func(ctx SpecContext) {
+			// Configure plugin with custom probe settings
+			pluginConfiguration.StartupProbeConfig = &config.ProbeConfig{
+				InitialDelaySeconds: 1,
+				TimeoutSeconds:      15,
+				PeriodSeconds:       2,
+				FailureThreshold:    5,
+				SuccessThreshold:    1,
+			}
+
+			pod := &corev1.Pod{
+				TypeMeta: podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "postgres",
+						},
+					},
+				},
+			}
+
+			podJSON, err := json.Marshal(pod)
+			Expect(err).NotTo(HaveOccurred())
+
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+				probeConfig: pluginConfiguration.StartupProbeConfig,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+
+			// Verify the patch contains the expected probe configuration
+			Expect(string(response.JsonPatch)).To(ContainSubstring("startupProbe"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"initialDelaySeconds\":1"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"timeoutSeconds\":15"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"periodSeconds\":2"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"failureThreshold\":5"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"successThreshold\":1"))
+		})
+
 		It("returns a patch for a valid pod", func(ctx SpecContext) {
 			pod := &corev1.Pod{
 				TypeMeta: podTypeMeta,
