@@ -140,5 +140,8 @@ var _ = Describe("ExtendedClient Get", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStoreNotInClient), objectStore)
 			Expect(err).NotTo(HaveOccurred())
+
+			Expect(secretInClient.GetResourceVersion()).To(Equal("from cache"))
+			Expect(objectStore.GetResourceVersion()).To(Equal("from cache"))
 		})
 })
