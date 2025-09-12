@@ -129,6 +129,7 @@ func (impl LifecycleImplementation) reconcileJob(
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
+		probeConfig:  pluginConfiguration.StartupProbeConfig,
 	})
 }
 
@@ -136,6 +137,7 @@ type sidecarConfiguration struct {
 	env          []corev1.EnvVar
 	certificates []corev1.VolumeProjection
 	resources    corev1.ResourceRequirements
+	probeConfig  *config.ProbeConfig
 }
 
 func reconcileJob(
@@ -221,6 +223,7 @@ func (impl LifecycleImplementation) reconcilePod(
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
+		probeConfig:  pluginConfiguration.StartupProbeConfig,
 	})
 }
 
@@ -304,13 +307,24 @@ func reconcilePodSpec(
 	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
-		FailureThreshold: 10,
-		TimeoutSeconds:   10,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},
 			},
 		},
+	}
+
+	// Apply configurable probe settings if available
+	if config.probeConfig != nil {
+		baseProbe.InitialDelaySeconds = config.probeConfig.InitialDelaySeconds
+		baseProbe.TimeoutSeconds = config.probeConfig.TimeoutSeconds
+		baseProbe.PeriodSeconds = config.probeConfig.PeriodSeconds
+		baseProbe.FailureThreshold = config.probeConfig.FailureThreshold
+		baseProbe.SuccessThreshold = config.probeConfig.SuccessThreshold
+	} else {
+		// Fallback to default values
+		baseProbe.FailureThreshold = 10
+		baseProbe.TimeoutSeconds = 10
 	}
 
 	// fixed values

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strconv"
 	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -57,6 +58,29 @@ type PluginConfiguration struct {
 
 	ReplicaSourceBarmanObjectName string
 	ReplicaSourceServerName       string
+
+	// Probe configuration
+	StartupProbeConfig *ProbeConfig
+}
+
+// ProbeConfig holds configuration for Kubernetes probes
+type ProbeConfig struct {
+	InitialDelaySeconds int32
+	TimeoutSeconds      int32
+	PeriodSeconds       int32
+	FailureThreshold    int32
+	SuccessThreshold    int32
+}
+
+// DefaultProbeConfig returns the default probe configuration
+func DefaultProbeConfig() *ProbeConfig {
+	return &ProbeConfig{
+		InitialDelaySeconds: 0,
+		TimeoutSeconds:      10,
+		PeriodSeconds:       10,
+		FailureThreshold:    10,
+		SuccessThreshold:    1,
+	}
 }
 
 // GetBarmanObjectKey gets the namespaced name of the barman object
@@ -166,9 +190,48 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		// used for wal_restore in the designed primary of a replica cluster
 		ReplicaSourceServerName:       replicaSourceServerName,
 		ReplicaSourceBarmanObjectName: replicaSourceBarmanObjectName,
+		// probe configuration
+		StartupProbeConfig: parseProbeConfig(helper.Parameters),
 	}
 
 	return result
+}
+
+// parseProbeConfig parses probe configuration from plugin parameters
+func parseProbeConfig(parameters map[string]string) *ProbeConfig {
+	config := DefaultProbeConfig()
+
+	if val, ok := parameters["startupProbe.initialDelaySeconds"]; ok {
+		if parsed, err := strconv.ParseInt(val, 10, 32); err == nil {
+			config.InitialDelaySeconds = int32(parsed)
+		}
+	}
+
+	if val, ok := parameters["startupProbe.timeoutSeconds"]; ok {
+		if parsed, err := strconv.ParseInt(val, 10, 32); err == nil {
+			config.TimeoutSeconds = int32(parsed)
+		}
+	}
+
+	if val, ok := parameters["startupProbe.periodSeconds"]; ok {
+		if parsed, err := strconv.ParseInt(val, 10, 32); err == nil {
+			config.PeriodSeconds = int32(parsed)
+		}
+	}
+
+	if val, ok := parameters["startupProbe.failureThreshold"]; ok {
+		if parsed, err := strconv.ParseInt(val, 10, 32); err == nil {
+			config.FailureThreshold = int32(parsed)
+		}
+	}
+
+	if val, ok := parameters["startupProbe.successThreshold"]; ok {
+		if parsed, err := strconv.ParseInt(val, 10, 32); err == nil {
+			config.SuccessThreshold = int32(parsed)
+		}
+	}
+
+	return config
 }
 
 func getRecoveryParameters(cluster *cnpgv1.Cluster) map[string]string {
