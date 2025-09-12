@@ -81,8 +81,13 @@ This configuration enables both WAL archiving and data directory backups.
 
 ## Performing a Base Backup
 
-Once WAL archiving is enabled, the cluster is ready for backups. To issue an
-on-demand backup, use the following configuration with the plugin method:
+Once WAL archiving is enabled, the cluster is ready for backups. Backups can be
+created either declaratively (with YAML manifests) or imperatively (with the
+`cnpg` plugin).
+
+### Declarative approach (YAML manifest)
+
+Create a backup resource by applying a YAML manifest:
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -97,8 +102,28 @@ spec:
     name: barman-cloud.cloudnative-pg.io
 ```
 
-:::note
-You can apply the same concept to the `ScheduledBackup` resource.
+### Imperative approach (using the `cnpg` plugin)
+
+The quickest way to trigger an on-demand backup is with the `cnpg` plugin:
+
+```bash
+kubectl cnpg backup -n <namespace> <cluster-name> \
+  --method=plugin \
+  --plugin-name=barman-cloud.cloudnative-pg.io
+```
+
+:::note Migration from in-tree backups
+If you are migrating from the in-tree backup system, note the change in syntax:
+
+```bash
+# Old command (in-tree backup)
+kubectl cnpg backup -n <namespace> <cluster-name> --method=barmanObjectStore
+
+# New command (plugin-based backup)
+kubectl cnpg backup -n <namespace> <cluster-name> \
+  --method=plugin \
+  --plugin-name=barman-cloud.cloudnative-pg.io
+```
 :::
 
 ## Restoring a Cluster
