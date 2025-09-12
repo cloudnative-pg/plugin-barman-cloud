@@ -9,7 +9,6 @@ import (
 
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	pluginBarman "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -21,11 +20,11 @@ const DefaultTTLSeconds = 10
 type cachedEntry struct {
 	entry         client.Object
 	fetchUnixTime int64
-	ttl           time.Duration
+	ttlSeconds    int64
 }
 
 func (e *cachedEntry) isExpired() bool {
-	return time.Now().Unix()-e.fetchUnixTime > int64(e.ttl)
+	return time.Now().Unix()-e.fetchUnixTime > e.ttlSeconds
 }
 
 // ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
@@ -91,7 +90,7 @@ func (e *ExtendedClient) getCachedObject(
 		if cacheEntry.entry.GetNamespace() != key.Namespace || cacheEntry.entry.GetName() != key.Name {
 			continue
 		}
-		if cacheEntry.entry.GetObjectKind().GroupVersionKind() != obj.GetObjectKind().GroupVersionKind() {
+		if reflect.TypeOf(cacheEntry.entry) != reflect.TypeOf(obj) {
 			continue
 		}
 		if cacheEntry.isExpired() {
@@ -121,8 +120,9 @@ func (e *ExtendedClient) getCachedObject(
 	}
 
 	cs := cachedEntry{
-		entry:         obj.(runtime.Object).DeepCopyObject().(client.Object),
+		entry:         obj.DeepCopyObject().(client.Object),
 		fetchUnixTime: time.Now().Unix(),
+		ttlSeconds:    DefaultTTLSeconds,
 	}
 
 	contextLogger.Debug("setting object in the cache")
@@ -143,7 +143,7 @@ func (e *ExtendedClient) removeObject(object client.Object) {
 	for i, cache := range e.cachedObjects {
 		if cache.entry.GetNamespace() == object.GetNamespace() &&
 			cache.entry.GetName() == object.GetName() &&
-			cache.entry.GetObjectKind().GroupVersionKind() != object.GetObjectKind().GroupVersionKind() {
+			reflect.TypeOf(cache.entry) == reflect.TypeOf(object) {
 			e.cachedObjects = append(e.cachedObjects[:i], e.cachedObjects[i+1:]...)
 			return
 		}
