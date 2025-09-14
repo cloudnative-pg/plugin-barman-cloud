@@ -17,6 +17,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -125,11 +126,16 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
+	startupProbe, err := impl.collectSidecarStartupProbeForRecoveryJob(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
-		probeConfig:  pluginConfiguration.StartupProbeConfig,
+		startupProbe: startupProbe,
 	})
 }
 
@@ -137,7 +143,7 @@ type sidecarConfiguration struct {
 	env          []corev1.EnvVar
 	certificates []corev1.VolumeProjection
 	resources    corev1.ResourceRequirements
-	probeConfig  *config.ProbeConfig
+	startupProbe *barmancloudv1.ProbeConfig
 }
 
 func reconcileJob(
@@ -219,11 +225,16 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
+	startupProbe, err := impl.collectSidecarStartupProbeForInstancePod(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
-		probeConfig:  pluginConfiguration.StartupProbeConfig,
+		startupProbe: startupProbe,
 	})
 }
 
@@ -315,12 +326,13 @@ func reconcilePodSpec(
 	}
 
 	// Apply configurable probe settings if available
-	if config.probeConfig != nil {
-		baseProbe.InitialDelaySeconds = config.probeConfig.InitialDelaySeconds
-		baseProbe.TimeoutSeconds = config.probeConfig.TimeoutSeconds
-		baseProbe.PeriodSeconds = config.probeConfig.PeriodSeconds
-		baseProbe.FailureThreshold = config.probeConfig.FailureThreshold
-		baseProbe.SuccessThreshold = config.probeConfig.SuccessThreshold
+	if config.startupProbe != nil {
+		// Copy timing and threshold settings from user configuration
+		baseProbe.InitialDelaySeconds = config.startupProbe.InitialDelaySeconds
+		baseProbe.TimeoutSeconds = config.startupProbe.TimeoutSeconds
+		baseProbe.PeriodSeconds = config.startupProbe.PeriodSeconds
+		baseProbe.FailureThreshold = config.startupProbe.FailureThreshold
+		baseProbe.SuccessThreshold = config.startupProbe.SuccessThreshold
 	} else {
 		// Fallback to default values
 		baseProbe.FailureThreshold = 10

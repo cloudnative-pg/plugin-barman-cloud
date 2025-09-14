@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -173,8 +174,8 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	Describe("reconcilePod", func() {
 		It("returns a patch for a valid pod with probe configuration", func(ctx SpecContext) {
-			// Configure plugin with custom probe settings
-			pluginConfiguration.StartupProbeConfig = &config.ProbeConfig{
+			// Configure sidecar with custom probe settings
+			startupProbeConfig := &barmancloudv1.ProbeConfig{
 				InitialDelaySeconds: 1,
 				TimeoutSeconds:      15,
 				PeriodSeconds:       2,
@@ -204,7 +205,7 @@ var _ = Describe("LifecycleImplementation", func() {
 			}
 
 			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
-				probeConfig: pluginConfiguration.StartupProbeConfig,
+				startupProbe: startupProbeConfig,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
