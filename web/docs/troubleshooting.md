@@ -104,22 +104,58 @@ kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud --previous
 
 When a backup fails, follow these steps in order:
 
-1. **Check backup status**: `kubectl get backups.postgresql.cnpg.io -n <namespace>`
-2. **Get error details and target pod**: 
-   ```bash
-   kubectl describe backups.postgresql.cnpg.io -n <namespace> <backup-name>
-   # Or extract just the target pod name
-   kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='{.status.instanceID.podName}'
+1. **Check backup status**:
+
+   ```sh
+   kubectl get backups.postgresql.cnpg.io -n <namespace>
    ```
-3. **Check the specific target pod's sidecar logs**:
-   ```bash
-   TARGET_POD=$(kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='{.status.instanceID.podName}')
-   kubectl logs -n <namespace> $TARGET_POD -c plugin-barman-cloud --tail=100 | grep -E "ERROR|FATAL|panic"
+2. **Get error details and target pod**:
+
+   ```sh
+   kubectl describe backups.postgresql.cnpg.io \
+     -n <namespace> <backup-name>
+
+   kubectl get backups.postgresql.cnpg.io \
+     -n <namespace> <backup-name> \
+     -o jsonpath='{.status.instanceID.podName}'
    ```
-4. **Check cluster events**: `kubectl get events -n <namespace> --field-selector involvedObject.name=<cluster-name> --sort-by='.lastTimestamp'`
-5. **Verify plugin is running**: `kubectl get pods -n cnpg-system -l app.kubernetes.io/name=barman-cloud`
-6. **Check operator logs**: `kubectl logs -n cnpg-system deployment/cnpg-controller-manager --tail=100 | grep -i "backup\|plugin"`
-7. **Check plugin manager logs**: `kubectl logs -n cnpg-system deployment/barman-cloud --tail=100`
+3. **Check the target pod’s sidecar logs**:
+
+   ```sh
+   TARGET_POD=$(kubectl get backups.postgresql.cnpg.io \
+     -n <namespace> <backup-name> \
+     -o jsonpath='{.status.instanceID.podName}')
+
+   kubectl logs \
+     -n <namespace> $TARGET_POD -c plugin-barman-cloud
+     --tail=100 | grep -E "ERROR|FATAL|panic"
+   ```
+4. **Check cluster events**:
+
+   ```sh
+   kubectl get events -n <namespace> \
+     --field-selector involvedObject.name=<cluster-name> \
+     --sort-by='.lastTimestamp'
+   ```
+5. **Verify plugin is running**:
+
+   ```sh
+   kubectl get pods \
+     -n cnpg-system -l app.kubernetes.io/name=barman-cloud
+   ```
+6. **Check operator logs**:
+
+   ```sh
+   kubectl logs \
+     -n cnpg-system deployment/cnpg-controller-manager \
+     --tail=100 | grep -i "backup\|plugin"
+   ```
+7. **Check plugin manager logs**:
+
+   ```sh
+   kubectl logs \
+     -n cnpg-system deployment/barman-cloud --tail=100
+   ```
 
 #### Backup job fails immediately
 
