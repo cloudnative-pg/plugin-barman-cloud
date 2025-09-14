@@ -1,38 +1,37 @@
 ---
-sidebar_position: 50
+sidebar_position: 90
 ---
 
 # Troubleshooting
 
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
-This guide helps you diagnose and resolve common issues with the Barman Cloud Plugin.
-
-## Before You Begin
-
-### Recommended Upgrades
+This guide helps you diagnose and resolve common issues with the Barman Cloud
+plugin.
 
 :::important
-**CloudNativePG 1.27.0** offers significantly improved error and status reporting for plugins. If you're experiencing issues, we strongly recommend upgrading to version 1.27.0 or later for better diagnostics.
-
-- **Upgrade CloudNativePG**: Follow the [official upgrade guide](https://cloudnative-pg.io/documentation/current/installation_upgrade)
-- **Update kubectl-cnpg plugin**: Install or update the kubectl plugin for better debugging capabilities. See the [kubectl plugin documentation](https://cloudnative-pg.io/documentation/current/kubectl-plugin/)
+We are continuously improving the integration between CloudNativePG and the
+Barman Cloud plugin as it moves toward greater stability and maturity. For this
+reason, we recommend using the latest available version of both components.
+See the [*Requirements* section](intro.md#requirements) for details.
 :::
 
-### Viewing Logs
+## Viewing Logs
 
-To effectively troubleshoot issues, you need to check logs from multiple sources:
+To troubleshoot effectively, you’ll often need to review logs from multiple
+sources:
 
 :::note
-The following commands assume you've installed the CloudNativePG operator in the default `cnpg-system` namespace. If you've installed it in a different namespace, adjust the commands accordingly.
+The following commands assume you installed the CloudNativePG operator in
+the default `cnpg-system` namespace. If you installed it in a different
+namespace, adjust the commands accordingly.
 :::
 
-```bash
-# View operator logs (contains plugin interaction logs)
-# Assumes operator is installed in the default cnpg-system namespace
+```sh
+# View operator logs (includes plugin interaction logs)
 kubectl logs -n cnpg-system deployment/cnpg-controller-manager -f
 
-# View sidecar container logs (barman-cloud operations)
+# View sidecar container logs (Barman Cloud operations)
 kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud -f
 
 # View plugin manager logs
@@ -52,41 +51,52 @@ kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud --previous
 #### Plugin pods not starting
 
 **Symptoms:**
-- Plugin pods are in `CrashLoopBackOff` or `Error` state
-- Plugin deployment is not ready
+
+- Plugin pods stuck in `CrashLoopBackOff` or `Error`
+- Plugin deployment not ready
 
 **Possible causes and solutions:**
 
 1. **Certificate issues**
-   ```bash
+
+   ```sh
    # Check if cert-manager is installed and running
    kubectl get pods -n cert-manager
-   
+
    # Check if the plugin certificate is created
    kubectl get certificates -n cnpg-system
    ```
-   
+
    If cert-manager is not installed, install it first:
-   ```bash
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+   ```sh
+   # Note: other installation methods for cert-manager are available
+   kubectl apply -f \
+     https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
    ```
 
+   If you are using your own certificates without cert-manager, you will need
+   to verify the entire certificate chain yourself.
+
 2. **Image pull errors**
-   ```bash
+
+   ```sh
    # Check pod events for image pull errors
    kubectl describe pod -n cnpg-system -l app.kubernetes.io/name=barman-cloud
    ```
-   
-   Verify the image exists and you have proper credentials if using a private registry.
+
+   Verify the image exists and you have proper credentials if using a private
+   registry.
 
 3. **Resource constraints**
-   ```bash
+
+   ```sh
    # Check node resources
    kubectl top nodes
    kubectl describe nodes
    ```
-   
-   Ensure your cluster has sufficient CPU and memory resources.
+
+   Make sure your cluster has sufficient CPU and memory resources.
 
 ### Backup Failures
 
