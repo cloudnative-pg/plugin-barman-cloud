@@ -19,6 +19,18 @@ spec:
       periodSeconds: 1
       failureThreshold: 10
       successThreshold: 1
+    livenessProbe:
+      initialDelaySeconds: 30
+      timeoutSeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+      periodSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
   configuration:
     endpointCA:
       name: minio-server-tls

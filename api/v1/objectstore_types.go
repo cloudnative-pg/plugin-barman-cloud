@@ -70,6 +70,14 @@ type InstanceSidecarConfiguration struct {
 	// StartupProbe defines the configuration for the startup probe of the sidecar container.
 	// +optional
 	StartupProbe *ProbeConfig `json:"startupProbe,omitempty"`
+
+	// LivenessProbe defines the configuration for the liveness probe of the sidecar container.
+	// +optional
+	LivenessProbe *ProbeConfig `json:"livenessProbe,omitempty"`
+
+	// ReadinessProbe defines the configuration for the readiness probe of the sidecar container.
+	// +optional
+	ReadinessProbe *ProbeConfig `json:"readinessProbe,omitempty"`
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.
