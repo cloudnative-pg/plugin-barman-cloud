@@ -16,26 +16,26 @@ reason, we recommend using the latest available version of both components.
 See the [*Requirements* section](intro.md#requirements) for details.
 :::
 
-## Viewing Logs
-
-To troubleshoot effectively, you’ll often need to review logs from multiple
-sources:
-
 :::note
 The following commands assume you installed the CloudNativePG operator in
 the default `cnpg-system` namespace. If you installed it in a different
 namespace, adjust the commands accordingly.
 :::
 
+## Viewing Logs
+
+To troubleshoot effectively, you’ll often need to review logs from multiple
+sources:
+
 ```sh
 # View operator logs (includes plugin interaction logs)
 kubectl logs -n cnpg-system deployment/cnpg-controller-manager -f
 
-# View sidecar container logs (Barman Cloud operations)
-kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud -f
-
 # View plugin manager logs
 kubectl logs -n cnpg-system deployment/barman-cloud -f
+
+# View sidecar container logs (Barman Cloud operations)
+kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud -f
 
 # View all containers in a pod
 kubectl logs -n <namespace> <cluster-pod-name> --all-containers=true
@@ -185,7 +185,7 @@ When a backup fails, follow these steps in order:
    a. **Check plugin registration:**
 
    ```sh
-   # If you have kubectl-cnpg plugin installed (v1.27.0+)
+   # If you have the `cnpg` plugin installed (v1.27.0+)
    kubectl cnpg status -n <namespace> <cluster-name>
    ```
    
@@ -217,12 +217,12 @@ When a backup fails, follow these steps in order:
 
 2. **"rpc error: code = Unknown desc = panic caught: assignment to entry in nil map" errors**
    
-   **Cause:** Misconfiguration in the ObjectStore (e.g., typo or missing field).
+   **Cause:** Misconfiguration in the `ObjectStore` (e.g., typo or missing field).
    
    **Solution:** 
 
    - Review sidecar logs for details
-   - Verify ObjectStore configuration and secrets
+   - Verify `ObjectStore` configuration and secrets
    - Common issues include:
      - Missing or incorrect secret references
      - Typos in configuration parameters
@@ -237,8 +237,8 @@ When a backup fails, follow these steps in order:
 
 **Plugin-specific considerations:**
 
-1. **Check ObjectStore parallelism settings**
-   - Adjust `maxParallel` in ObjectStore configuration
+1. **Check `ObjectStore` parallelism settings**
+   - Adjust `maxParallel` in `ObjectStore` configuration
    - Monitor sidecar container resource usage during backups
 
 2. **Verify plugin resource allocation**
@@ -300,7 +300,7 @@ tuning, refer to the [Barman documentation](https://docs.pgbarman.org/latest/).
 2. **Verify plugin can access backups**
 
    ```sh
-   # Check if ObjectStore is properly configured for restore
+   # Check if `ObjectStore` is properly configured for restore
    kubectl get objectstores.barmancloud.cnpg.io \
      -n <namespace> <objectstore-name> -o yaml
    
@@ -371,7 +371,7 @@ For detailed PITR configuration and WAL management, see the
 
 - Sidecar logs show connection errors
 - Backups fail with authentication or network errors
-- ObjectStore resource reports errors
+- `ObjectStore` resource reports errors
 
 **Solution:**
 
@@ -389,7 +389,8 @@ For detailed PITR configuration and WAL management, see the
 
 2. **Check sidecar logs for connectivity issues**
    ```sh
-   kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -E "connect|timeout|SSL|cert"
+   kubectl logs -n <namespace> <cluster-pod> \
+     -c plugin-barman-cloud | grep -E "connect|timeout|SSL|cert"
    ```
 
 3. **Adjust provider-specific settings (endpoint, path style, etc.)**
@@ -537,7 +538,8 @@ kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> \
 # Check sidecar logs on ALL cluster pods (if the target is unclear)
 for pod in $(kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> -o name); do
   echo "=== Checking $pod ==="
-  kubectl logs -n <namespace> $pod -c plugin-barman-cloud --tail=20 | grep -i error || echo "No errors found"
+  kubectl logs -n <namespace> $pod -c plugin-barman-cloud \
+    --tail=20 | grep -i error || echo "No errors found"
 done
 ```
 
@@ -556,7 +558,7 @@ kubectl get events -n <namespace> \
 kubectl get events -n <namespace> --sort-by='.lastTimestamp' | tail -20
 ```
 
-### Verify ObjectStore Configuration
+### Verify `ObjectStore` Configuration
 
 ```sh
 # Check the ObjectStore resource
