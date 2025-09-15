@@ -9,19 +9,3 @@
   height: 200px;
   width: 200px;
 }
-
-.quickLinksSection {
-  margin-top: 3rem;
-}
-
-.quickLinksTitle {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.quickLinksContainer {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}

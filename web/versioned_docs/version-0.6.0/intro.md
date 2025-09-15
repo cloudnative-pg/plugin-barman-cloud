@@ -23,14 +23,9 @@ for detailed instructions.
 
 To use the Barman Cloud Plugin, you need:
 
-- [CloudNativePG](https://cloudnative-pg.io) version **1.26** or later
-  - **Version 1.27.0 or later is strongly recommended** for enhanced plugin error and status reporting
-  - See the [upgrade guide](https://cloudnative-pg.io/documentation/current/installation_upgrade) if you need to upgrade
+- [CloudNativePG](https://cloudnative-pg.io) version **1.26** <!-- ADD WHEN 1.27 IS OUT "or later" -->
 - [cert-manager](https://cert-manager.io/) to enable TLS communication between
   the plugin and the operator
-- [kubectl-cnpg plugin](https://cloudnative-pg.io/documentation/current/kubectl-plugin/) (recommended)
-  - Provides enhanced debugging and status checking capabilities
-  - Install via `kubectl krew install cnpg` or download from [releases](https://github.com/cloudnative-pg/cloudnative-pg/releases)
 
 ## Key Features
 
