@@ -1,3 +1,4 @@
+AccessDenied
 AdditionalContainerArgs
 Akamai
 Azurite
@@ -21,9 +22,12 @@ IRSA
 IfNotPresent
 InstanceSidecarConfiguration
 JSON
+Kustomize
 Lifecycle
 Linode
 MinIO
+Misconfiguration
+NoSuchBucket
 ObjectMeta
 ObjectStore
 ObjectStoreSpec
@@ -42,6 +46,7 @@ SAS
 SFO
 SPDX
 SPDX
+SSL
 ServerRecoveryWindow
 Slonik
 TLS
@@ -54,6 +59,7 @@ amz
 api
 apiVersion
 apiextensions
+archiver
 args
 auth
 autocert
@@ -61,11 +67,13 @@ aws
 backend
 backends
 barmanObjectName
+barmanObjectStore
 barmancloud
 boto
 bzip
 cd
 cloudnative
+cloudnativepg
 clusterrole
 clusterrolebinding
 cmctl
@@ -76,7 +84,9 @@ cpu
 creds
 csi
 customresourcedefinition
+declaratively
 deps
+desc
 devel
 env
 externalClusters
@@ -88,11 +98,19 @@ hostpath
 http
 https
 imagePullPolicy
+instanceID
+instanceName
+instanceRole
+involvedObject
 io
 isWALArchiver
+jq
+jsonpath
 kb
+krew
 kubectl
 kubernetes
+lastTimestamp
 lifecycle
 localhost
 md
@@ -102,6 +120,8 @@ namespaces
 objectstore
 objectstores
 pluginConfiguration
+podName
+postgres
 postgresql
 primaryUpdateStrategy
 rbac
@@ -112,6 +132,7 @@ retentionCheckInterval
 retentionPolicy
 rolebinding
 rollout
+rpc
 sc
 secretKeyRef
 selfsigned
