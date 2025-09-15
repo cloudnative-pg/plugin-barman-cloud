@@ -160,6 +160,7 @@ When a backup fails, follow these steps in order:
 #### Backup job fails immediately
 
 **Symptoms:**
+
 - Backup pods terminate with error
 - No backup files appear in object storage
 - Backup shows `failed` phase with various error messages
@@ -167,17 +168,20 @@ When a backup fails, follow these steps in order:
 **Common failure modes and solutions:**
 
 1. **"requested plugin is not available" errors**
+
    ```
    ERROR: requested plugin is not available: barman
    ERROR: requested plugin is not available: barman-cloud
    ERROR: requested plugin is not available: barman-cloud.cloudnative-pg.io
    ```
    
-   **Cause:** The plugin name in the Cluster configuration doesn't match the deployed plugin or the plugin isn't registered
+   **Cause:** The plugin name in the Cluster configuration doesn’t match the
+   deployed plugin, or the plugin isn’t registered.
    
    **Solution:** 
    
-   a. **Check plugin registration status**:
+   a. **Check plugin registration:**
+
    ```sh
    # If you have kubectl-cnpg plugin installed (v1.27.0+)
    kubectl cnpg status -n <namespace> <cluster-name>
@@ -191,13 +195,8 @@ When a backup fails, follow these steps in order:
    barman-cloud.cloudnative-pg.io  0.6.0    N/A     Reconciler Hooks, Lifecycle Service
    ```
    
-   :::tip
-   If the Plugins status section is missing:
-   - Install or update kubectl-cnpg plugin to the latest version
-   - Ensure CloudNativePG operator is v1.27.0 or later
-   :::
-   
-   b. **Verify correct plugin name in Cluster spec**:
+   b. **Verify plugin name in `Cluster` spec**:
+
    ```yaml
    apiVersion: postgresql.cnpg.io/v1
    kind: Cluster
@@ -209,105 +208,28 @@ When a backup fails, follow these steps in order:
    ```
    
    c. **Check plugin deployment is running**:
+
    ```sh
    kubectl get deployment -n cnpg-system barman-cloud
    ```
 
 2. **"rpc error: code = Unknown desc = panic caught: assignment to entry in nil map" errors**
    
-   **Cause:** Configuration issue, often a typo or missing required field in the ObjectStore configuration
+   **Cause:** Misconfiguration in the ObjectStore (e.g., typo or missing field).
    
    **Solution:** 
-   - Check the sidecar container logs for detailed error messages:
-     ```sh
-     kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud
-     ```
-   - Verify your ObjectStore configuration has all required fields
+
+   - Review sidecar logs for details
+   - Verify ObjectStore configuration and secrets
    - Common issues include:
      - Missing or incorrect secret references
      - Typos in configuration parameters
      - Missing required environment variables in secrets
 
-**General debugging steps:**
-
-1. **Check backup status and identify the target instance**
-   ```sh
-   # List all backups and their status
-   kubectl get backups.postgresql.cnpg.io -n <namespace>
-   
-   # Using kubectl-cnpg plugin (if installed)
-   kubectl cnpg backup list -n <namespace>
-   
-   # Get detailed backup information including error messages and target instance
-   kubectl describe backups.postgresql.cnpg.io -n <namespace> <backup-name>
-   
-   # Extract the target pod name from a failed backup
-   kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='{.status.instanceID.podName}'
-   
-   # Or get more details including the target pod, method, phase and error
-   kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='Pod: {.status.instanceID.podName}{"\n"}Method: {.status.method}{"\n"}Phase: {.status.phase}{"\n"}Error: {.status.error}{"\n"}'
-   
-   # Check the cluster status for backup-related information
-   kubectl cnpg status <cluster-name> -n <namespace> --verbose
-   ```
-
-2. **Check sidecar logs on the backup target pod**
-   ```sh
-   # First, identify which pod was the backup target (from step 1)
-   TARGET_POD=$(kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='{.status.instanceID.podName}')
-   echo "Backup target pod: $TARGET_POD"
-   
-   # Check the sidecar logs on the specific target pod
-   kubectl logs -n <namespace> $TARGET_POD -c plugin-barman-cloud --tail=100
-   
-   # Follow the logs in real-time to see ongoing issues
-   kubectl logs -n <namespace> $TARGET_POD -c plugin-barman-cloud -f
-   
-   # Check for specific errors in the target pod around the backup time
-   kubectl logs -n <namespace> $TARGET_POD -c plugin-barman-cloud --since=10m | grep -E "ERROR|FATAL|panic|failed"
-   
-   # Alternative: List all cluster pods and their roles
-   kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> \
-     -o custom-columns=NAME:.metadata.name,ROLE:.metadata.labels.cnpg\\.io/instanceRole,INSTANCE:.metadata.labels.cnpg\\.io/instanceName
-   
-   # Check sidecar logs on ALL cluster pods for any errors (if target is unclear)
-   for pod in $(kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> -o name); do
-     echo "=== Checking $pod ==="
-     kubectl logs -n <namespace> $pod -c plugin-barman-cloud --tail=20 | grep -i error || echo "No errors found"
-   done
-   ```
-
-3. **Check events for backup-related issues**
-   ```sh
-   # Check events for the cluster
-   kubectl get events -n <namespace> --field-selector involvedObject.name=<cluster-name>
-   
-   # Check events for failed backups
-   kubectl get events -n <namespace> --field-selector involvedObject.kind=Backup
-   
-   # Get all recent events in the namespace
-   kubectl get events -n <namespace> --sort-by='.lastTimestamp' | tail -20
-   ```
-
-4. **Verify ObjectStore configuration**
-   ```sh
-   # Check the ObjectStore resource
-   kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
-   
-   # Verify the secret exists and has correct keys
-   kubectl get secret -n <namespace> <secret-name> -o yaml
-   ```
-
-5. **Common error messages and solutions:**
-
-   - **"AccessDenied" or "403 Forbidden"**: Check cloud credentials and bucket permissions
-   - **"NoSuchBucket"**: Verify the bucket exists and the endpoint URL is correct
-   - **"Connection timeout"**: Check network connectivity and firewall rules
-   - **"SSL certificate problem"**: For self-signed certificates, check CA bundle configuration
-
 #### Backup performance issues
 
 **Symptoms:**
+
 - Backups take extremely long
 - Backups timeout
 
@@ -322,30 +244,33 @@ When a backup fails, follow these steps in order:
    - Review plugin container logs for resource-related warnings
 
 :::tip
-For Barman-specific features like compression, encryption, and performance tuning, refer to the [Barman documentation](https://docs.pgbarman.org/latest/).
+For Barman-specific features like compression, encryption, and performance
+tuning, refer to the [Barman documentation](https://docs.pgbarman.org/latest/).
 :::
 
 ### WAL Archiving Issues
 
-#### WAL archiving through plugin stops working
+#### WAL archiving stops
 
 **Symptoms:**
-- WAL files accumulating on primary
-- Cluster warnings about WAL archiving
-- Plugin sidecar logs show WAL archive errors
 
-**Plugin-specific debugging:**
+- WAL files accumulate on the primary
+- Cluster shows WAL archiving warnings
+- Sidecar logs show WAL errors
+
+**Debugging steps:**
 
 1. **Check plugin sidecar logs for WAL archiving errors**
    ```sh
    # Check recent WAL archive operations in sidecar
-   kubectl logs -n <namespace> <primary-pod> -c plugin-barman-cloud --tail=50 | grep -i wal
+   kubectl logs -n <namespace> <primary-pod> -c plugin-barman-cloud \
+     --tail=50 | grep -i wal
    ```
 
-2. **Verify the plugin is handling archive_command**
+2. **Verify the plugin is handling `archive_command`**
    ```sh
-   # The archive_command should be routing through the plugin
-   kubectl exec -n <namespace> <primary-pod> -c postgres -- psql -U postgres -c "SHOW archive_command;"
+   # The `archive_command` should be routing through the plugin
+   kubectl cnpg psql -n <namespace> <cluster-name> -- -c "SHOW archive_command;"
    ```
 
 3. **Check ObjectStore configuration for WAL settings**
@@ -357,44 +282,54 @@ For Barman-specific features like compression, encryption, and performance tunin
 #### Restore fails during recovery
 
 **Symptoms:**
-- New cluster stuck in recovery mode
-- Plugin sidecar shows restore errors
-- PostgreSQL won't start
 
-**Plugin-specific debugging:**
+- New cluster stuck in recovery
+- Plugin sidecar shows restore errors
+- PostgreSQL won’t start
+
+**Debugging steps:**
 
 1. **Check plugin sidecar logs during restore**
+
    ```sh
    # Check the sidecar logs on the recovering cluster pods
-   kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud --tail=100
+   kubectl logs -n <namespace> <cluster-pod-name> \
+     -c plugin-barman-cloud --tail=100
    
    # Look for restore-related errors
-   kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud | grep -E "restore|recovery|ERROR"
+   kubectl logs -n <namespace> <cluster-pod-name> \
+     -c plugin-barman-cloud | grep -E "restore|recovery|ERROR"
    ```
 
 2. **Verify plugin can access backups**
+
    ```sh
    # Check if ObjectStore is properly configured for restore
-   kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
+   kubectl get objectstores.barmancloud.cnpg.io \
+     -n <namespace> <objectstore-name> -o yaml
    
    # Check PostgreSQL recovery logs
-   kubectl logs -n <namespace> <cluster-pod> -c postgres | grep -i recovery
+   kubectl logs -n <namespace> <cluster-pod> \
+     -c postgres | grep -i recovery
    ```
 
 :::tip
-For detailed Barman restore operations and troubleshooting, refer to the [Barman documentation](https://docs.pgbarman.org/latest/barman-cloud-restore.html).
+For detailed Barman restore operations and troubleshooting, refer to the
+[Barman documentation](https://docs.pgbarman.org/latest/barman-cloud-restore.html).
 :::
 
 #### Point-in-time recovery (PITR) configuration issues
 
 **Symptoms:**
-- PITR target time not reached
-- Plugin sidecar shows WAL access errors
-- Recovery stops before target
 
-**Plugin-specific configuration:**
+- PITR doesn’t reach target time
+- WAL access errors
+- Recovery halts early
 
-1. **Verify plugin configuration for PITR**
+**Debugging steps:**
+
+1. **Verify PITR configuration in the `Cluster` spec**
+
    ```yaml
    apiVersion: postgresql.cnpg.io/v1
    kind: Cluster
@@ -410,14 +345,16 @@ For detailed Barman restore operations and troubleshooting, refer to the [Barman
            targetTimezone: "UTC"
    ```
 
-2. **Check plugin sidecar for WAL access**
+2. **Check sidecar logs for WAL-related errors**
+
    ```sh
-   # Check sidecar logs during recovery for WAL-related errors
-   kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -i wal
+   kubectl logs -n <namespace> <cluster-pod> \
+     -c plugin-barman-cloud | grep -i wal
    ```
 
 :::note
-For detailed PITR configuration and WAL management, see the [Barman PITR documentation](https://docs.pgbarman.org/latest/).
+For detailed PITR configuration and WAL management, see the
+[Barman PITR documentation](https://docs.pgbarman.org/latest/).
 :::
 
 ### Plugin Configuration Issues
@@ -430,16 +367,18 @@ For detailed PITR configuration and WAL management, see the [Barman PITR documen
 - Backups fail with authentication or network errors
 - ObjectStore resource reports errors
 
+**Solution:**
 
-**Plugin-specific solutions:**
+1. **Verify `ObjectStore` CRD configuration and secrets**
 
-1. **Verify ObjectStore CRD configuration and secrets**
    ```sh
    # Check ObjectStore resource status
-   kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
+   kubectl get objectstores.barmancloud.cnpg.io \
+     -n <namespace> <objectstore-name> -o yaml
    
    # Verify the secret exists and has correct keys for your provider
-   kubectl get secret -n <namespace> <secret-name> -o jsonpath='{.data}' | jq 'keys'
+   kubectl get secret -n <namespace> <secret-name> \
+     -o jsonpath='{.data}' | jq 'keys'
    ```
 
 2. **Check sidecar logs for connectivity issues**
@@ -545,4 +484,98 @@ If problems persist:
 
 3. **Plugin restart behavior**: Restarting the sidecar container requires
    restarting the entire PostgreSQL pod
+
+## Recap of General Debugging Steps
+
+### Check Backup Status and Identify the Target Instance
+
+```sh
+# List all backups and their status
+kubectl get backups.postgresql.cnpg.io -n <namespace>
+
+# Using the kubectl-cnpg plugin (if installed)
+kubectl cnpg backup list -n <namespace>
+
+# Get detailed backup information including error messages and target instance
+kubectl describe backups.postgresql.cnpg.io \
+  -n <namespace> <backup-name>
+
+# Extract the target pod name from a failed backup
+kubectl get backups.postgresql.cnpg.io \
+  -n <namespace> <backup-name> \
+  -o jsonpath='{.status.instanceID.podName}'
+
+# Get more details including the target pod, method, phase, and error
+kubectl get backups.postgresql.cnpg.io \
+  -n <namespace> <backup-name> \
+  -o jsonpath='Pod: {.status.instanceID.podName}{"\n"}Method: {.status.method}{"\n"}Phase: {.status.phase}{"\n"}Error: {.status.error}{"\n"}'
+
+# Check the cluster status for backup-related information
+kubectl cnpg status <cluster-name> -n <namespace> --verbose
+```
+
+### Check Sidecar Logs on the Backup Target Pod
+
+```sh
+# Identify which pod was the backup target (from the previous step)
+TARGET_POD=$(kubectl get backups.postgresql.cnpg.io \
+  -n <namespace> <backup-name> \
+  -o jsonpath='{.status.instanceID.podName}')
+echo "Backup target pod: $TARGET_POD"
+
+# Check the sidecar logs on the specific target pod
+kubectl logs -n <namespace> $TARGET_POD \
+  -c plugin-barman-cloud --tail=100
+
+# Follow the logs in real time
+kubectl logs -n <namespace> $TARGET_POD \
+  -c plugin-barman-cloud -f
+
+# Check for specific errors in the target pod around the backup time
+kubectl logs -n <namespace> $TARGET_POD \
+  -c plugin-barman-cloud --since=10m | grep -E "ERROR|FATAL|panic|failed"
+
+# Alternative: List all cluster pods and their roles
+kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> \
+  -o custom-columns=NAME:.metadata.name,ROLE:.metadata.labels.cnpg\\.io/instanceRole,INSTANCE:.metadata.labels.cnpg\\.io/instanceName
+
+# Check sidecar logs on ALL cluster pods (if the target is unclear)
+for pod in $(kubectl get pods -n <namespace> -l cnpg.io/cluster=<cluster-name> -o name); do
+  echo "=== Checking $pod ==="
+  kubectl logs -n <namespace> $pod -c plugin-barman-cloud --tail=20 | grep -i error || echo "No errors found"
+done
+```
+
+### Check Events for Backup-Related Issues
+
+```sh
+# Check events for the cluster
+kubectl get events -n <namespace> \
+  --field-selector involvedObject.name=<cluster-name>
+
+# Check events for failed backups
+kubectl get events -n <namespace> \
+  --field-selector involvedObject.kind=Backup
+
+# Get all recent events in the namespace
+kubectl get events -n <namespace> --sort-by='.lastTimestamp' | tail -20
+```
+
+### Verify ObjectStore Configuration
+
+```sh
+# Check the ObjectStore resource
+kubectl get objectstores.barmancloud.cnpg.io \
+  -n <namespace> <objectstore-name> -o yaml
+
+# Verify the secret exists and has the correct keys
+kubectl get secret -n <namespace> <secret-name> -o yaml
+```
+
+### Common Error Messages and Solutions
+
+* **"AccessDenied" or "403 Forbidden"** — Check cloud credentials and bucket permissions.
+* **"NoSuchBucket"** — Verify the bucket exists and the endpoint URL is correct.
+* **"Connection timeout"** — Check network connectivity and firewall rules.
+* **"SSL certificate problem"** — For self-signed certificates, verify the CA bundle configuration.
 
