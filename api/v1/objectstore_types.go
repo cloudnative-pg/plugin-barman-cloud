@@ -37,6 +37,10 @@ type InstanceSidecarConfiguration struct {
 	// Resources define cpu/memory requests and limits for the sidecar that runs in the instance pods.
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// AdditionalContainerArgs defines additional arguments to be passed to the sidecar container
+	// +optional
+	AdditionalContainerArgs []string `json:"additionalContainerArgs,omitempty"`
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.

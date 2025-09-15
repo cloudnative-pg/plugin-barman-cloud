@@ -390,6 +390,12 @@ spec:
                 description: The configuration for the sidecar that runs in the instance
                   pods
                 properties:
+                  additionalContainerArgs:
+                    description: AdditionalContainerArgs defines additional arguments
+                      to be passed to the sidecar container
+                    items:
+                      type: string
+                    type: array
                   env:
                     description: The environment to be explicitly passed to the sidecar
                     items:

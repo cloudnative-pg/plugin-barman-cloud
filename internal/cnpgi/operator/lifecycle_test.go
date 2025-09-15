@@ -6,9 +6,12 @@ import (
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
@@ -18,7 +21,6 @@ import (
 
 var _ = Describe("LifecycleImplementation", func() {
 	var (
-		lifecycleImpl       LifecycleImplementation
 		pluginConfiguration *config.PluginConfiguration
 		cluster             *cnpgv1.Cluster
 		jobTypeMeta         = metav1.TypeMeta{
@@ -30,6 +32,26 @@ var _ = Describe("LifecycleImplementation", func() {
 			APIVersion: "v1",
 		}
 	)
+
+	// helper to build a fake client with our scheme and optional objects
+	buildClientFunc := func(objs ...runtime.Object) *fake.ClientBuilder {
+		s := runtime.NewScheme()
+		_ = barmancloudv1.AddToScheme(s)
+		return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(objs...)
+	}
+
+	// helper to create an ObjectStore with given args
+	makeStoreFunc := func(ns, name string, args []string) *barmancloudv1.ObjectStore {
+		return &barmancloudv1.ObjectStore{
+			TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+			Spec: barmancloudv1.ObjectStoreSpec{
+				InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+					AdditionalContainerArgs: args,
+				},
+			},
+		}
+	}
 
 	BeforeEach(func() {
 		pluginConfiguration = &config.PluginConfiguration{
@@ -67,6 +89,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	Describe("GetCapabilities", func() {
 		It("returns the correct capabilities", func(ctx SpecContext) {
+			var lifecycleImpl LifecycleImplementation
 			response, err := lifecycleImpl.GetCapabilities(ctx, &lifecycle.OperatorLifecycleCapabilitiesRequest{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
@@ -76,6 +99,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	Describe("LifecycleHook", func() {
 		It("returns an error if object definition is invalid", func(ctx SpecContext) {
+			var lifecycleImpl LifecycleImplementation
 			request := &lifecycle.OperatorLifecycleRequest{
 				ObjectDefinition: []byte("invalid-json"),
 			}
@@ -171,7 +195,7 @@ var _ = Describe("LifecycleImplementation", func() {
 			})
 	})
 
-	Describe("reconcilePod", func() {
+	Describe("reconcileInstancePod", func() {
 		It("returns a patch for a valid pod", func(ctx SpecContext) {
 			pod := &corev1.Pod{
 				TypeMeta: podTypeMeta,
@@ -185,7 +209,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: podJSON,
 			}
 
-			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{})
+			response, err := reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.JsonPatch).NotTo(BeEmpty())
@@ -203,9 +227,91 @@ var _ = Describe("LifecycleImplementation", func() {
 				ObjectDefinition: []byte("invalid-json"),
 			}
 
-			response, err := reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{})
+			response, err := reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{})
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
+		})
+	})
+
+	Describe("collectAdditionalInstanceArgs", func() {
+		It("prefers cluster object store when both are configured", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                  cluster,
+				BarmanObjectName:         "primary-store",
+				RecoveryBarmanObjectName: "recovery-store",
+			}
+			primaryArgs := []string{"--primary-a", "--primary-b"}
+			recoveryArgs := []string{"--reco-a"}
+			cli := buildClientFunc(
+				makeStoreFunc(ns, pc.BarmanObjectName, primaryArgs),
+				makeStoreFunc(ns, pc.RecoveryBarmanObjectName, recoveryArgs),
+			).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal(primaryArgs))
+		})
+
+		It("falls back to recovery object store when primary not set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                  cluster,
+				BarmanObjectName:         "",
+				RecoveryBarmanObjectName: "recovery-store",
+			}
+			recoveryArgs := []string{"--reco-x", "--reco-y"}
+			cli := buildClientFunc(
+				makeStoreFunc(ns, pc.RecoveryBarmanObjectName, recoveryArgs),
+			).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal(recoveryArgs))
+		})
+
+		It("returns nil when neither object name is configured", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster}
+			cli := buildClientFunc().Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(BeNil())
+		})
+
+		It("returns error if primary object store cannot be retrieved", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, BarmanObjectName: "missing-store"}
+			cli := buildClientFunc().Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("while getting barman object store"))
+			Expect(err.Error()).To(ContainSubstring(ns + "/" + pc.BarmanObjectName))
+			Expect(args).To(BeNil())
+		})
+
+		It("returns error if recovery object store cannot be retrieved", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, RecoveryBarmanObjectName: "missing-reco"}
+			cli := buildClientFunc().Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("while getting recovery barman object store"))
+			Expect(err.Error()).To(ContainSubstring(ns + "/" + pc.RecoveryBarmanObjectName))
+			Expect(args).To(BeNil())
 		})
 	})
 })
