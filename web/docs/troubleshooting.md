@@ -178,7 +178,7 @@ When a backup fails, follow these steps in order:
    **Solution:** 
    
    a. **Check plugin registration status**:
-   ```bash
+   ```sh
    # If you have kubectl-cnpg plugin installed (v1.27.0+)
    kubectl cnpg status -n <namespace> <cluster-name>
    ```
@@ -209,7 +209,7 @@ When a backup fails, follow these steps in order:
    ```
    
    c. **Check plugin deployment is running**:
-   ```bash
+   ```sh
    kubectl get deployment -n cnpg-system barman-cloud
    ```
 
@@ -219,7 +219,7 @@ When a backup fails, follow these steps in order:
    
    **Solution:** 
    - Check the sidecar container logs for detailed error messages:
-     ```bash
+     ```sh
      kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud
      ```
    - Verify your ObjectStore configuration has all required fields
@@ -231,7 +231,7 @@ When a backup fails, follow these steps in order:
 **General debugging steps:**
 
 1. **Check backup status and identify the target instance**
-   ```bash
+   ```sh
    # List all backups and their status
    kubectl get backups.postgresql.cnpg.io -n <namespace>
    
@@ -252,7 +252,7 @@ When a backup fails, follow these steps in order:
    ```
 
 2. **Check sidecar logs on the backup target pod**
-   ```bash
+   ```sh
    # First, identify which pod was the backup target (from step 1)
    TARGET_POD=$(kubectl get backups.postgresql.cnpg.io -n <namespace> <backup-name> -o jsonpath='{.status.instanceID.podName}')
    echo "Backup target pod: $TARGET_POD"
@@ -278,7 +278,7 @@ When a backup fails, follow these steps in order:
    ```
 
 3. **Check events for backup-related issues**
-   ```bash
+   ```sh
    # Check events for the cluster
    kubectl get events -n <namespace> --field-selector involvedObject.name=<cluster-name>
    
@@ -290,7 +290,7 @@ When a backup fails, follow these steps in order:
    ```
 
 4. **Verify ObjectStore configuration**
-   ```bash
+   ```sh
    # Check the ObjectStore resource
    kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
    
@@ -337,13 +337,13 @@ For Barman-specific features like compression, encryption, and performance tunin
 **Plugin-specific debugging:**
 
 1. **Check plugin sidecar logs for WAL archiving errors**
-   ```bash
+   ```sh
    # Check recent WAL archive operations in sidecar
    kubectl logs -n <namespace> <primary-pod> -c plugin-barman-cloud --tail=50 | grep -i wal
    ```
 
 2. **Verify the plugin is handling archive_command**
-   ```bash
+   ```sh
    # The archive_command should be routing through the plugin
    kubectl exec -n <namespace> <primary-pod> -c postgres -- psql -U postgres -c "SHOW archive_command;"
    ```
@@ -364,7 +364,7 @@ For Barman-specific features like compression, encryption, and performance tunin
 **Plugin-specific debugging:**
 
 1. **Check plugin sidecar logs during restore**
-   ```bash
+   ```sh
    # Check the sidecar logs on the recovering cluster pods
    kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud --tail=100
    
@@ -373,7 +373,7 @@ For Barman-specific features like compression, encryption, and performance tunin
    ```
 
 2. **Verify plugin can access backups**
-   ```bash
+   ```sh
    # Check if ObjectStore is properly configured for restore
    kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
    
@@ -411,7 +411,7 @@ For detailed Barman restore operations and troubleshooting, refer to the [Barman
    ```
 
 2. **Check plugin sidecar for WAL access**
-   ```bash
+   ```sh
    # Check sidecar logs during recovery for WAL-related errors
    kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -i wal
    ```
@@ -425,14 +425,16 @@ For detailed PITR configuration and WAL management, see the [Barman PITR documen
 #### Plugin cannot connect to object storage
 
 **Symptoms:**
-- Plugin sidecar logs show connection errors
+
+- Sidecar logs show connection errors
 - Backups fail with authentication or network errors
-- ObjectStore resource shows errors
+- ObjectStore resource reports errors
+
 
 **Plugin-specific solutions:**
 
-1. **Verify ObjectStore CRD configuration**
-   ```bash
+1. **Verify ObjectStore CRD configuration and secrets**
+   ```sh
    # Check ObjectStore resource status
    kubectl get objectstores.barmancloud.cnpg.io -n <namespace> <objectstore-name> -o yaml
    
@@ -440,27 +442,27 @@ For detailed PITR configuration and WAL management, see the [Barman PITR documen
    kubectl get secret -n <namespace> <secret-name> -o jsonpath='{.data}' | jq 'keys'
    ```
 
-2. **Check plugin sidecar connectivity**
-   ```bash
-   # Check sidecar logs for connection errors
+2. **Check sidecar logs for connectivity issues**
+   ```sh
    kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -E "connection|timeout|SSL|certificate"
    ```
 
-3. **Provider-specific configuration**
+3. **Adjust provider-specific settings (endpoint, path style, etc.)**
    - See [Object Store Configuration](object_stores.md) for provider-specific settings
    - Ensure `endpointURL` and `s3UsePathStyle` match your storage type
    - Verify network policies allow egress to your storage provider
 
 ## Diagnostic Commands
 
-### Using kubectl-cnpg plugin
+### Using the `cnpg` plugin for `kubectl`
 
-The kubectl-cnpg plugin provides enhanced debugging capabilities. Make sure you have it installed and updated:
+The `cnpg` plugin for `kubectl` provides extended debugging capabilities.
+Keep it updated:
 
-```bash
-# Install or update kubectl-cnpg plugin
+```sh
+# Install or update the `cnpg` plugin
 kubectl krew install cnpg
-# Or download directly from: https://github.com/cloudnative-pg/cloudnative-pg/releases
+# Or using an alternative method: https://cloudnative-pg.io/documentation/current/kubectl-plugin/#install
 
 # Check plugin status (requires CNPG 1.27.0+)
 kubectl cnpg status <cluster-name> -n <namespace>
@@ -477,28 +479,32 @@ kubectl cnpg plugin list -n <namespace>
 
 ## Getting Help
 
-If you continue to experience issues:
+If problems persist:
 
 1. **Check the documentation**
-   - Review the [Installation Guide](installation.mdx)
-   - Check [Object Store Configuration](object_stores.md) for provider-specific settings
-   - Review [Usage Examples](usage.md) for correct configuration patterns
+
+   - [Installation Guide](installation.mdx)
+   - [Object Store Configuration](object_stores.md) (for provider-specific settings)
+   - [Usage Examples](usage.md)
 
 2. **Gather diagnostic information**
-   ```bash
-   # Create a diagnostic bundle (⚠️sanitize these before sharing!)
+
+   ```sh
+   # Create a diagnostic bundle (⚠️ sanitize these before sharing!)
    kubectl get objectstores.barmancloud.cnpg.io -A -o yaml > /tmp/objectstores.yaml
    kubectl get clusters.postgresql.cnpg.io -A -o yaml > /tmp/clusters.yaml
    kubectl logs -n cnpg-system deployment/barman-cloud --tail=1000 > /tmp/plugin.log
    ```
 
 3. **Community support**
+
    - CloudNativePG Slack: [#cloudnativepg-users](https://cloud-native.slack.com/messages/cloudnativepg-users)
    - GitHub Issues: [plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud/issues)
 
-4. **When reporting issues, include:**
+4. **Include when reporting**
+
    - CloudNativePG version
-   - Barman Cloud Plugin version
+   - Plugin version
    - Kubernetes version
    - Cloud provider and region
    - Relevant configuration (⚠️sanitize/redact sensitive information)
@@ -509,29 +515,34 @@ If you continue to experience issues:
 
 ### Current Known Issues
 
-1. **WAL overwrite protection**: Unlike the in-tree Barman archiver, the plugin doesn't prevent WAL overwrites when multiple clusters share the same name and object store path ([#263](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/263))
-2. **Migration compatibility**: After migrating from in-tree backup to the plugin, the `kubectl cnpg backup` command syntax has changed ([#353](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/353)):
-   ```bash
+1. **WAL overwrite protection**: Unlike the in-tree Barman archiver, the plugin
+   doesn't prevent WAL overwrites when multiple clusters share the same name and
+   object store path
+   ([#263](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/263))
+
+2. **Migration compatibility**: After migrating from in-tree backup to the
+   plugin, the `kubectl cnpg backup` command syntax has changed
+   ([#353](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/353)):
+
+   ```sh
    # Old command (in-tree, no longer works after migration)
-   kubectl cnpg backup -n <namespace> <cluster-name> --method=barmanObjectStore
+   kubectl cnpg backup -n <namespace> <cluster-name> \
+     --method=barmanObjectStore
    
    # New command (plugin-based)
-   kubectl cnpg backup -n <namespace> <cluster-name> --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io
+   kubectl cnpg backup -n <namespace> <cluster-name> \
+     --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io
    ```
 
 ### Plugin Limitations
 
-1. **Installation method**: Currently only supports manifest and Kustomize installation ([#351](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/351) - Helm chart requested)
-2. **Sidecar resource sharing**: The plugin sidecar container shares pod resources with PostgreSQL
-3. **Plugin restart behavior**: Restarting the sidecar container requires restarting the entire PostgreSQL pod
+1. **Installation method**: Currently only supports manifest and Kustomize
+   installation ([#351](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/351) -
+   Helm chart requested)
 
-### Compatibility Matrix
+2. **Sidecar resource sharing**: The plugin sidecar container shares pod
+   resources with PostgreSQL
 
-| Plugin Version | CloudNativePG Version | Kubernetes Version | Notes |
-|---------------|----------------------|-------------------|--------|
-| 0.6.x         | 1.26.x, **1.27.x** (recommended) | 1.28+ | CNPG 1.27.0+ provides enhanced plugin status reporting |
-| 0.5.x         | 1.25.x, 1.26.x      | 1.27+             | Limited plugin diagnostics |
+3. **Plugin restart behavior**: Restarting the sidecar container requires
+   restarting the entire PostgreSQL pod
 
-:::tip
-Always check the [Release Notes](https://github.com/cloudnative-pg/plugin-barman-cloud/releases) for version-specific known issues and fixes.
-:::
