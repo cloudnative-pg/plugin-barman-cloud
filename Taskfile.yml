@@ -24,9 +24,9 @@ tasks:
       GOLANGCI_LINT_VERSION: v2.4.0
     cmds:
       - >
-        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
-        --version ${GOLANGCI_LINT_VERSION}
-        run --source . --config .golangci.yml stdout
+        GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        --version ${GOLANGCI_LINT_VERSION} |
+        run . --config .golangci.yml | stdout"
     sources:
       - ./**/*.go
 
@@ -202,7 +202,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.18.5
+      DAGGER_VERSION: 0.18.17
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
@@ -325,12 +325,11 @@ tasks:
     env:
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
-      - >
-        GITHUB_REF= dagger call -m  dagger/e2e/ run-ephemeral
-        --source .
-        --ca certs/ca.pem
-        --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}}
-        --go-version {{ .GOLANG_IMAGE_VERSION }}
+      - |
+        dagger << "."
+        ca=$(host | directory . --no-git-auto-ignore | file "certs/ca.pem");
+        "dagger/e2e/" | run-ephemeral . --ca $ca --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}} --go-version {{ .GOLANG_IMAGE_VERSION }}
+        .
 
   ci:
     desc: Run the CI pipeline
@@ -490,9 +489,11 @@ tasks:
         set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         directory directory --path kubernetes export --path manifest-build
-      - >
-        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
-        build --source . --dir manifest-build export --path manifest.yaml
+      - |
+        dagger << "."
+        manifestbuild=$(host | directory . | with-directory "manifest-build" $(host | directory manifest-build --no-git-auto-ignore ));
+        github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA} | build $manifestbuild --dir "manifest-build" | export manifest.yaml
+        .
     sources:
       - ./config/**/*.yaml
       - ./kubernetes/**/*.yaml
