@@ -40,9 +40,7 @@ type InstanceSidecarConfiguration struct {
 
 	// AdditionalContainerArgs is an optional list of command-line arguments
 	// to be passed to the sidecar container when it starts.
-	// The provided arguments are appended to the container’s default
-	// arguments. This can be used, for example, to enable verbose logging.
-	// Example: ["--log-level=debug"]
+	// The provided arguments are appended to the container’s default arguments.
 	// +optional
 	AdditionalContainerArgs []string `json:"additionalContainerArgs,omitempty"`
 }
