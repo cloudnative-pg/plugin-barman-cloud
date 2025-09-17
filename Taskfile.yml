@@ -325,11 +325,12 @@ tasks:
     env:
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
-      - |
-        dagger << "."
-        ca=$(host | directory . --no-git-auto-ignore | file "certs/ca.pem");
-        "dagger/e2e/" | run-ephemeral . --ca $ca --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}} --go-version {{ .GOLANG_IMAGE_VERSION }}
-        .
+      - >
+        GITHUB_REF= dagger call -m  dagger/e2e/ run-ephemeral
+        --source .
+        --ca certs/ca.pem
+        --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}}
+        --go-version {{ .GOLANG_IMAGE_VERSION }}
 
   ci:
     desc: Run the CI pipeline
@@ -489,11 +490,9 @@ tasks:
         set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         directory directory --path kubernetes export --path manifest-build
-      - |
-        dagger << "."
-        manifestbuild=$(host | directory . | with-directory "manifest-build" $(host | directory manifest-build --no-git-auto-ignore ));
-        github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA} | build $manifestbuild --dir "manifest-build" | export manifest.yaml
-        .
+      - >
+        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        build --source . --dir manifest-build export --path manifest.yaml
     sources:
       - ./config/**/*.yaml
       - ./kubernetes/**/*.yaml
