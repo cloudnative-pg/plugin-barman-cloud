@@ -17,6 +17,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
@@ -133,9 +134,10 @@ func (impl LifecycleImplementation) reconcileJob(
 }
 
 type sidecarConfiguration struct {
-	env          []corev1.EnvVar
-	certificates []corev1.VolumeProjection
-	resources    corev1.ResourceRequirements
+	env            []corev1.EnvVar
+	certificates   []corev1.VolumeProjection
+	resources      corev1.ResourceRequirements
+	additionalArgs []string
 }
 
 func reconcileJob(
@@ -217,14 +219,47 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
-	return reconcilePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
-		env:          env,
-		certificates: certificates,
-		resources:    resources,
+	additionalArgs, err := impl.collectAdditionalInstanceArgs(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+		env:            env,
+		certificates:   certificates,
+		resources:      resources,
+		additionalArgs: additionalArgs,
 	})
 }
 
-func reconcilePod(
+func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
+	ctx context.Context,
+	pluginConfiguration *config.PluginConfiguration,
+) ([]string, error) {
+	// Prefer the cluster object store (backup/archive). If not set, fallback to the recovery object store.
+	// If neither is configured, no additional args are provided.
+	if len(pluginConfiguration.BarmanObjectName) > 0 {
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, pluginConfiguration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+			return nil, fmt.Errorf("while getting barman object store %s: %w",
+				pluginConfiguration.GetBarmanObjectKey().String(), err)
+		}
+		return barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs, nil
+	}
+
+	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 {
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, pluginConfiguration.GetRecoveryBarmanObjectKey(), &barmanObjectStore); err != nil {
+			return nil, fmt.Errorf("while getting recovery barman object store %s: %w",
+				pluginConfiguration.GetRecoveryBarmanObjectKey().String(), err)
+		}
+		return barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs, nil
+	}
+
+	return nil, nil
+}
+
+func reconcileInstancePod(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 	request *lifecycle.OperatorLifecycleRequest,
@@ -332,6 +367,7 @@ func reconcilePodSpec(
 	}
 	sidecarTemplate.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
 	sidecarTemplate.Resources = config.resources
+	sidecarTemplate.Args = append(sidecarTemplate.Args, config.additionalArgs...)
 
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
