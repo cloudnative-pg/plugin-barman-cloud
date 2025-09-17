@@ -13,6 +13,8 @@ spec:
       limits:
         memory: "512Mi"
         cpu: "500m"
+    additionalContainerArgs:
+    - --log-level=debug
   configuration:
     endpointCA:
       name: minio-server-tls
