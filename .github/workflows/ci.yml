@@ -44,7 +44,7 @@ jobs:
       - name: Install Dagger
         env:
           # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-          DAGGER_VERSION: 0.18.17
+          DAGGER_VERSION: 0.18.18
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run CI task
