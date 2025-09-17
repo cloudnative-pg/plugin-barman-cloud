@@ -391,8 +391,12 @@ spec:
                   pods
                 properties:
                   additionalContainerArgs:
-                    description: AdditionalContainerArgs defines additional arguments
-                      to be passed to the sidecar container
+                    description: |-
+                      AdditionalContainerArgs is an optional list of command-line arguments
+                      to be passed to the sidecar container when it starts.
+                      The provided arguments are appended to the container’s default
+                      arguments. This can be used, for example, to enable verbose logging.
+                      Example: ["--log-level=debug"]
                     items:
                       type: string
                     type: array
