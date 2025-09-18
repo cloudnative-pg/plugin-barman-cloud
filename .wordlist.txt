@@ -103,6 +103,7 @@ objectstore
 objectstores
 pluginConfiguration
 postgresql
+pprof
 primaryUpdateStrategy
 rbac
 rc
