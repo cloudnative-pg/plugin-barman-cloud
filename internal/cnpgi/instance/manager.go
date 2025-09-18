@@ -33,7 +33,8 @@ func Start(ctx context.Context) error {
 	namespace := viper.GetString("namespace")
 
 	controllerOptions := ctrl.Options{
-		Scheme: scheme,
+		PprofBindAddress: getPprofServerAddress(),
+		Scheme:           scheme,
 		Client: client.Options{
 			// Important: the caching options below are used by
 			// controller-runtime only.
@@ -128,4 +129,12 @@ func generateScheme(ctx context.Context) *runtime.Scheme {
 	schemeLog.Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)
 
 	return result
+}
+
+func getPprofServerAddress() string {
+	if viper.GetBool("pprof-server") {
+		return "0.0.0.0:6061"
+	}
+
+	return ""
 }

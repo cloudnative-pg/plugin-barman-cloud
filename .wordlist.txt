@@ -123,6 +123,7 @@ pluginConfiguration
 podName
 postgres
 postgresql
+pprof
 primaryUpdateStrategy
 rbac
 rc
