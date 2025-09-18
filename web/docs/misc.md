@@ -74,3 +74,23 @@ spec:
 
 For a complete list of supported options, refer to the
 [official Barman Cloud documentation](https://docs.pgbarman.org/release/latest/).
+
+## Enable the pprof debug server for the sidecar
+
+You can enable the instance sidecar's pprof debug HTTP server by adding the `--pprof-server` flag to the container's
+arguments via `.spec.instanceSidecarConfiguration.additionalContainerArgs` in the `ObjectStore` resource.
+
+This starts a pprof server on port 6061 inside the Pod.
+
+### Example
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: my-store
+spec:
+  instanceSidecarConfiguration:
+    additionalContainerArgs:
+      - "--pprof-server"
+```

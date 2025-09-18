@@ -52,6 +52,12 @@ func NewCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool("pprof-server",
+		false,
+		"If true it will start a pprof debug http server on localhost:6061. Defaults to false.",
+	)
+	_ = viper.BindPFlag("pprof-server", cmd.Flags().Lookup("pprof-server"))
+
 	_ = viper.BindEnv("namespace", "NAMESPACE")
 	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
