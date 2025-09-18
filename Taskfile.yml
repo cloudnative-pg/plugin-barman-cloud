@@ -259,7 +259,7 @@ tasks:
     run: once
     vars:
       # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
-      KIND_VERSION: v0.29.0
+      KIND_VERSION: v0.30.0
     cmds:
       - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
       - kind version | grep -q {{.KIND_VERSION}}
