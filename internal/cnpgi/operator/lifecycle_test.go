@@ -313,6 +313,60 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(err.Error()).To(ContainSubstring(ns + "/" + pc.RecoveryBarmanObjectName))
 			Expect(args).To(BeNil())
 		})
+
+		It("includes --log-level from primary object store when set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:          cluster,
+				BarmanObjectName: "primary-store",
+			}
+			store := &barmancloudv1.ObjectStore{
+				TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+				ObjectMeta: metav1.ObjectMeta{Name: pc.BarmanObjectName, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+						AdditionalContainerArgs: []string{"--alpha"},
+						LogLevel:                "debug",
+					},
+				},
+			}
+			s := runtime.NewScheme()
+			_ = barmancloudv1.AddToScheme(s)
+			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal([]string{"--alpha", "--log-level=debug"}))
+		})
+
+		It("includes --log-level from recovery object store when primary not set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                  cluster,
+				BarmanObjectName:         "",
+				RecoveryBarmanObjectName: "reco-store",
+			}
+			store := &barmancloudv1.ObjectStore{
+				TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+				ObjectMeta: metav1.ObjectMeta{Name: pc.RecoveryBarmanObjectName, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+						LogLevel: "info",
+					},
+				},
+			}
+			s := runtime.NewScheme()
+			_ = barmancloudv1.AddToScheme(s)
+			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal([]string{"--log-level=info"}))
+		})
 	})
 })
 

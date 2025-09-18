@@ -5,6 +5,7 @@ metadata:
 spec:
   retentionPolicy: "1m"
   instanceSidecarConfiguration:
+    logLevel: "debug"
     retentionPolicyIntervalSeconds: 1800
     resources:
       requests:
@@ -13,8 +14,6 @@ spec:
       limits:
         memory: "512Mi"
         cpu: "500m"
-    additionalContainerArgs:
-    - --log-level=debug
   configuration:
     endpointCA:
       name: minio-server-tls

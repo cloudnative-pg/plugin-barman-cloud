@@ -12,6 +12,7 @@ DigitalOcean
 Docusaurus
 EDB
 EKS
+Enum
 EnvVar
 GCP
 GKE
