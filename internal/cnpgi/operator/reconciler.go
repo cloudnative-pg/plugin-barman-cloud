@@ -81,8 +81,8 @@ func (r ReconcilerImplementation) Pre(
 			if apierrs.IsNotFound(err) {
 				contextLogger.Info(
 					"barman object configuration not found, requeuing",
-					"name", pluginConfiguration.BarmanObjectName,
-					"namespace", cluster.Namespace)
+					"name", barmanObjectKey.Name,
+					"namespace", barmanObjectKey.Namespace)
 				return &reconciler.ReconcilerHooksResult{
 					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
 				}, nil
