@@ -30,6 +30,7 @@ _Appears in:_
 | `retentionPolicyIntervalSeconds` _integer_ | The retentionCheckInterval defines the frequency at which the<br />system checks and enforces retention policies. |  | 1800 |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#resourcerequirements-v1-core)_ | Resources define cpu/memory requests and limits for the sidecar that runs in the instance pods. |  |  |  |
 | `additionalContainerArgs` _string array_ | AdditionalContainerArgs is an optional list of command-line arguments<br />to be passed to the sidecar container when it starts.<br />The provided arguments are appended to the container’s default arguments. |  |  |  |
+| `logLevel` _string_ | The instances' log level, one of the following values: error, warning, info (default), debug, trace |  | info | Enum: [error warning info debug trace] <br /> |
 
 
 #### ObjectStore
