@@ -78,15 +78,17 @@ kubectl logs -n <namespace> <cluster-pod-name> -c plugin-barman-cloud --previous
    If you are using your own certificates without cert-manager, you will need
    to verify the entire certificate chain yourself.
 
+
 2. **Image pull errors**
 
    ```sh
    # Check pod events for image pull errors
-   kubectl describe pod -n cnpg-system -l app.kubernetes.io/name=barman-cloud
+   kubectl describe pod -n cnpg-system -l app=barman-cloud
    ```
 
    Verify the image exists and you have proper credentials if using a private
    registry.
+
 
 3. **Resource constraints**
 
@@ -127,7 +129,7 @@ When a backup fails, follow these steps in order:
      -o jsonpath='{.status.instanceID.podName}')
 
    kubectl logs \
-     -n <namespace> $TARGET_POD -c plugin-barman-cloud
+     -n <namespace> $TARGET_POD -c plugin-barman-cloud \
      --tail=100 | grep -E "ERROR|FATAL|panic"
    ```
 4. **Check cluster events**:
@@ -141,7 +143,7 @@ When a backup fails, follow these steps in order:
 
    ```sh
    kubectl get pods \
-     -n cnpg-system -l app.kubernetes.io/name=barman-cloud
+     -n cnpg-system -l app=barman-cloud
    ```
 6. **Check operator logs**:
 
@@ -170,9 +172,9 @@ When a backup fails, follow these steps in order:
 1. **"requested plugin is not available" errors**
 
    ```
-   ERROR: requested plugin is not available: barman
-   ERROR: requested plugin is not available: barman-cloud
-   ERROR: requested plugin is not available: barman-cloud.cloudnative-pg.io
+   requested plugin is not available: barman
+   requested plugin is not available: barman-cloud
+   requested plugin is not available: barman-cloud.cloudnative-pg.io
    ```
    
    **Cause:** The plugin name in the Cluster configuration doesn’t match the
@@ -267,13 +269,7 @@ tuning, refer to the [Barman documentation](https://docs.pgbarman.org/latest/).
      --tail=50 | grep -i wal
    ```
 
-2. **Verify the plugin is handling `archive_command`**
-   ```sh
-   # The `archive_command` should be routing through the plugin
-   kubectl cnpg psql -n <namespace> <cluster-name> -- -c "SHOW archive_command;"
-   ```
-
-3. **Check ObjectStore configuration for WAL settings**
+2. **Check ObjectStore configuration for WAL settings**
    - Ensure ObjectStore has proper WAL retention settings
    - Verify credentials have permissions for WAL operations
 
@@ -333,16 +329,26 @@ For detailed Barman restore operations and troubleshooting, refer to the
    ```yaml
    apiVersion: postgresql.cnpg.io/v1
    kind: Cluster
+   metadata:
+     name: <cluster-restore-name>
    spec:
-     plugins:
-       - name: barman-cloud.cloudnative-pg.io
-         parameters:
-           barmanObjectStore: <objectstore-name>
+     storage:
+       size: 1Gi
+
      bootstrap:
        recovery:
+         source: origin
          recoveryTarget:
            targetTime: "2024-01-15 10:30:00"
-           targetTimezone: "UTC"
+
+     externalClusters:
+       - name: origin
+         plugin:
+           enabled: true
+           name: barman-cloud.cloudnative-pg.io
+           parameters:
+             barmanObjectName: <object-store-name>
+             serverName: <source-cluster-name>
    ```
 
 2. **Check sidecar logs for WAL-related errors**
@@ -383,7 +389,7 @@ For detailed PITR configuration and WAL management, see the
 
 2. **Check sidecar logs for connectivity issues**
    ```sh
-   kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -E "connection|timeout|SSL|certificate"
+   kubectl logs -n <namespace> <cluster-pod> -c plugin-barman-cloud | grep -E "connect|timeout|SSL|cert"
    ```
 
 3. **Adjust provider-specific settings (endpoint, path style, etc.)**
@@ -408,12 +414,6 @@ kubectl cnpg status <cluster-name> -n <namespace>
 
 # View cluster status in detail
 kubectl cnpg status <cluster-name> -n <namespace> --verbose
-
-# Check backup status
-kubectl cnpg backup list -n <namespace>
-
-# View plugin capabilities
-kubectl cnpg plugin list -n <namespace>
 ```
 
 ## Getting Help
@@ -426,6 +426,7 @@ If problems persist:
    - [Object Store Configuration](object_stores.md) (for provider-specific settings)
    - [Usage Examples](usage.md)
 
+
 2. **Gather diagnostic information**
 
    ```sh
@@ -435,10 +436,12 @@ If problems persist:
    kubectl logs -n cnpg-system deployment/barman-cloud --tail=1000 > /tmp/plugin.log
    ```
 
+
 3. **Community support**
 
    - CloudNativePG Slack: [#cloudnativepg-users](https://cloud-native.slack.com/messages/cloudnativepg-users)
    - GitHub Issues: [plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud/issues)
+
 
 4. **Include when reporting**
 
@@ -446,7 +449,7 @@ If problems persist:
    - Plugin version
    - Kubernetes version
    - Cloud provider and region
-   - Relevant configuration (⚠️sanitize/redact sensitive information)
+   - Relevant configuration (⚠️ sanitize/redact sensitive information)
    - Error messages and logs
    - Steps to reproduce
 
@@ -454,12 +457,7 @@ If problems persist:
 
 ### Current Known Issues
 
-1. **WAL overwrite protection**: Unlike the in-tree Barman archiver, the plugin
-   doesn't prevent WAL overwrites when multiple clusters share the same name and
-   object store path
-   ([#263](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/263))
-
-2. **Migration compatibility**: After migrating from in-tree backup to the
+1. **Migration compatibility**: After migrating from in-tree backup to the
    plugin, the `kubectl cnpg backup` command syntax has changed
    ([#353](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/353)):
 
@@ -492,9 +490,6 @@ If problems persist:
 ```sh
 # List all backups and their status
 kubectl get backups.postgresql.cnpg.io -n <namespace>
-
-# Using the kubectl-cnpg plugin (if installed)
-kubectl cnpg backup list -n <namespace>
 
 # Get detailed backup information including error messages and target instance
 kubectl describe backups.postgresql.cnpg.io \
@@ -570,6 +565,8 @@ kubectl get objectstores.barmancloud.cnpg.io \
 
 # Verify the secret exists and has the correct keys
 kubectl get secret -n <namespace> <secret-name> -o yaml
+# Alternatively
+kubectl get secret -n <namespace> <secret-name> -o jsonpath='{.data}' | jq 'keys'
 ```
 
 ### Common Error Messages and Solutions
