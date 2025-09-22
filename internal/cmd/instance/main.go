@@ -52,9 +52,10 @@ func NewCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool("pprof-server",
-		false,
-		"If true it will start a pprof debug http server on localhost:6061. Defaults to false.",
+	cmd.Flags().String("pprof-server",
+		"",
+		"The address where pprof server should be exposed, for example: 0.0.0.0:6061. "+
+			"Empty string means disabled. Disabled by default",
 	)
 	_ = viper.BindPFlag("pprof-server", cmd.Flags().Lookup("pprof-server"))
 
