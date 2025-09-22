@@ -77,10 +77,11 @@ For a complete list of supported options, refer to the
 
 ## Enable the pprof debug server for the sidecar
 
-You can enable the instance sidecar's pprof debug HTTP server by adding the `--pprof-server` flag to the container's
-arguments via `.spec.instanceSidecarConfiguration.additionalContainerArgs` in the `ObjectStore` resource.
+You can enable the instance sidecar's pprof debug HTTP server by adding the `--pprof-server=<address>` flag to the container's
+arguments via `.spec.instanceSidecarConfiguration.additionalContainerArgs`.
 
-This starts a pprof server on port 6061 inside the Pod.
+Pass a bind address in the form `<host>:<port>` (for example, `0.0.0.0:6061`).
+An empty value disables the server (disabled by default).
 
 ### Example
 
@@ -92,5 +93,5 @@ metadata:
 spec:
   instanceSidecarConfiguration:
     additionalContainerArgs:
-      - "--pprof-server"
+      - "--pprof-server=0.0.0.0:6061"
 ```
