@@ -399,6 +399,11 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-validations:
+                    - message: do not set --log-level in additionalContainerArgs;
+                        use spec.instanceSidecarConfiguration.logLevel
+                      reason: FieldValueForbidden
+                      rule: '!self.exists(a, a.startsWith(''--log-level''))'
                   env:
                     description: The environment to be explicitly passed to the sidecar
                     items:
@@ -557,6 +562,17 @@ spec:
                       - name
                       type: object
                     type: array
+                  logLevel:
+                    default: info
+                    description: 'The log level for PostgreSQL instances. Valid values
+                      are: `error`, `warning`, `info` (default), `debug`, `trace`'
+                    enum:
+                    - error
+                    - warning
+                    - info
+                    - debug
+                    - trace
+                    type: string
                   resources:
                     description: Resources define cpu/memory requests and limits for
                       the sidecar that runs in the instance pods.
