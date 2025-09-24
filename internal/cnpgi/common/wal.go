@@ -88,10 +88,13 @@ func (w WALServiceImplementation) Archive(
 	ctx context.Context,
 	request *wal.WALArchiveRequest,
 ) (*wal.WALArchiveResult, error) {
-	contextLogger := log.FromContext(ctx)
-	contextLogger.Debug("starting wal archive")
-
 	baseWalName := path.Base(request.GetSourceFileName())
+
+	contextLogger := log.FromContext(ctx)
+	contextLogger.Debug("wal archive start", "walName", baseWalName)
+	defer func() {
+		contextLogger.Debug("wal archive end", "walName", baseWalName)
+	}()
 
 	// Step 1: parse the configuration and get the environment variables needed
 	// for barman-cloud-wal-archive
@@ -115,6 +118,7 @@ func (w WALServiceImplementation) Archive(
 	)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
+			contextLogger.Info(ErrMissingPermissions.Error())
 			return nil, ErrMissingPermissions
 		}
 		return nil, err
