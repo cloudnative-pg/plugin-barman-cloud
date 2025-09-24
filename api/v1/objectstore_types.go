@@ -45,7 +45,7 @@ type InstanceSidecarConfiguration struct {
 	// +optional
 	AdditionalContainerArgs []string `json:"additionalContainerArgs,omitempty"`
 
-	// The instances' log level, one of the following values: error, warning, info (default), debug, trace
+	// The log level for PostgreSQL instances. Valid values are: `error`, `warning`, `info` (default), `debug`, `trace`
 	// +kubebuilder:default:=info
 	// +kubebuilder:validation:Enum:=error;warning;info;debug;trace
 	// +optional

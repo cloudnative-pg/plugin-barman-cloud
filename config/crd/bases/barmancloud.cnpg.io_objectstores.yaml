@@ -564,8 +564,8 @@ spec:
                     type: array
                   logLevel:
                     default: info
-                    description: 'The instances'' log level, one of the following
-                      values: error, warning, info (default), debug, trace'
+                    description: 'The log level for PostgreSQL instances. Valid values
+                      are: `error`, `warning`, `info` (default), `debug`, `trace`'
                     enum:
                     - error
                     - warning
