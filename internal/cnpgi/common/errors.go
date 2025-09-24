@@ -1,8 +1,6 @@
 package common
 
 import (
-	"fmt"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -15,7 +13,8 @@ var ErrEndOfWALStreamReached = status.Errorf(codes.OutOfRange, "end of WAL reach
 // the object storage.
 // This will be fixed by the reconciliation loop in the
 // operator plugin.
-var ErrMissingPermissions = fmt.Errorf("no permission to download the backup credentials, retrying")
+var ErrMissingPermissions = status.Errorf(codes.FailedPrecondition,
+	"no permission to download the backup credentials, retrying")
 
 // newWALNotFoundError returns a error that states that a
 // certain WAL file has not been found. This error is
