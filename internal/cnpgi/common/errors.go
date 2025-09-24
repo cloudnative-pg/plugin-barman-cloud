@@ -1,16 +1,14 @@
 package common
 
-// walNotFoundError is raised when a WAL file has not been found in the object store
-type walNotFoundError struct{}
+import (
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
 
-func newWALNotFoundError() *walNotFoundError { return &walNotFoundError{} }
-
-// ShouldPrintStackTrace tells whether the sidecar log stream should contain the stack trace
-func (e walNotFoundError) ShouldPrintStackTrace() bool {
-	return false
-}
-
-// Error implements the error interface
-func (e walNotFoundError) Error() string {
-	return "WAL file not found"
+// newWALNotFoundError returns a error that states that a
+// certain WAL file has not been found. This error is
+// compatible with GRPC status codes, resulting in a 404
+// being used as a response code.
+func newWALNotFoundError(walName string) error {
+	return status.Errorf(codes.NotFound, "wal %q not found", walName)
 }

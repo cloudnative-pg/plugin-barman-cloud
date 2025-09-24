@@ -18,6 +18,8 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	walUtils "github.com/cloudnative-pg/machinery/pkg/fileutils/wals"
 	"github.com/cloudnative-pg/machinery/pkg/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -350,7 +352,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
 		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return newWALNotFoundError()
+			return newWALNotFoundError(walStatus[0].WalName)
 		}
 
 		return walStatus[0].Err
@@ -458,7 +460,7 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 }
 
 // ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
-var ErrEndOfWALStreamReached = errors.New("end of WAL reached")
+var ErrEndOfWALStreamReached = status.Errorf(codes.NotFound, "end of WAL reached")
 
 // checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.
 func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
