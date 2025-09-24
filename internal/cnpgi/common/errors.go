@@ -8,7 +8,7 @@ import (
 )
 
 // ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
-var ErrEndOfWALStreamReached = status.Errorf(codes.NotFound, "end of WAL reached")
+var ErrEndOfWALStreamReached = status.Errorf(codes.OutOfRange, "end of WAL reached")
 
 // ErrMissingPermissions is raised when the sidecar has no
 // permission to download the credentials needed to reach
