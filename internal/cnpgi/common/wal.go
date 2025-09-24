@@ -18,8 +18,6 @@ import (
 	"github.com/cloudnative-pg/machinery/pkg/fileutils"
 	walUtils "github.com/cloudnative-pg/machinery/pkg/fileutils/wals"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,13 +26,6 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
-
-// ErrMissingPermissions is raised when the sidecar has no
-// permission to download the credentials needed to reach
-// the object storage.
-// This will be fixed by the reconciliation loop in the
-// operator plugin.
-var ErrMissingPermissions = fmt.Errorf("no permission to download the backup credentials, retrying")
 
 // SpoolManagementError is raised when a spool management
 // error has been detected
@@ -458,9 +449,6 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 
 	return walList, err
 }
-
-// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
-var ErrEndOfWALStreamReached = status.Errorf(codes.NotFound, "end of WAL reached")
 
 // checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.
 func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {

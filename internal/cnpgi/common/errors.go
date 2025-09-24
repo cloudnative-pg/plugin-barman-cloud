@@ -1,9 +1,21 @@
 package common
 
 import (
+	"fmt"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
+var ErrEndOfWALStreamReached = status.Errorf(codes.NotFound, "end of WAL reached")
+
+// ErrMissingPermissions is raised when the sidecar has no
+// permission to download the credentials needed to reach
+// the object storage.
+// This will be fixed by the reconciliation loop in the
+// operator plugin.
+var ErrMissingPermissions = fmt.Errorf("no permission to download the backup credentials, retrying")
 
 // newWALNotFoundError returns a error that states that a
 // certain WAL file has not been found. This error is
