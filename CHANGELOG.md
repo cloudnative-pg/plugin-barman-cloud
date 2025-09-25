@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.6.0...v0.7.0) (2025-09-25)
+
+
+### Features
+
+* Introduce `logLevel` setting to control verbosity ([#536](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/536)) ([0501e18](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0501e185bab4969064c5b92977747be30bd38e95))
+* Return proper gRPC error codes for expected conditions ([#549](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/549)) ([08c3f1c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/08c3f1c2324d79d6080fbf73f11b4fa715bec4cb))
+* **spec:** Add support for additional sidecar container arguments ([#520](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/520)) ([ec352ac](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ec352ac0fdd31656321e564bcf6a026481ec06e4))
+
+
+### Bug Fixes
+
+* Avoid panicking if serverRecoveryWindow has still not been set ([#525](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/525)) ([dfd9861](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/dfd9861a3f9296bffe084a81faa8755ddca95149)), closes [#523](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/523)
+* **deps:** Lock file maintenance documentation dependencies ([#534](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/534)) ([0ad066d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0ad066d195b8556d9cf13ac0b585bfa6ffe01b75))
+* **deps:** Update all non-major go dependencies ([#521](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/521)) ([df92fa6](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/df92fa6f3e9bfd934da4be2aba4983570f751fad))
+* **deps:** Update kubernetes packages to v0.34.1 ([#530](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/530)) ([eced5ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/eced5ea2c6d44ec3fc09b632b42c204a5d469297))
+* **deps:** Update module github.com/cloudnative-pg/cnpg-i-machinery to v0.4.1 ([#551](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/551)) ([65a0d11](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/65a0d11ec8cf1fc6e3478d49ad88d9ba9c40adf6))
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.25.1 ([#495](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/495)) ([2dc29a5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2dc29a5dbcc4e4a5b79cc2c796d2a451ffcd654a))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.22.1 ([#531](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/531)) ([82449d9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/82449d9351555e3b8ee128f040bffd9799279e72))
+* **logs:** Log the correct name when on ObjectStore not found error ([#540](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/540)) ([a29aa1c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a29aa1c91af0bc7cb4a7511c49dcc461900e9a13)), closes [#539](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/539)
+* **object-cache:** Improve reliability of object cache management ([#508](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/508)) ([8c3db95](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/8c3db955efc2d23593faa0c6e410e7aa0e427ebf)), closes [#502](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/502)
+* Typo in variable name ([#515](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/515)) ([3c0d8c3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3c0d8c3a3394d5b628d03c849be86999b2e7887f))
+
 ## [0.6.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.5.0...v0.6.0) (2025-08-21)
 
 
