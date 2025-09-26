@@ -27,13 +27,6 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
-// ErrMissingPermissions is raised when the sidecar has no
-// permission to download the credentials needed to reach
-// the object storage.
-// This will be fixed by the reconciliation loop in the
-// operator plugin.
-var ErrMissingPermissions = fmt.Errorf("no permission to download the backup credentials, retrying")
-
 // SpoolManagementError is raised when a spool management
 // error has been detected
 type SpoolManagementError struct {
@@ -95,10 +88,13 @@ func (w WALServiceImplementation) Archive(
 	ctx context.Context,
 	request *wal.WALArchiveRequest,
 ) (*wal.WALArchiveResult, error) {
-	contextLogger := log.FromContext(ctx)
-	contextLogger.Debug("starting wal archive")
-
 	baseWalName := path.Base(request.GetSourceFileName())
+
+	contextLogger := log.FromContext(ctx)
+	contextLogger.Debug("wal archive start", "walName", baseWalName)
+	defer func() {
+		contextLogger.Debug("wal archive end", "walName", baseWalName)
+	}()
 
 	// Step 1: parse the configuration and get the environment variables needed
 	// for barman-cloud-wal-archive
@@ -122,6 +118,7 @@ func (w WALServiceImplementation) Archive(
 	)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
+			contextLogger.Info(ErrMissingPermissions.Error())
 			return nil, ErrMissingPermissions
 		}
 		return nil, err
@@ -350,7 +347,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
 		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return newWALNotFoundError()
+			return newWALNotFoundError(walStatus[0].WalName)
 		}
 
 		return walStatus[0].Err
@@ -456,9 +453,6 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 
 	return walList, err
 }
-
-// ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
-var ErrEndOfWALStreamReached = errors.New("end of WAL reached")
 
 // checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.
 func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {

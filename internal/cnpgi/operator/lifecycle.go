@@ -236,6 +236,19 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 	ctx context.Context,
 	pluginConfiguration *config.PluginConfiguration,
 ) ([]string, error) {
+	collectTypedAdditionalArgs := func(store *barmancloudv1.ObjectStore) []string {
+		if store == nil {
+			return nil
+		}
+
+		var args []string
+		if len(store.Spec.InstanceSidecarConfiguration.LogLevel) > 0 {
+			args = append(args, fmt.Sprintf("--log-level=%s", store.Spec.InstanceSidecarConfiguration.LogLevel))
+		}
+
+		return args
+	}
+
 	// Prefer the cluster object store (backup/archive). If not set, fallback to the recovery object store.
 	// If neither is configured, no additional args are provided.
 	if len(pluginConfiguration.BarmanObjectName) > 0 {
@@ -244,7 +257,12 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 			return nil, fmt.Errorf("while getting barman object store %s: %w",
 				pluginConfiguration.GetBarmanObjectKey().String(), err)
 		}
-		return barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs, nil
+		args := barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs
+		args = append(
+			args,
+			collectTypedAdditionalArgs(&barmanObjectStore)...,
+		)
+		return args, nil
 	}
 
 	if len(pluginConfiguration.RecoveryBarmanObjectName) > 0 {
@@ -253,7 +271,12 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 			return nil, fmt.Errorf("while getting recovery barman object store %s: %w",
 				pluginConfiguration.GetRecoveryBarmanObjectKey().String(), err)
 		}
-		return barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs, nil
+		args := barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs
+		args = append(
+			args,
+			collectTypedAdditionalArgs(&barmanObjectStore)...,
+		)
+		return args, nil
 	}
 
 	return nil, nil
