@@ -78,6 +78,11 @@ type InstanceSidecarConfiguration struct {
 	// ReadinessProbe defines the configuration for the readiness probe of the sidecar container.
 	// +optional
 	ReadinessProbe *ProbeConfig `json:"readinessProbe,omitempty"`
+	// AdditionalContainerArgs is an optional list of command-line arguments
+	// to be passed to the sidecar container when it starts.
+	// The provided arguments are appended to the container’s default arguments.
+	// +optional
+	AdditionalContainerArgs []string `json:"additionalContainerArgs,omitempty"`
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.

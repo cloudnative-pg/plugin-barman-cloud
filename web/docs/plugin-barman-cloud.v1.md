@@ -29,6 +29,7 @@ _Appears in:_
 | `env` _[EnvVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core) array_ | The environment to be explicitly passed to the sidecar |  |  |  |
 | `retentionPolicyIntervalSeconds` _integer_ | The retentionCheckInterval defines the frequency at which the<br />system checks and enforces retention policies. |  | 1800 |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#resourcerequirements-v1-core)_ | Resources define cpu/memory requests and limits for the sidecar that runs in the instance pods. |  |  |  |
+| `additionalContainerArgs` _string array_ | AdditionalContainerArgs is an optional list of command-line arguments<br />to be passed to the sidecar container when it starts.<br />The provided arguments are appended to the container’s default arguments. |  |  |  |
 
 
 #### ObjectStore

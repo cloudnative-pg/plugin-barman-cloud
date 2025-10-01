@@ -7,7 +7,7 @@ output: prefixed
 # Variables that are shared across tasks.
 vars:
   # renovate: datasource=docker depName=kindest/node versioning=semver
-  E2E_KUBERNETES_VERSION: v1.33.2
+  E2E_KUBERNETES_VERSION: v1.34.0
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
@@ -19,14 +19,14 @@ tasks:
     desc: Run golangci-lint
     env:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_GOLANGCI_LINT_SHA: ceffda4aebd349a24fc00e591b4ed9b801535b65
+      DAGGER_GOLANGCI_LINT_SHA: 88056b48085a170fbf7638e106efbecd26c6573d
       # renovate: datasource=docker depName=golangci/golangci-lint versioning=semver
       GOLANGCI_LINT_VERSION: v2.4.0
     cmds:
       - >
-        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
-        --version ${GOLANGCI_LINT_VERSION}
-        run --source . --config .golangci.yml stdout
+        GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        --version ${GOLANGCI_LINT_VERSION} |
+        run . --config .golangci.yml | stdout"
     sources:
       - ./**/*.go
 
@@ -44,7 +44,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: 2081731b52e85a8996fd5138c316215857a93415
+      DAGGER_SPELLCHECK_SHA: 838ccbbd35b0e5e9a7d4af600fa8fa1a4259b1d0
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -58,7 +58,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: 2081731b52e85a8996fd5138c316215857a93415
+      DAGGER_COMMITLINT_SHA: 838ccbbd35b0e5e9a7d4af600fa8fa1a4259b1d0
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -72,7 +72,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: 2081731b52e85a8996fd5138c316215857a93415
+      DAGGER_UNCOMMITTED_SHA: 838ccbbd35b0e5e9a7d4af600fa8fa1a4259b1d0
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
@@ -84,7 +84,7 @@ tasks:
       - controller-gen
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CRDGENREF_SHA: 2081731b52e85a8996fd5138c316215857a93415
+      DAGGER_CRDGENREF_SHA: 838ccbbd35b0e5e9a7d4af600fa8fa1a4259b1d0
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/crd-ref-docs@${DAGGER_CRDGENREF_SHA} generate
@@ -106,7 +106,7 @@ tasks:
     - apidoc
     env:
       # renovate: datasource=git-refs depName=docusaurus lookupName=https://github.com/levlaz/daggerverse currentValue=main
-      DAGGER_DOCUSAURUS_SHA: 3b7d706c741b2d91d4f2ad8d0f4c4eb921cb18d6
+      DAGGER_DOCUSAURUS_SHA: 716dbf46b94502bed374adfb94ceb5590f375280
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/levlaz/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
         --src web --yarn build
@@ -125,11 +125,11 @@ tasks:
     desc: Run go test
     env:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.25.0
+      GOLANG_IMAGE_VERSION: 1.25.1
       # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
-      SETUP_ENVTEST_VERSION: 0.21.0
+      SETUP_ENVTEST_VERSION: 0.22.1
     cmds:
       - >
         GITHUB_REF= dagger -s call -m ./dagger/gotest
@@ -202,7 +202,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.18.5
+      DAGGER_VERSION: 0.18.19
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
@@ -259,7 +259,7 @@ tasks:
     run: once
     vars:
       # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
-      KIND_VERSION: v0.29.0
+      KIND_VERSION: v0.30.0
     cmds:
       - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
       - kind version | grep -q {{.KIND_VERSION}}
@@ -302,7 +302,7 @@ tasks:
       - start-kind-cluster
     vars:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.25.0
+      GOLANG_IMAGE_VERSION: 1.25.1
       KUBECONFIG_PATH:
         sh: mktemp -t kubeconfig-XXXXX
     env:
@@ -321,7 +321,7 @@ tasks:
       - build-images
     vars:
       # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.25.0
+      GOLANG_IMAGE_VERSION: 1.25.1
     env:
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
@@ -410,7 +410,7 @@ tasks:
     run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: 2081731b52e85a8996fd5138c316215857a93415
+      DAGGER_CONTROLLER_GEN_SHA: 838ccbbd35b0e5e9a7d4af600fa8fa1a4259b1d0
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
@@ -482,7 +482,7 @@ tasks:
       IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_KUSTOMIZE_SHA: ceffda4aebd349a24fc00e591b4ed9b801535b65
+      DAGGER_KUSTOMIZE_SHA: 88056b48085a170fbf7638e106efbecd26c6573d
     cmds:
       - >
         dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
@@ -512,7 +512,7 @@ tasks:
         - GITHUB_TOKEN
     env:
       # renovate: datasource=git-refs depName=gh lookupName=https://github.com/sagikazarmark/daggerverse
-      DAGGER_GH_SHA: ceffda4aebd349a24fc00e591b4ed9b801535b65
+      DAGGER_GH_SHA: 88056b48085a170fbf7638e106efbecd26c6573d
     preconditions:
       - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
         msg: not a tag, failing
