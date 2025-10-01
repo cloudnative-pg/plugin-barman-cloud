@@ -81,8 +81,15 @@ type InstanceSidecarConfiguration struct {
 	// AdditionalContainerArgs is an optional list of command-line arguments
 	// to be passed to the sidecar container when it starts.
 	// The provided arguments are appended to the container’s default arguments.
+	// +kubebuilder:validation:XValidation:rule="!self.exists(a, a.startsWith('--log-level'))",reason="FieldValueForbidden",message="do not set --log-level in additionalContainerArgs; use spec.instanceSidecarConfiguration.logLevel"
 	// +optional
 	AdditionalContainerArgs []string `json:"additionalContainerArgs,omitempty"`
+
+	// The log level for PostgreSQL instances. Valid values are: `error`, `warning`, `info` (default), `debug`, `trace`
+	// +kubebuilder:default:=info
+	// +kubebuilder:validation:Enum:=error;warning;info;debug;trace
+	// +optional
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // ObjectStoreSpec defines the desired state of ObjectStore.

@@ -5,6 +5,7 @@ metadata:
 spec:
   retentionPolicy: "1m"
   instanceSidecarConfiguration:
+    logLevel: "debug"
     retentionPolicyIntervalSeconds: 1800
     resources:
       requests:
