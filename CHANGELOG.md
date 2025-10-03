@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.7.0...v0.7.1) (2025-10-03)
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.26.0 ([#560](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/560)) ([529737f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/529737ffa43fd4af8a9602a072f9c9eda9f3e747))
+* **e2e:** Avoid pinpointing the PostgreSQL version ([#562](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/562)) ([5276dd1](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/5276dd17cfd3bea41918a69622c385756b0404cb))
+
 ## [0.7.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.6.0...v0.7.0) (2025-09-25)
 
 
