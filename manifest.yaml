@@ -561,6 +561,78 @@ spec:
                       - name
                       type: object
                     type: array
+                  livenessProbe:
+                    description: LivenessProbe defines the configuration for the liveness
+                      probe of the sidecar container.
+                    properties:
+                      failureThreshold:
+                        default: 10
+                        description: FailureThreshold is the minimum consecutive failures
+                          for the probe to be considered failed.
+                        format: int32
+                        type: integer
+                      initialDelaySeconds:
+                        default: 0
+                        description: InitialDelaySeconds is the number of seconds
+                          after the container has started before startup probes are
+                          initiated.
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: PeriodSeconds is how often (in seconds) to perform
+                          the probe.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        default: 1
+                        description: SuccessThreshold is the minimum consecutive successes
+                          for the probe to be considered successful.
+                        format: int32
+                        type: integer
+                      timeoutSeconds:
+                        default: 10
+                        description: TimeoutSeconds is the number of seconds after
+                          which the probe times out.
+                        format: int32
+                        type: integer
+                    type: object
+                  readinessProbe:
+                    description: ReadinessProbe defines the configuration for the
+                      readiness probe of the sidecar container.
+                    properties:
+                      failureThreshold:
+                        default: 10
+                        description: FailureThreshold is the minimum consecutive failures
+                          for the probe to be considered failed.
+                        format: int32
+                        type: integer
+                      initialDelaySeconds:
+                        default: 0
+                        description: InitialDelaySeconds is the number of seconds
+                          after the container has started before startup probes are
+                          initiated.
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: PeriodSeconds is how often (in seconds) to perform
+                          the probe.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        default: 1
+                        description: SuccessThreshold is the minimum consecutive successes
+                          for the probe to be considered successful.
+                        format: int32
+                        type: integer
+                      timeoutSeconds:
+                        default: 10
+                        description: TimeoutSeconds is the number of seconds after
+                          which the probe times out.
+                        format: int32
+                        type: integer
+                    type: object
                   logLevel:
                     default: info
                     description: 'The log level for PostgreSQL instances. Valid values
@@ -638,6 +710,42 @@ spec:
                       The retentionCheckInterval defines the frequency at which the
                       system checks and enforces retention policies.
                     type: integer
+                  startupProbe:
+                    description: StartupProbe defines the configuration for the startup
+                      probe of the sidecar container.
+                    properties:
+                      failureThreshold:
+                        default: 10
+                        description: FailureThreshold is the minimum consecutive failures
+                          for the probe to be considered failed.
+                        format: int32
+                        type: integer
+                      initialDelaySeconds:
+                        default: 0
+                        description: InitialDelaySeconds is the number of seconds
+                          after the container has started before startup probes are
+                          initiated.
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: PeriodSeconds is how often (in seconds) to perform
+                          the probe.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        default: 1
+                        description: SuccessThreshold is the minimum consecutive successes
+                          for the probe to be considered successful.
+                        format: int32
+                        type: integer
+                      timeoutSeconds:
+                        default: 10
+                        description: TimeoutSeconds is the number of seconds after
+                          which the probe times out.
+                        format: int32
+                        type: integer
+                    type: object
                 type: object
               retentionPolicy:
                 description: |-

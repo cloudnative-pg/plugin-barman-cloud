@@ -126,10 +126,28 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
+	startupProbe, err := impl.collectSidecarStartupProbeForRecoveryJob(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	livenessProbe, err := impl.collectSidecarLivenessProbeForRecoveryJob(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	readinessProbe, err := impl.collectSidecarReadinessProbeForRecoveryJob(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
-		env:          env,
-		certificates: certificates,
-		resources:    resources,
+		env:            env,
+		certificates:   certificates,
+		resources:      resources,
+		startupProbe:   startupProbe,
+		livenessProbe:  livenessProbe,
+		readinessProbe: readinessProbe,
 	})
 }
 
@@ -138,6 +156,9 @@ type sidecarConfiguration struct {
 	certificates   []corev1.VolumeProjection
 	resources      corev1.ResourceRequirements
 	additionalArgs []string
+	startupProbe   *barmancloudv1.ProbeConfig
+	livenessProbe  *barmancloudv1.ProbeConfig
+	readinessProbe *barmancloudv1.ProbeConfig
 }
 
 func reconcileJob(
@@ -224,10 +245,28 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
+	startupProbe, err := impl.collectSidecarStartupProbeForInstancePod(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	livenessProbe, err := impl.collectSidecarLivenessProbeForInstancePod(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	readinessProbe, err := impl.collectSidecarReadinessProbeForInstancePod(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
 		env:            env,
 		certificates:   certificates,
 		resources:      resources,
+		startupProbe:   startupProbe,
+		livenessProbe:  livenessProbe,
+		readinessProbe: readinessProbe,
 		additionalArgs: additionalArgs,
 	})
 }
@@ -362,8 +401,6 @@ func reconcilePodSpec(
 	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
-		FailureThreshold: 10,
-		TimeoutSeconds:   10,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},
@@ -371,11 +408,37 @@ func reconcilePodSpec(
 		},
 	}
 
+	startupProbe := createProbe(baseProbe, config.startupProbe, &barmancloudv1.ProbeConfig{
+		FailureThreshold:    10,
+		TimeoutSeconds:      10,
+		InitialDelaySeconds: 0,
+		SuccessThreshold:    1,
+		PeriodSeconds:       10,
+	})
+
+	livenessProbe := createProbe(baseProbe, config.livenessProbe, &barmancloudv1.ProbeConfig{
+		FailureThreshold:    3,
+		TimeoutSeconds:      10,
+		InitialDelaySeconds: 0,
+		SuccessThreshold:    1,
+		PeriodSeconds:       10,
+	})
+
+	readinessProbe := createProbe(baseProbe, config.readinessProbe, &barmancloudv1.ProbeConfig{
+		FailureThreshold:    3,
+		TimeoutSeconds:      10,
+		InitialDelaySeconds: 0,
+		SuccessThreshold:    1,
+		PeriodSeconds:       10,
+	})
+
 	// fixed values
 	sidecarTemplate.Name = "plugin-barman-cloud"
 	sidecarTemplate.Image = viper.GetString("sidecar-image")
 	sidecarTemplate.ImagePullPolicy = cluster.Spec.ImagePullPolicy
-	sidecarTemplate.StartupProbe = baseProbe.DeepCopy()
+	sidecarTemplate.StartupProbe = startupProbe
+	sidecarTemplate.LivenessProbe = livenessProbe
+	sidecarTemplate.ReadinessProbe = readinessProbe
 	sidecarTemplate.SecurityContext = &corev1.SecurityContext{
 		AllowPrivilegeEscalation: ptr.To(false),
 		RunAsNonRoot:             ptr.To(true),
@@ -599,4 +662,34 @@ func getCNPGJobRole(job *batchv1.Job) string {
 	}
 
 	return ""
+}
+
+// createProbe creates a probe using the base probe's handler and applies configuration or default values
+func createProbe(baseProbe *corev1.Probe, config *barmancloudv1.ProbeConfig, defaults *barmancloudv1.ProbeConfig) *corev1.Probe {
+	probe := baseProbe.DeepCopy()
+	probe.FailureThreshold = defaults.FailureThreshold
+	probe.TimeoutSeconds = defaults.TimeoutSeconds
+	probe.InitialDelaySeconds = defaults.InitialDelaySeconds
+	probe.SuccessThreshold = defaults.SuccessThreshold
+	probe.PeriodSeconds = defaults.PeriodSeconds
+
+	if config != nil {
+		if config.InitialDelaySeconds != 0 {
+			probe.InitialDelaySeconds = config.InitialDelaySeconds
+		}
+		if config.TimeoutSeconds != 0 {
+			probe.TimeoutSeconds = config.TimeoutSeconds
+		}
+		if config.PeriodSeconds != 0 {
+			probe.PeriodSeconds = config.PeriodSeconds
+		}
+		if config.SuccessThreshold != 0 {
+			probe.SuccessThreshold = config.SuccessThreshold
+		}
+		if config.FailureThreshold != 0 {
+			probe.FailureThreshold = config.FailureThreshold
+		}
+	}
+
+	return probe
 }

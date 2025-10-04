@@ -22,6 +22,35 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ProbeConfig holds configuration for probe timing and thresholds
+// This is a subset of the corev1.Probe type, with only the fields that we want to expose as configuration.
+type ProbeConfig struct {
+	// InitialDelaySeconds is the number of seconds after the container has started before startup probes are initiated.
+	// +kubebuilder:default:=0
+	// +optional
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty"`
+
+	// TimeoutSeconds is the number of seconds after which the probe times out.
+	// +kubebuilder:default:=10
+	// +optional
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+
+	// PeriodSeconds is how often (in seconds) to perform the probe.
+	// +kubebuilder:default:=10
+	// +optional
+	PeriodSeconds int32 `json:"periodSeconds,omitempty"`
+
+	// SuccessThreshold is the minimum consecutive successes for the probe to be considered successful.
+	// +kubebuilder:default:=1
+	// +optional
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+
+	// FailureThreshold is the minimum consecutive failures for the probe to be considered failed.
+	// +kubebuilder:default:=10
+	// +optional
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
+}
+
 // InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
 type InstanceSidecarConfiguration struct {
 	// The environment to be explicitly passed to the sidecar
@@ -38,6 +67,17 @@ type InstanceSidecarConfiguration struct {
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
+	// StartupProbe defines the configuration for the startup probe of the sidecar container.
+	// +optional
+	StartupProbe *ProbeConfig `json:"startupProbe,omitempty"`
+
+	// LivenessProbe defines the configuration for the liveness probe of the sidecar container.
+	// +optional
+	LivenessProbe *ProbeConfig `json:"livenessProbe,omitempty"`
+
+	// ReadinessProbe defines the configuration for the readiness probe of the sidecar container.
+	// +optional
+	ReadinessProbe *ProbeConfig `json:"readinessProbe,omitempty"`
 	// AdditionalContainerArgs is an optional list of command-line arguments
 	// to be passed to the sidecar container when it starts.
 	// The provided arguments are appended to the container’s default arguments.

@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -196,6 +197,119 @@ var _ = Describe("LifecycleImplementation", func() {
 	})
 
 	Describe("reconcileInstancePod", func() {
+		It("returns a patch for a valid pod with probe configuration", func(ctx SpecContext) {
+			// Configure sidecar with custom probe settings
+			startupProbeConfig := &barmancloudv1.ProbeConfig{
+				InitialDelaySeconds: 1,
+				TimeoutSeconds:      15,
+				PeriodSeconds:       2,
+				FailureThreshold:    5,
+				SuccessThreshold:    1,
+			}
+
+			pod := &corev1.Pod{
+				TypeMeta: podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "postgres",
+						},
+					},
+				},
+			}
+
+			podJSON, err := json.Marshal(pod)
+			Expect(err).NotTo(HaveOccurred())
+
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+				startupProbe: startupProbeConfig,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+
+			// Verify the patch contains the expected probe configuration
+			Expect(string(response.JsonPatch)).To(ContainSubstring("startupProbe"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"initialDelaySeconds\":1"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"timeoutSeconds\":15"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"periodSeconds\":2"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"failureThreshold\":5"))
+			Expect(string(response.JsonPatch)).To(ContainSubstring("\"successThreshold\":1"))
+		})
+
+		It("decouples probe configurations - startupProbe doesn't affect other probes", func(ctx SpecContext) {
+			// Configure only startupProbe with custom settings
+			startupProbeConfig := &barmancloudv1.ProbeConfig{
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      20,
+				PeriodSeconds:       3,
+				FailureThreshold:    8,
+				SuccessThreshold:    2,
+			}
+
+			pod := &corev1.Pod{
+				TypeMeta: podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "postgres",
+						},
+					},
+				},
+			}
+
+			podJSON, err := json.Marshal(pod)
+			Expect(err).NotTo(HaveOccurred())
+
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+				startupProbe: startupProbeConfig,
+				// livenessProbe and readinessProbe are nil - should use defaults
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+
+			patchStr := string(response.JsonPatch)
+
+			// Verify startupProbe has custom settings
+			Expect(patchStr).To(ContainSubstring("startupProbe"))
+			Expect(patchStr).To(ContainSubstring("\"initialDelaySeconds\":5"))
+			Expect(patchStr).To(ContainSubstring("\"timeoutSeconds\":20"))
+			Expect(patchStr).To(ContainSubstring("\"periodSeconds\":3"))
+			Expect(patchStr).To(ContainSubstring("\"failureThreshold\":8"))
+			Expect(patchStr).To(ContainSubstring("\"successThreshold\":2"))
+
+			// Verify livenessProbe has default settings (not affected by startupProbe)
+			Expect(patchStr).To(ContainSubstring("livenessProbe"))
+			Expect(patchStr).To(ContainSubstring("\"failureThreshold\":3")) // default for liveness
+			Expect(patchStr).To(ContainSubstring("\"timeoutSeconds\":10"))  // default for liveness
+			// initialDelaySeconds: 0 is omitted from JSON when it's the zero value
+
+			// Verify readinessProbe has default settings (not affected by startupProbe)
+			Expect(patchStr).To(ContainSubstring("readinessProbe"))
+			Expect(patchStr).To(ContainSubstring("\"failureThreshold\":3")) // default for readiness
+			Expect(patchStr).To(ContainSubstring("\"timeoutSeconds\":10"))  // default for readiness
+			// initialDelaySeconds: 0 is omitted from JSON when it's the zero value
+
+			// Verify that livenessProbe and readinessProbe don't have startupProbe values
+			Expect(patchStr).NotTo(MatchRegexp(`"livenessProbe"[^}]*"initialDelaySeconds":5`))
+			Expect(patchStr).NotTo(MatchRegexp(`"readinessProbe"[^}]*"initialDelaySeconds":5`))
+		})
+
 		It("returns a patch for a valid pod", func(ctx SpecContext) {
 			pod := &corev1.Pod{
 				TypeMeta: podTypeMeta,
