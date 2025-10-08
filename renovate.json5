@@ -60,6 +60,12 @@
   },
   packageRules: [
     {
+      matchPackageNames: [
+       'ghcr.io/cloudnative-pg/plugin-barman-cloud-base',
+      ],
+      versioning: 'loose',
+    },
+    {
       matchDatasources: [
         'go',
       ],
