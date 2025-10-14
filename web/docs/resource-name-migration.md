@@ -8,12 +8,13 @@ sidebar_position: 41
 
 :::warning
 Before running the migration script or applying the manifest, please:
-1. **Review the complete manifest** on the [Migration Manifest](migration-manifest.md) page to understand what changes will be made
+1. **Review the complete manifest** at [migration-rbac.yaml](/migration-rbac.yaml) to understand what changes will be made
 2. **Test in a non-production environment** first if possible
 3. **Ensure you have proper backups** of your cluster configuration
-4. **Verify the resource names match** your current installation (default namespace is `cnpg-system`)
 
 This migration will delete old RBAC resources and create new ones. While the operation is designed to be safe, you should review and understand the changes before proceeding. The maintainers of this project are not responsible for any issues that may arise during migration.
+
+**Note:** This guide assumes you are using the default `cnpg-system` namespace.
 :::
 
 ## Overview
@@ -50,26 +51,16 @@ Using generic names for cluster-wide resources is discouraged as they may confli
 The migration process is straightforward and can be completed with a few kubectl commands.
 
 :::danger Verify Resources Before Deletion
-**IMPORTANT**: The old resource names are generic and could potentially belong to other components in your cluster. Before deleting, verify they belong to the barman plugin by checking their labels:
+**IMPORTANT**: The old resource names are generic and could potentially belong to other components in your cluster. 
 
-```bash
-# Check if the resources have the barman plugin labels
-kubectl get clusterrole metrics-auth-role -o yaml | grep -A 5 "labels:"
-kubectl get clusterrole metrics-reader -o yaml | grep -A 5 "labels:"
-kubectl get clusterrole objectstore-viewer-role -o yaml | grep -A 5 "labels:"
-kubectl get clusterrole objectstore-editor-role -o yaml | grep -A 5 "labels:"
-kubectl get clusterrolebinding metrics-auth-rolebinding -o yaml | grep -A 5 "labels:"
-```
+**Before deleting each resource, verify it belongs to the barman plugin by checking:**
+- For `objectstore-*` roles: Look for `barmancloud.cnpg.io` in the API groups
+- For `metrics-*` roles: Check if they reference the `plugin-barman-cloud` ServiceAccount in `cnpg-system` namespace
+- For other roles: Look for labels like `app.kubernetes.io/name: plugin-barman-cloud`
 
-Look for labels like `app.kubernetes.io/name: plugin-barman-cloud` or references to `barmancloud.cnpg.io` in the rules. If the resources don't have these indicators, **DO NOT DELETE THEM** as they may belong to another application.
+If a resource doesn't have these indicators, **DO NOT DELETE IT** as it may belong to another application.
 
-If you're unsure, you can also check what the resources manage:
-```bash
-kubectl get clusterrole objectstore-viewer-role -o yaml
-kubectl get clusterrole objectstore-editor-role -o yaml
-```
-
-These should reference `barmancloud.cnpg.io` API groups. If they don't, they are not barman plugin resources.
+In Step 1 below, carefully review the output of each verification command before proceeding with the delete.
 :::
 
 :::tip Dry Run First
@@ -80,55 +71,91 @@ You can add `--dry-run=client` to any `kubectl delete` command to preview what w
 
 **Only proceed if you've verified these resources belong to the barman plugin (see warning above).**
 
+For each resource below, first verify it belongs to barman, then delete it:
+
 ```bash
-# Only delete if this belongs to barman plugin (check labels first)
+# 1. Check metrics-auth-rolebinding FIRST (we'll check the role after)
+# Look for references to plugin-barman-cloud ServiceAccount
+kubectl describe clusterrolebinding metrics-auth-rolebinding
+# If it references plugin-barman-cloud ServiceAccount in cnpg-system namespace, delete it:
+kubectl delete clusterrolebinding metrics-auth-rolebinding
+
+# 2. Check metrics-auth-role
+# Look for references to authentication.k8s.io and authorization.k8s.io
+kubectl describe clusterrole metrics-auth-role
+# Verify it's not being used by any other rolebindings:
+kubectl get clusterrolebinding -o json | jq -r '.items[] | select(.roleRef.name=="metrics-auth-role") | .metadata.name'
+# If the above returns nothing (role is not in use) and the role looks like the barman one, delete it (see warnings section):
 kubectl delete clusterrole metrics-auth-role
 
-# Only delete if this belongs to barman plugin (check labels first)
-kubectl delete clusterrole metrics-reader
-
-# Only delete if this belongs to barman plugin (check labels first)
+# 3. Check objectstore-viewer-role
+# Look for barmancloud.cnpg.io API group or app.kubernetes.io/name: plugin-barman-cloud label
+kubectl describe clusterrole objectstore-viewer-role
+# If it shows barmancloud.cnpg.io in API groups, delete it:
 kubectl delete clusterrole objectstore-viewer-role
 
-# Only delete if this belongs to barman plugin (check labels first)
+# 4. Check objectstore-editor-role
+# Look for barmancloud.cnpg.io API group or app.kubernetes.io/name: plugin-barman-cloud label
+kubectl describe clusterrole objectstore-editor-role
+# If it shows barmancloud.cnpg.io in API groups, delete it:
 kubectl delete clusterrole objectstore-editor-role
 
-# Only delete if this belongs to barman plugin (check labels first)
-kubectl delete clusterrolebinding metrics-auth-rolebinding
+# 5. Check metrics-reader (MOST DANGEROUS - very generic name)
+# First, check if it's being used by any rolebindings OTHER than barman's:
+kubectl get clusterrolebinding -o json | jq -r '.items[] | select(.roleRef.name=="metrics-reader") | "\(.metadata.name) -> \(.subjects[0].name) in \(.subjects[0].namespace)"'
+# If this shows ANY rolebindings, review them carefully. Only proceed if they're all barman-related.
+# Then check the role itself:
+kubectl describe clusterrole metrics-reader
+# If it ONLY has nonResourceURLs: /metrics and NO other rolebindings use it, delete it:
+kubectl delete clusterrole metrics-reader
 ```
 
-If any resource is not found, that's okay - it means it was never created or already deleted.
+:::warning
+The `metrics-reader` role is particularly dangerous to delete blindly. Many monitoring systems use this exact name. Only delete it if:
+1. You've verified it ONLY grants access to `/metrics`
+2. No other rolebindings reference it (checked with the jq command above)
+3. You're certain it was created by the barman plugin
+
+If you're unsure, it's safer to leave it and let the new `barman-plugin-metrics-reader` role coexist with it.
+:::
+
+If any resource is not found during the `describe` command, that's okay - it means it was never created or already deleted. Simply skip the delete command for that resource.
 
 ### Step 2: Delete Old Namespace-scoped Resources
 
-These are less likely to conflict, but you should still verify they're in the correct namespace. Replace `cnpg-system` with your namespace if different:
+Delete the old namespace-scoped resources in the `cnpg-system` namespace:
 
 ```bash
-# First, verify these exist in your namespace
-kubectl get role leader-election-role -n cnpg-system
-kubectl get rolebinding leader-election-rolebinding -n cnpg-system
-
-# Then delete them
+# Delete the old leader-election resources
 kubectl delete role leader-election-role -n cnpg-system
 kubectl delete rolebinding leader-election-rolebinding -n cnpg-system
 ```
+
+If any resource is not found, that's okay - it means it was never created or already deleted.
 
 ### Step 3: Apply the New RBAC Manifest
 
 Download and apply the new manifest with the updated resource names:
 
 ```bash
-kubectl apply -f https://cloudnative-pg.io/plugin-barman-cloud/migration-rbac.yaml -n cnpg-system
+kubectl apply -f https://cloudnative-pg.io/plugin-barman-cloud/migration-rbac.yaml
 ```
 
-Alternatively, you can copy the complete YAML from the [Migration Manifest](migration-manifest.md) page, save it to a file, and apply it locally:
+Alternatively, you can download the [migration-rbac.yaml](/migration-rbac.yaml) file and review it locally before applying:
 
 ```bash
-kubectl apply -f barman-rbac-new.yaml -n cnpg-system
+# Download the file
+curl -O https://cloudnative-pg.io/plugin-barman-cloud/migration-rbac.yaml
+
+# Review it
+cat migration-rbac.yaml
+
+# Apply it
+kubectl apply -f migration-rbac.yaml
 ```
 
 :::info
-The new manifest will create all RBAC resources with the `barman-plugin-` prefix. Review the [Migration Manifest](migration-manifest.md) page to see exactly what will be created.
+The new manifest will create all RBAC resources with the `barman-plugin-` prefix in the `cnpg-system` namespace. You can review the complete YAML at [migration-rbac.yaml](/migration-rbac.yaml).
 :::
 
 ## Impact
@@ -169,20 +196,6 @@ If the plugin fails to start after migration, check:
    kubectl describe rolebinding barman-plugin-leader-election-rolebinding -n cnpg-system
    kubectl describe clusterrolebinding barman-plugin-metrics-auth-rolebinding
    ```
-
-### Old Resources Still Present
-
-If old resources weren't deleted properly, you can force delete them:
-
-```bash
-kubectl delete clusterrole metrics-auth-role --ignore-not-found
-kubectl delete clusterrole metrics-reader --ignore-not-found
-kubectl delete clusterrole objectstore-viewer-role --ignore-not-found
-kubectl delete clusterrole objectstore-editor-role --ignore-not-found
-kubectl delete clusterrolebinding metrics-auth-rolebinding --ignore-not-found
-kubectl delete role leader-election-role -n cnpg-system --ignore-not-found
-kubectl delete rolebinding leader-election-rolebinding -n cnpg-system --ignore-not-found
-```
 
 ## Support
 
