@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@ai-sdk/gateway@1.0.39":
-  version "1.0.39"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/gateway/-/gateway-1.0.39.tgz#1f259fda75c7a72bf99a958194ae6275fa3f7d5a"
-  integrity sha512-ijYCKG2sbn2RBVfIgaXNXvzHAf2HpFXxQODtjMI+T7Z4CLryflytchsZZ9qrGtsjiQVopKOV6m6kj4lq5fnbsg==
+"@ai-sdk/gateway@1.0.40":
+  version "1.0.40"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/gateway/-/gateway-1.0.40.tgz#81a554edbb11b286fb657587710047f169d13b2a"
+  integrity sha512-zlixM9jac0w0jjYl5gwNq+w9nydvraAmLaZQbbh+QpHU+OPkTIZmyBcKeTq5eGQKQxhi+oquHxzCSKyJx3egGw==
   dependencies:
     "@ai-sdk/provider" "2.0.0"
     "@ai-sdk/provider-utils" "3.0.12"
@@ -28,12 +28,12 @@
     json-schema "^0.4.0"
 
 "@ai-sdk/react@^2.0.30":
-  version "2.0.68"
-  resolved "https://registry.yarnpkg.com/@ai-sdk/react/-/react-2.0.68.tgz#e37fab5a51479b005eaa560c79f9821561c3e1e0"
-  integrity sha512-dj21puWzGsNNrDE/26cytapMlS2/LD5NiN8TrU59fU/FVwuFHjwiepSfscBik54t/xNYRQIU+Qvt7lM7jnXJdg==
+  version "2.0.71"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/react/-/react-2.0.71.tgz#33e04acba4e01be73aa580692356c0dd2d20b58d"
+  integrity sha512-JDftKkkO8UXCdKNDGBe2JzE6ylHMoxyyxHsszAi2NuQSCTDIaz35DuTuK15wDSDM2M65cWs9/tHWej3QFZ/uDw==
   dependencies:
     "@ai-sdk/provider-utils" "3.0.12"
-    ai "5.0.68"
+    ai "5.0.71"
     swr "^2.2.5"
     throttleit "2.1.0"
 
@@ -3014,12 +3014,12 @@ aggregate-error@^3.0.0:
     clean-stack "^2.0.0"
     indent-string "^4.0.0"
 
-ai@5.0.68, ai@^5.0.30:
-  version "5.0.68"
-  resolved "https://registry.yarnpkg.com/ai/-/ai-5.0.68.tgz#e2e39934bd1af50e3059141a4bb758e4bc8b06b1"
-  integrity sha512-SB6r+4TkKVlSg2ozGBSfuf6Is5hrcX/bpGBzOoyHIN3b4ILGhaly0IHEvP8+3GGIHXqtkPVEUmR6V05jKdjNlg==
+ai@5.0.71, ai@^5.0.30:
+  version "5.0.71"
+  resolved "https://registry.yarnpkg.com/ai/-/ai-5.0.71.tgz#730f5d7fd432fd17ca10b816d78f6ccbe841360c"
+  integrity sha512-2c9/cXpF7O1K9xOgcoPCMC7Jj5GxVsPHTBhKcV6bqCVKm21P8AiN+rz9zIGopNMDhlEbQxqi8qSgrwCfsW+KMw==
   dependencies:
-    "@ai-sdk/gateway" "1.0.39"
+    "@ai-sdk/gateway" "1.0.40"
     "@ai-sdk/provider" "2.0.0"
     "@ai-sdk/provider-utils" "3.0.12"
     "@opentelemetry/api" "1.9.0"
@@ -4233,9 +4233,9 @@ ee-first@1.1.1:
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
 electron-to-chromium@^1.5.227:
-  version "1.5.234"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.234.tgz#d895b6dba84269f4e83b3a1149dcc55e27848c30"
-  integrity sha512-RXfEp2x+VRYn8jbKfQlRImzoJU01kyDvVPBmG39eU2iuRVhuS6vQNocB8J0/8GrIMLnPzgz4eW6WiRnJkTuNWg==
+  version "1.5.237"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.237.tgz#eacf61cef3f6345d0069ab427585c5a04d7084f0"
+  integrity sha512-icUt1NvfhGLar5lSWH3tHNzablaA5js3HVHacQimfP8ViEBOQv+L7DKEuHdbTZ0SKCO1ogTJTIL1Gwk9S6Qvcg==
 
 emoji-regex@^8.0.0:
   version "8.0.0"
@@ -8449,9 +8449,9 @@ statuses@2.0.1:
   integrity sha512-OpZ3zP+jT1PI7I8nemJX4AKmAX070ZkYPVWV/AaKTJl+tXCTGyVdC1a4SL8RUQYEwk/f34ZX8UTykN68FwrqAA==
 
 std-env@^3.7.0:
-  version "3.9.0"
-  resolved "https://registry.yarnpkg.com/std-env/-/std-env-3.9.0.tgz#1a6f7243b339dca4c9fd55e1c7504c77ef23e8f1"
-  integrity sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==
+  version "3.10.0"
+  resolved "https://registry.yarnpkg.com/std-env/-/std-env-3.10.0.tgz#d810b27e3a073047b2b5e40034881f5ea6f9c83b"
+  integrity sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==
 
 string-width@^4.1.0, string-width@^4.2.0:
   version "4.2.3"
