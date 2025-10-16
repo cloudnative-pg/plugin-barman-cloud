@@ -7,19 +7,22 @@ sidebar_position: 41
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
 :::warning
-Before running the migration script or applying the manifest, please:
-1. **Review the complete manifest** at [migration-rbac.yaml](/migration-rbac.yaml) to understand what changes will be made
+Before proceeding with the migration process, please:
+1. **Read this guide in its entirety** to understand what changes will be made
 2. **Test in a non-production environment** first if possible
 3. **Ensure you have proper backups** of your cluster configuration
 
-This migration will delete old RBAC resources and create new ones. While the operation is designed to be safe, you should review and understand the changes before proceeding. The maintainers of this project are not responsible for any issues that may arise during migration.
+This migration will delete old RBAC resources only after the plugin-barman-cloud upgrade. While the operation is
+designed to be safe, you should review and understand the changes before proceeding. The maintainers of this project
+are not responsible for any issues that may arise during migration.
 
 **Note:** This guide assumes you are using the default `cnpg-system` namespace.
 :::
 
 ## Overview
 
-Starting from version 0.8.0, the plugin-barman-cloud deployment manifests use more specific, prefixed resource names to avoid conflicts with other components deployed in the same Kubernetes cluster.
+Starting from version **0.8.0**, the plugin-barman-cloud deployment manifests use more specific, prefixed resource names
+to avoid conflicts with other components deployed in the same Kubernetes cluster.
 
 ## What Changed
 
@@ -44,14 +47,22 @@ The following resources have been renamed to use proper prefixes:
 
 ## Why This Change?
 
-Using generic names for cluster-wide resources is discouraged as they may conflict with other components deployed in the same cluster. The new names make it clear that these resources belong to the barman-cloud plugin and help avoid naming collisions.
+Using generic names for cluster-wide resources is discouraged as they may conflict with other components deployed in
+the same cluster. The new names make it clear that these resources belong to the barman-cloud plugin and help avoid
+naming collisions.
 
 ## Migration Instructions
 
-The migration process is straightforward and can be completed with a few kubectl commands.
+This three steps migration process is straightforward and can be completed with a few kubectl commands.
+
+### Step 1: Upgrade plugin-barman-cloud
+
+Please refer to the [Installation](installation.mdx) section to deploy the new plugin-barman-cloud release.
+
+### Step 2: Delete Old Cluster-scoped Resources
 
 :::danger Verify Resources Before Deletion
-**IMPORTANT**: The old resource names are generic and could potentially belong to other components in your cluster. 
+**IMPORTANT**: The old resource names are generic and could potentially belong to other components in your cluster.
 
 **Before deleting each resource, verify it belongs to the barman plugin by checking:**
 - For `objectstore-*` roles: Look for `barmancloud.cnpg.io` in the API groups
@@ -60,14 +71,13 @@ The migration process is straightforward and can be completed with a few kubectl
 
 If a resource doesn't have these indicators, **DO NOT DELETE IT** as it may belong to another application.
 
-In Step 1 below, carefully review the output of each verification command before proceeding with the delete.
+Carefully review the output of each verification command before proceeding with the `delete`.
 :::
 
 :::tip Dry Run First
-You can add `--dry-run=client` to any `kubectl delete` command to preview what would be deleted without actually removing anything.
+You can add `--dry-run=client` to any `kubectl delete` command to preview what would be deleted without actually
+removing anything.
 :::
-
-### Step 1: Delete Old Cluster-scoped Resources
 
 **Only proceed if you've verified these resources belong to the barman plugin (see warning above).**
 
@@ -121,7 +131,7 @@ If you're unsure, it's safer to leave it and let the new `barman-plugin-metrics-
 
 If any resource is not found during the `describe` command, that's okay - it means it was never created or already deleted. Simply skip the delete command for that resource.
 
-### Step 2: Delete Old Namespace-scoped Resources
+### Step 3: Delete Old Namespace-scoped Resources
 
 Delete the old namespace-scoped resources in the `cnpg-system` namespace:
 
@@ -133,34 +143,8 @@ kubectl delete rolebinding leader-election-rolebinding -n cnpg-system
 
 If any resource is not found, that's okay - it means it was never created or already deleted.
 
-### Step 3: Apply the New RBAC Manifest
-
-Download and apply the new manifest with the updated resource names:
-
-```bash
-kubectl apply -f https://cloudnative-pg.io/plugin-barman-cloud/migration-rbac.yaml
-```
-
-Alternatively, you can download the [migration-rbac.yaml](/migration-rbac.yaml) file and review it locally before applying:
-
-```bash
-# Download the file
-curl -O https://cloudnative-pg.io/plugin-barman-cloud/migration-rbac.yaml
-
-# Review it
-cat migration-rbac.yaml
-
-# Apply it
-kubectl apply -f migration-rbac.yaml
-```
-
-:::info
-The new manifest will create all RBAC resources with the `barman-plugin-` prefix in the `cnpg-system` namespace. You can review the complete YAML at [migration-rbac.yaml](/migration-rbac.yaml).
-:::
-
 ## Impact
 
-- **Downtime:** The migration requires a brief interruption as the old resources are deleted and new ones are created. The plugin controller may need to restart.
 - **Permissions:** If you have custom RBAC rules or tools that reference the old resource names, they will need to be updated.
 - **External Users:** If end users have been granted the `objectstore-viewer-role` or `objectstore-editor-role`, they will need to be re-granted the new role names (`barman-plugin-objectstore-viewer-role` and `barman-plugin-objectstore-editor-role`).
 
