@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.7.0...v0.8.0) (2025-10-17)
+
+
+### Features
+
+* **ip:** Assign copyright to the Linux Foundation ([#571](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/571)) ([1be34fe](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1be34fe13e830a219d0d8d68423caf2d3c55a49b))
+
+
+### Bug Fixes
+
+* **deps,security:** Update to go 1.25.2 ([#581](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/581)) ([523bd1e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/523bd1e2b3fb1d63ad930d15d172513eb0be7dee)), closes [#580](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/580)
+* **deps:** Lock file maintenance documentation dependencies ([#555](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/555)) ([fad3a65](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fad3a65340870c9d1553018e760d72b3f3a8aa4d))
+* **deps:** Update k8s.io/utils digest to bc988d5 ([#559](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/559)) ([36db77c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/36db77ced4be3f77278c8e831b7fae06c7beb3cb))
+* **deps:** Update module github.com/cert-manager/cert-manager to v1.19.0 ([#575](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/575)) ([484b280](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/484b28017e23fd5166c558c27c15103a586f068b))
+* **deps:** Update module github.com/cert-manager/cert-manager to v1.19.1 ([#600](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/600)) ([d8f78f9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/d8f78f90d02b081ecc4a60ccc925b998f89ced00))
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.26.0 ([#560](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/560)) ([529737f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/529737ffa43fd4af8a9602a072f9c9eda9f3e747))
+* **deps:** Update module google.golang.org/grpc to v1.76.0 ([#569](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/569)) ([e1bc0a1](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e1bc0a1d4a4d2c08b69726ab04484b2d43c5adf1))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.22.2 ([#568](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/568)) ([1b5955e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1b5955ead9b7e56c48440abd452d348bf0ec5385))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.22.3 ([#586](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/586)) ([ea76733](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ea7673343a2120fd9871f81688ea0bf68906444a))
+* Disable management of end-of-wal file flag during backup restoration ([#604](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/604)) ([931a06a](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/931a06a407cc4885bfcd653535a81aca37ecbd0c)), closes [#603](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/603)
+* **e2e:** Avoid pinpointing the PostgreSQL version ([#562](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/562)) ([5276dd1](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/5276dd17cfd3bea41918a69622c385756b0404cb))
+
 ## [0.7.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.6.0...v0.7.0) (2025-09-25)
 
 
