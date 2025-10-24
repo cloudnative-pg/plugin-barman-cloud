@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### BREAKING CHANGES
+
+* **manifests:** Resource names have been prefixed to avoid cluster conflicts
+  - All cluster-scoped and namespace-scoped resources now use the `barman-plugin-` prefix for consistency
+  - See the [Resource Name Migration Guide](https://cloudnative-pg.io/plugin-barman-cloud/resource-name-migration/) for detailed migration instructions
+
 ## [0.7.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.6.0...v0.7.0) (2025-09-25)
 
 
