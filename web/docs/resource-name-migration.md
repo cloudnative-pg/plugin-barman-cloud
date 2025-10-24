@@ -1,8 +1,8 @@
 ---
-sidebar_position: 41
+sidebar_position: 90
 ---
 
-# Resource Name Migration Guide
+# Resource name migration guide
 
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
@@ -64,7 +64,7 @@ Please refer to the [Installation](installation.mdx) section to deploy the new p
 :::danger Verify Resources Before Deletion
 **IMPORTANT**: The old resource names are generic and could potentially belong to other components in your cluster.
 
-**Before deleting each resource, verify it belongs to the barman plugin by checking:**
+**Before deleting each resource, verify it belongs to the Barman Cloud plugin by checking:**
 - For `objectstore-*` roles: Look for `barmancloud.cnpg.io` in the API groups
 - For `metrics-*` roles: Check if they reference the `plugin-barman-cloud` ServiceAccount in `cnpg-system` namespace
 - For other roles: Look for labels like `app.kubernetes.io/name: plugin-barman-cloud`
@@ -79,7 +79,8 @@ You can add `--dry-run=client` to any `kubectl delete` command to preview what w
 removing anything.
 :::
 
-**Only proceed if you've verified these resources belong to the barman plugin (see warning above).**
+**Only proceed if you've verified these resources belong to the Barman Cloud
+plugin (see warning above).**
 
 For each resource below, first verify it belongs to barman, then delete it:
 
@@ -124,7 +125,7 @@ kubectl delete clusterrole metrics-reader
 The `metrics-reader` role is particularly dangerous to delete blindly. Many monitoring systems use this exact name. Only delete it if:
 1. You've verified it ONLY grants access to `/metrics`
 2. No other rolebindings reference it (checked with the jq command above)
-3. You're certain it was created by the barman plugin
+3. You're certain it was created by the Barman Cloud plugin
 
 If you're unsure, it's safer to leave it and let the new `barman-plugin-metrics-reader` role coexist with it.
 :::

@@ -1,3 +1,4 @@
+nonResourceURLs
 AccessDenied
 AdditionalContainerArgs
 Akamai
@@ -49,6 +50,7 @@ SPDX
 SPDX
 SSL
 ServerRecoveryWindow
+ServiceAccount
 Slonik
 TLS
 TODO
@@ -106,6 +108,7 @@ involvedObject
 io
 isWALArchiver
 jq
+json
 jsonpath
 kb
 krew
@@ -131,7 +134,9 @@ recoverability
 repos
 retentionCheckInterval
 retentionPolicy
+roleRef
 rolebinding
+rolebindings
 rollout
 rpc
 sc
