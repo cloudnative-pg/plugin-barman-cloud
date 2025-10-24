@@ -257,3 +257,18 @@ spec:
         barmanObjectName: minio-eu
         serverName: pg-eu
 ```
+
+## Step 5: Verify your metrics
+
+When migrating from the in-core solution to the plugin-based approach, you need
+to monitor a different set of metrics, as described in the
+["Observability"](observability.md) section.
+
+The table below summarizes the name changes between the old in-core metrics and
+the new plugin-based ones:
+
+| Old metric name                                  | New metric name                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| `cnpg_collector_last_failed_backup_timestamp`    | `barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp`    |
+| `cnpg_collector_last_available_backup_timestamp` | `barman_cloud_cloudnative_pg_io_last_available_backup_timestamp` |
+| `cnpg_collector_first_recoverability_point`      | `barman_cloud_cloudnative_pg_io_first_recoverability_point`      |
