@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: plugin-barman-cloud
     app.kubernetes.io/managed-by: kustomize
-  name: objectstore-viewer-role
+  name: barman-plugin-objectstore-viewer-role
 rules:
 - apiGroups:
   - barmancloud.cnpg.io

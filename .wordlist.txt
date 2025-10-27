@@ -49,6 +49,7 @@ SPDX
 SPDX
 SSL
 ServerRecoveryWindow
+ServiceAccount
 Slonik
 TLS
 TODO
@@ -106,6 +107,7 @@ involvedObject
 io
 isWALArchiver
 jq
+json
 jsonpath
 kb
 krew
@@ -118,6 +120,7 @@ md
 minio
 namespace
 namespaces
+nonResourceURLs
 objectstore
 objectstores
 pluginConfiguration
@@ -131,7 +134,9 @@ recoverability
 repos
 retentionCheckInterval
 retentionPolicy
+roleRef
 rolebinding
+rolebindings
 rollout
 rpc
 sc
