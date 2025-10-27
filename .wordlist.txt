@@ -33,6 +33,7 @@ ObjectMeta
 ObjectStore
 ObjectStoreSpec
 ObjectStoreStatus
+Observability
 PITR
 PoR
 PostgreSQL
