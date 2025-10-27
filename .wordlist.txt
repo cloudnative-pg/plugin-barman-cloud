@@ -1,4 +1,3 @@
-nonResourceURLs
 AccessDenied
 AdditionalContainerArgs
 Akamai
@@ -121,6 +120,7 @@ md
 minio
 namespace
 namespaces
+nonResourceURLs
 objectstore
 objectstores
 pluginConfiguration
