@@ -39,7 +39,7 @@ You can pass additional command-line arguments to `barman-cloud-backup` and
 `ObjectStore` configuration.
 
 - `.spec.configuration.data.additionalCommandArgs`: for `barman-cloud-backup`
-- `.spec.configuration.wal.additionalCommandArgs`: for `barman-cloud-wal-archive`
+- `.spec.configuration.wal.archiveAdditionalCommandArgs`: for `barman-cloud-wal-archive`
 
 Each field accepts a list of string arguments. If an argument is already
 configured elsewhere in the plugin, the duplicate will be ignored.
@@ -67,7 +67,7 @@ metadata:
 spec:
   configuration:
     wal:
-      additionalCommandArgs:
+      archiveAdditionalCommandArgs:
         - "--max-concurrency=1"
         - "--read-timeout=60"
 ```
