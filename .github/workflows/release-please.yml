@@ -42,7 +42,7 @@ jobs:
           task publish
           task manifest
       - name: Attach manifest to workflow run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: manifest.yaml
           path: ./manifest.yaml
