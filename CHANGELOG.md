@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.8.0...v0.9.0) (2025-11-06)
+
+
+### Features
+
+* **deps:** Update barman-cloud to v3.16.2 ([#609](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/609)) ([1ef53d0](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1ef53d03416481152fc5f861bc6144e9621919d8))
+
+
+### Bug Fixes
+
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.27.2 ([#635](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/635)) ([57e861d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/57e861dea1757b6ee3ca55c53f3e30cbaf5ca84a))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.22.4 ([#636](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/636)) ([33f3373](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/33f3373b60fa09b3a6c17462a63b65e31c63a1ee))
+* **docs:** Use `archiveAdditionalCommandArgs` for WAL archive configuration ([#630](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/630)) ([4aa47a7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4aa47a7a2e949f394a6414631967593341bf6e42))
+
 ## [0.8.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.7.0...v0.8.0) (2025-10-27)
 
 
