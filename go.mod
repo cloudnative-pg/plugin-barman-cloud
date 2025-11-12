@@ -7,7 +7,7 @@ toolchain go1.25.4
 require (
 	github.com/cert-manager/cert-manager v1.19.1
 	github.com/cloudnative-pg/api v1.27.0
-	github.com/cloudnative-pg/barman-cloud v0.3.3
+	github.com/cloudnative-pg/barman-cloud v0.3.4-0.20251201135428-8937882d37d7
 	github.com/cloudnative-pg/cloudnative-pg v1.27.1
 	github.com/cloudnative-pg/cnpg-i v0.3.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.1
