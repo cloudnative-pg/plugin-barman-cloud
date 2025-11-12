@@ -671,6 +671,11 @@ spec:
                         restored.
                       format: date-time
                       type: string
+                    lastArchivedWALTime:
+                      description: The last time a WAL file was successfully archived
+                        by this plugin
+                      format: date-time
+                      type: string
                     lastFailedBackupTime:
                       description: The last failed backup time
                       format: date-time
