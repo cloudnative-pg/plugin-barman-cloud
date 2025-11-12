@@ -38,7 +38,10 @@ import (
 	walUtils "github.com/cloudnative-pg/machinery/pkg/fileutils/wals"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -218,6 +221,21 @@ func (w WALServiceImplementation) Archive(
 		if archiverResult.Err != nil {
 			return nil, archiverResult.Err
 		}
+	}
+
+	// Update the last archived WAL time in the ObjectStore status
+	contextLogger.Debug("Updating last archived WAL time", "serverName", configuration.ServerName)
+	if err := setLastArchivedWALTime(
+		ctx,
+		w.Client,
+		configuration.GetBarmanObjectKey(),
+		configuration.ServerName,
+		time.Now(),
+	); err != nil {
+		// Log the error but don't fail the archive operation
+		contextLogger.Error(err, "Error updating last archived WAL time in ObjectStore status")
+	} else {
+		contextLogger.Debug("Successfully updated last archived WAL time")
 	}
 
 	return &wal.WALArchiveResult{}, nil
@@ -508,4 +526,31 @@ func isEndOfWALStream(results []barmanRestorer.Result) bool {
 	}
 
 	return false
+}
+
+// SetLastArchivedWALTime sets the last archived WAL time in the
+// passed object store, for the passed server name.
+func setLastArchivedWALTime(
+	ctx context.Context,
+	c client.Client,
+	objectStoreKey client.ObjectKey,
+	serverName string,
+	lastArchivedWALTime time.Time,
+) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var objectStore barmancloudv1.ObjectStore
+
+		if err := c.Get(ctx, objectStoreKey, &objectStore); err != nil {
+			return err
+		}
+		recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
+		recoveryWindow.LastArchivedWALTime = ptr.To(metav1.NewTime(lastArchivedWALTime))
+
+		if objectStore.Status.ServerRecoveryWindow == nil {
+			objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
+		}
+		objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+
+		return c.Status().Update(ctx, &objectStore)
+	})
 }
