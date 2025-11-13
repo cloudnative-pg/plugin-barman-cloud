@@ -93,6 +93,8 @@ func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, 
 		return 0, err
 	}
 
+	ctx = common.ContextWithProviderOptions(ctx, barmanObjectStore)
+
 	if err := c.maintenance(ctx, &cluster, &barmanObjectStore); err != nil {
 		return 0, err
 	}

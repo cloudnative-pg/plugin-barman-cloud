@@ -87,6 +87,8 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
+	ctx = common.ContextWithProviderOptions(ctx, objectStore)
+
 	if err := fileutils.EnsureDirectoryExists(postgres.BackupTemporaryDirectory); err != nil {
 		contextLogger.Error(err, "Cannot create backup temporary directory", "err", err)
 		return nil, err
