@@ -233,6 +233,7 @@ Barman Cloud supports the following authentication methods:
 - Storage Account Name + [Access Key](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage)
 - Storage Account Name + [SAS Token](https://learn.microsoft.com/en-us/azure/storage/blobs/sas-service-create)
 - [Azure AD Workload Identity](https://azure.github.io/azure-workload-identity/docs/introduction.html)
+- [Azure Default Credentials](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains#defaultazurecredential-overview)
 
 ### Azure AD Workload Identity
 
@@ -244,6 +245,26 @@ apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
   name: azure-store
+spec:
+  configuration:
+    destinationPath: "<destination path here>"
+    azureCredentials:
+      inheritFromAzureAD: true
+  [...]
+```
+
+### Azure Default Credentials
+
+To authenticate using Azure Default Credentials, set the annotation
+`barmancloud.cnpg.io/useDefaultAzureCredentials="true"` on the ObjectStore:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: azure-store
+  annotations:
+    barmancloud.cnpg.io/useDefaultAzureCredentials: "true"
 spec:
   configuration:
     destinationPath: "<destination path here>"
