@@ -233,7 +233,7 @@ Barman Cloud supports the following authentication methods:
 - Storage Account Name + [Access Key](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage)
 - Storage Account Name + [SAS Token](https://learn.microsoft.com/en-us/azure/storage/blobs/sas-service-create)
 - [Azure AD Workload Identity](https://azure.github.io/azure-workload-identity/docs/introduction.html)
-- [Azure Default Credentials](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains#defaultazurecredential-overview)
+- [DefaultAzureCredential](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains#defaultazurecredential-overview)
 
 ### Azure AD Workload Identity
 
@@ -253,10 +253,11 @@ spec:
   [...]
 ```
 
-### Azure Default Credentials
+### DefaultAzureCredential
 
-To authenticate using Azure Default Credentials, set the annotation
-`barmancloud.cnpg.io/useDefaultAzureCredentials="true"` on the ObjectStore:
+To authenticate using `DefaultAzureCredential`, set the annotation
+`barmancloud.cnpg.io/useDefaultAzureCredential="true"` on the ObjectStore in
+conjunction with the `.spec.configuration.inheritFromAzureAD` option:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -264,7 +265,7 @@ kind: ObjectStore
 metadata:
   name: azure-store
   annotations:
-    barmancloud.cnpg.io/useDefaultAzureCredentials: "true"
+    barmancloud.cnpg.io/useDefaultAzureCredential: "true"
 spec:
   configuration:
     destinationPath: "<destination path here>"
