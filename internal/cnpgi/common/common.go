@@ -28,7 +28,7 @@ import (
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	"github.com/cloudnative-pg/barman-cloud/pkg/command"
 
-	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	apiv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	pluginmetadata "github.com/cloudnative-pg/plugin-barman-cloud/pkg/metadata"
 )
@@ -104,7 +104,7 @@ func BuildCertificateFilePath(objectStoreName string) string {
 
 // ContextWithProviderOptions enriches the context with cloud service provider specific options
 // based on the ObjectStore resource
-func ContextWithProviderOptions(ctx context.Context, objectStore barmancloudv1.ObjectStore) context.Context {
+func ContextWithProviderOptions(ctx context.Context, objectStore apiv1.ObjectStore) context.Context {
 	if objectStore.GetAnnotations()[pluginmetadata.UseDefaultAzureCredentialsAnnotationName] ==
 		pluginmetadata.UseDefaultAzureCredentialsTrueValue {
 		return command.ContextWithDefaultAzureCredentials(ctx, true)
