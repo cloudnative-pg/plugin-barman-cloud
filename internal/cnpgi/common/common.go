@@ -105,8 +105,8 @@ func BuildCertificateFilePath(objectStoreName string) string {
 // ContextWithProviderOptions enriches the context with cloud service provider specific options
 // based on the ObjectStore resource
 func ContextWithProviderOptions(ctx context.Context, objectStore apiv1.ObjectStore) context.Context {
-	if objectStore.GetAnnotations()[pluginmetadata.UseDefaultAzureCredentialsAnnotationName] ==
-		pluginmetadata.UseDefaultAzureCredentialsTrueValue {
+	if objectStore.GetAnnotations()[pluginmetadata.UseDefaultAzureCredentialAnnotationName] ==
+		pluginmetadata.UseDefaultAzureCredentialTrueValue {
 		return command.ContextWithDefaultAzureCredentials(ctx, true)
 	}
 

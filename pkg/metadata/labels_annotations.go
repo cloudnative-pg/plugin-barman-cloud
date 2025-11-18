@@ -4,12 +4,12 @@ package metadata
 const MetadataNamespace = "barmancloud.cnpg.io"
 
 const (
-	// UseDefaultAzureCredentialsAnnotationName is an annotation that can be set
-	// on an ObjectStore resource to enable the authentication to Azure via DefaultAzureCredentials.
+	// UseDefaultAzureCredentialAnnotationName is an annotation that can be set
+	// on an ObjectStore resource to enable the authentication to Azure via DefaultAzureCredential.
 	// This is meant to be used with inheritFromAzureAD enabled.
-	UseDefaultAzureCredentialsAnnotationName = MetadataNamespace + "/useDefaultAzureCredentials"
+	UseDefaultAzureCredentialAnnotationName = MetadataNamespace + "/useDefaultAzureCredential"
 
-	// UseDefaultAzureCredentialsTrueValue is the value for the annotation
-	// barmancloud.cnpg.io/useDefaultAzureCredentials to enable the DefaultAzureCredentials auth mechanism.
-	UseDefaultAzureCredentialsTrueValue = "true"
+	// UseDefaultAzureCredentialTrueValue is the value for the annotation
+	// barmancloud.cnpg.io/useDefaultAzureCredential to enable the DefaultAzureCredentials auth mechanism.
+	UseDefaultAzureCredentialTrueValue = "true"
 )
