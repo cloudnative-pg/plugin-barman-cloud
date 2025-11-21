@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.9.0...v0.9.1) (2025-11-21)
+
+
+### Bug Fixes
+
+* Don't log full environment variables at default log level ([#589](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/589)) ([a487c4e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a487c4ef50c8185f2e38b858271270d46d4bb5a1))
+
 ## [0.9.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.8.0...v0.9.0) (2025-11-06)
 
 
