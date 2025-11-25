@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/cloudnative-pg/barman-cloud/pkg/archiver"
@@ -70,6 +71,11 @@ func (e *SpoolManagementError) Unwrap() error {
 	return e.err
 }
 
+const (
+	// walStatusUpdateThrottle is the minimum time between status updates for WAL archiving
+	walStatusUpdateThrottle = 5 * time.Minute
+)
+
 // WALServiceImplementation is the implementation of the WAL Service
 type WALServiceImplementation struct {
 	wal.UnimplementedWALServer
@@ -78,6 +84,9 @@ type WALServiceImplementation struct {
 	SpoolDirectory string
 	PGDataPath     string
 	PGWALPath      string
+	// LastStatusUpdate tracks the last time we updated the status for each ObjectStore+ServerName
+	// Key format: "namespace/objectStoreName/serverName"
+	LastStatusUpdate *sync.Map
 }
 
 // GetCapabilities implements the WALService interface
@@ -103,6 +112,37 @@ func (w WALServiceImplementation) GetCapabilities(
 			},
 		},
 	}, nil
+}
+
+// shouldUpdateStatus checks if we should update the status based on the throttle.
+// It returns true if walStatusUpdateThrottle minutes have passed since the last update, or if this is the first update.
+func (w WALServiceImplementation) shouldUpdateStatus(objectStoreKey client.ObjectKey, serverName string) bool {
+	if w.LastStatusUpdate == nil {
+		return true
+	}
+
+	key := fmt.Sprintf("%s/%s", objectStoreKey.String(), serverName)
+	lastUpdate, ok := w.LastStatusUpdate.Load(key)
+	if !ok {
+		return true
+	}
+
+	lastUpdateTime, ok := lastUpdate.(time.Time)
+	if !ok {
+		return true
+	}
+
+	return time.Since(lastUpdateTime) >= walStatusUpdateThrottle
+}
+
+// recordStatusUpdate records that we just updated the status for a given ObjectStore and server.
+func (w WALServiceImplementation) recordStatusUpdate(objectStoreKey client.ObjectKey, serverName string) {
+	if w.LastStatusUpdate == nil {
+		return
+	}
+
+	key := fmt.Sprintf("%s/%s", objectStoreKey.String(), serverName)
+	w.LastStatusUpdate.Store(key, time.Now())
 }
 
 // Archive implements the WALService interface
@@ -224,18 +264,25 @@ func (w WALServiceImplementation) Archive(
 	}
 
 	// Update the last archived WAL time in the ObjectStore status
-	contextLogger.Debug("Updating last archived WAL time", "serverName", configuration.ServerName)
-	if err := setLastArchivedWALTime(
-		ctx,
-		w.Client,
-		configuration.GetBarmanObjectKey(),
-		configuration.ServerName,
-		time.Now(),
-	); err != nil {
-		// Log the error but don't fail the archive operation
-		contextLogger.Error(err, "Error updating last archived WAL time in ObjectStore status")
+	// Only update if walStatusUpdateThrottle minutes have passed since the last update to avoid hitting the API server too often
+	objectStoreKey := configuration.GetBarmanObjectKey()
+	if w.shouldUpdateStatus(objectStoreKey, configuration.ServerName) {
+		contextLogger.Debug("Updating last archived WAL time", "serverName", configuration.ServerName)
+		if err := setLastArchivedWALTime(
+			ctx,
+			w.Client,
+			objectStoreKey,
+			configuration.ServerName,
+			time.Now(),
+		); err != nil {
+			// Log the error but don't fail the archive operation
+			contextLogger.Error(err, "Error updating last archived WAL time in ObjectStore status")
+		} else {
+			contextLogger.Debug("Successfully updated last archived WAL time")
+			w.recordStatusUpdate(objectStoreKey, configuration.ServerName)
+		}
 	} else {
-		contextLogger.Debug("Successfully updated last archived WAL time")
+		contextLogger.Debug("Skipping status update due to throttle", "serverName", configuration.ServerName)
 	}
 
 	return &wal.WALArchiveResult{}, nil
