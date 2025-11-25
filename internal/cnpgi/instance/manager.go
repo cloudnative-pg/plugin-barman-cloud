@@ -84,7 +84,7 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
-	customCacheClient := extendedclient.NewExtendedClient(mgr.GetClient())
+	customCacheClient := extendedclient.NewExtendedClient(ctx, mgr.GetClient())
 
 	if err := mgr.Add(&CNPGI{
 		Client:         customCacheClient,
