@@ -52,7 +52,8 @@ func Start(ctx context.Context) error {
 	namespace := viper.GetString("namespace")
 
 	controllerOptions := ctrl.Options{
-		Scheme: scheme,
+		PprofBindAddress: viper.GetString("pprof-server"),
+		Scheme:           scheme,
 		Client: client.Options{
 			// Important: the caching options below are used by
 			// controller-runtime only.
