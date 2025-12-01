@@ -302,10 +302,12 @@ var _ = Describe("ExtendedClient Cache Cleanup", func() {
 		// Cancel the context immediately
 		cancel()
 
-		// Give the goroutine time to stop
-		time.Sleep(50 * time.Millisecond)
-
-		// The goroutine should have stopped gracefully (no panic or hanging)
-		// This test mainly verifies the cleanup routine respects context cancellation
+		// Verify the cleanup routine actually stops by waiting for the done channel
+		select {
+		case <-ec.cleanupDone:
+			// Success: cleanup routine exited as expected
+		case <-time.After(1 * time.Second):
+			Fail("cleanup routine did not stop within timeout")
+		}
 	})
 })

@@ -55,6 +55,7 @@ type ExtendedClient struct {
 	cachedObjects   []cachedEntry
 	mux             *sync.Mutex
 	cleanupInterval time.Duration
+	cleanupDone     chan struct{} // Signals when cleanup routine exits
 }
 
 // NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation.
@@ -68,6 +69,7 @@ func NewExtendedClient(
 		Client:          baseClient,
 		mux:             &sync.Mutex{},
 		cleanupInterval: DefaultCleanupIntervalSeconds * time.Second,
+		cleanupDone:     make(chan struct{}),
 	}
 
 	// Start the background cleanup routine
@@ -225,6 +227,7 @@ func (e *ExtendedClient) Patch(
 // startCleanupRoutine periodically removes expired entries from the cache.
 // It runs until the context is cancelled.
 func (e *ExtendedClient) startCleanupRoutine(ctx context.Context) {
+	defer close(e.cleanupDone)
 	contextLogger := log.FromContext(ctx).WithName("extended_client_cleanup")
 	ticker := time.NewTicker(e.cleanupInterval)
 	defer ticker.Stop()
