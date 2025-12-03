@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.9.0...v0.10.0) (2025-12-03)
+
+
+### Features
+
+* Add `pprof-server` support  ([#538](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/538)) ([921b20c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/921b20c249240ec271d410bd4531c41272b9c505)), closes [#421](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/421)
+* Remove wal from cache after archiving ([#659](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/659)) ([df22bf2](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/df22bf221674d5e0c42c8a70ce2b590f355a5d46))
+
+
+### Bug Fixes
+
+* Don't log full environment variables at default log level ([#589](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/589)) ([a487c4e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a487c4ef50c8185f2e38b858271270d46d4bb5a1))
+
 ## [0.9.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.8.0...v0.9.0) (2025-11-06)
 
 
