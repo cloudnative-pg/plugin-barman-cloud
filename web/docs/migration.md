@@ -64,7 +64,7 @@ spec:
   backup:
     barmanObjectStore:
       destinationPath: s3://backups/
-      endpointURL: https://minio-eu:9000
+      endpointURL: https://minio-eu:9443
       s3Credentials:
         accessKeyId:
           name: minio-eu
@@ -87,7 +87,7 @@ metadata:
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: https://minio-eu:9000
+    endpointURL: https://minio-eu:9443
     s3Credentials:
       accessKeyId:
         name: minio-eu
@@ -205,7 +205,7 @@ spec:
   - name: pg-eu
     barmanObjectStore:
       destinationPath: s3://backups/
-      endpointURL: https://minio-eu:9000
+      endpointURL: https://minio-eu:9443
       serverName: pg-eu
       s3Credentials:
         accessKeyId:
@@ -228,7 +228,7 @@ metadata:
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: https://minio-eu:9000
+    endpointURL: https://minio-eu:9443
     s3Credentials:
     accessKeyId:
         name: minio-eu
