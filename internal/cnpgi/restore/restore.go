@@ -157,7 +157,7 @@ func (impl JobHookImpl) Restore(
 
 	config := getRestoreWalConfig()
 
-	contextLogger.Info("sending restore response", "config", config, "env", env)
+	contextLogger.Info("sending restore response", "config", config)
 	return &restore.RestoreResponse{
 		RestoreConfig: config,
 		Envs:          nil,

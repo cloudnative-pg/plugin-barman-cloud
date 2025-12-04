@@ -52,6 +52,13 @@ func NewCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String("pprof-server",
+		"",
+		"The address where pprof server should be exposed, for example: 0.0.0.0:6061. "+
+			"Empty string means disabled. Disabled by default",
+	)
+	_ = viper.BindPFlag("pprof-server", cmd.Flags().Lookup("pprof-server"))
+
 	_ = viper.BindEnv("namespace", "NAMESPACE")
 	_ = viper.BindEnv("cluster-name", "CLUSTER_NAME")
 	_ = viper.BindEnv("pod-name", "POD_NAME")
