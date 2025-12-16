@@ -252,6 +252,33 @@ spec:
   [...]
 ```
 
+### Default Azure Credentials
+
+The `useDefaultAzureCredentials` option enables the default Azure credentials
+flow, which uses [`DefaultAzureCredential`](https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential)
+to automatically discover and use available credentials in the following order:
+
+1. **Environment Variables** — `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID` for Service Principal authentication
+2. **Managed Identity** — Uses the managed identity assigned to the pod
+3. **Azure CLI** — Uses credentials from the Azure CLI if available
+4. **Azure PowerShell** — Uses credentials from Azure PowerShell if available
+
+This is particularly useful when running on Azure Kubernetes Service (AKS) with
+[Workload Identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview):
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: azure-store
+spec:
+  configuration:
+    destinationPath: "<destination path here>"
+    azureCredentials:
+      useDefaultAzureCredentials: true
+  [...]
+```
+
 ### Access Key, SAS Token, or Connection String
 
 Store credentials in a Kubernetes secret:
