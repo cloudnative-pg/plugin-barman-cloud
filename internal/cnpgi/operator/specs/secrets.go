@@ -37,13 +37,16 @@ func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCreden
 		)
 	}
 	if barmanCredentials.Azure != nil {
-		references = append(
-			references,
-			barmanCredentials.Azure.ConnectionString,
-			barmanCredentials.Azure.StorageAccount,
-			barmanCredentials.Azure.StorageKey,
-			barmanCredentials.Azure.StorageSasToken,
-		)
+		// When using default Azure credentials, no secrets are required
+		if !barmanCredentials.Azure.UseDefaultAzureCredentials {
+			references = append(
+				references,
+				barmanCredentials.Azure.ConnectionString,
+				barmanCredentials.Azure.StorageAccount,
+				barmanCredentials.Azure.StorageKey,
+				barmanCredentials.Azure.StorageSasToken,
+			)
+		}
 	}
 	if barmanCredentials.Google != nil {
 		references = append(
