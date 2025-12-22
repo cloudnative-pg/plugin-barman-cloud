@@ -63,7 +63,7 @@ jobs:
         run: |
           task publish
       - name: Attach manifest to workflow run
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: manifest.yaml
           path: ./manifest.yaml
