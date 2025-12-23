@@ -232,12 +232,16 @@ Barman Cloud supports the following authentication methods:
 - [Connection String](https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string)
 - Storage Account Name + [Access Key](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage)
 - Storage Account Name + [SAS Token](https://learn.microsoft.com/en-us/azure/storage/blobs/sas-service-create)
-- [Azure AD Workload Identity](https://azure.github.io/azure-workload-identity/docs/introduction.html)
+- [Azure AD Managed Identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview)
+- [Default Azure Credentials](https://learn.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet)
 
-### Azure AD Workload Identity
+### Azure AD Managed Identity
 
-This method avoids storing credentials in Kubernetes via the
-`.spec.configuration.inheritFromAzureAD` option:
+This method avoids storing credentials in Kubernetes by enabling the
+usage of [Azure Managed Identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview) authentication mechanism.
+This can be enabled by setting the `inheritFromAzureAD` option to `true`.
+Managed Identitity can be configured for the AKS Cluster by following
+the [Azure documentation](https://learn.microsoft.com/en-us/azure/aks/use-managed-identity?pivots=system-assigned).
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
@@ -263,8 +267,11 @@ to automatically discover and use available credentials in the following order:
 3. **Azure CLI** — Uses credentials from the Azure CLI if available
 4. **Azure PowerShell** — Uses credentials from Azure PowerShell if available
 
-This is particularly useful when running on Azure Kubernetes Service (AKS) with
-[Workload Identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview):
+This approach is particularly useful for getting started with development and testing; it allows
+the SDK to attempt multiple authentication mechanisms seamlessly across different environments.
+However, this is not recommended for production. Please refer to the
+[official Azure guidance](https://learn.microsoft.com/en-us/dotnet/azure/sdk/authentication/credential-chains?tabs=dac#usage-guidance-for-defaultazurecredential)
+for a comprehensive understanding of `DefaultAzureCredential`.
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
