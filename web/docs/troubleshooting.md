@@ -339,7 +339,7 @@ For detailed Barman restore operations and troubleshooting, refer to the
        recovery:
          source: origin
          recoveryTarget:
-           targetTime: "2024-01-15 10:30:00"
+           targetTime: "2024-01-15T10:30:00Z"
 
      externalClusters:
        - name: origin
@@ -357,6 +357,11 @@ For detailed Barman restore operations and troubleshooting, refer to the
    kubectl logs -n <namespace> <cluster-pod> \
      -c plugin-barman-cloud | grep -i wal
    ```
+
+:::note
+RFC 3339 timestamps without an explicit timezone suffix
+(e.g., `2024-01-15T10:30:00`) are interpreted as UTC.
+:::
 
 :::note
 For detailed PITR configuration and WAL management, see the
