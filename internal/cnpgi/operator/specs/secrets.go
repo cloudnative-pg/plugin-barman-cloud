@@ -37,8 +37,9 @@ func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCreden
 		)
 	}
 	if barmanCredentials.Azure != nil {
-		// When using default Azure credentials, no secrets are required
-		if !barmanCredentials.Azure.UseDefaultAzureCredentials {
+		// When using default Azure credentials or managed identity, no secrets are required
+		if !barmanCredentials.Azure.UseDefaultAzureCredentials &&
+			!barmanCredentials.Azure.InheritFromAzureAD {
 			references = append(
 				references,
 				barmanCredentials.Azure.ConnectionString,
