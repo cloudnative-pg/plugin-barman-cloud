@@ -240,7 +240,7 @@ Barman Cloud supports the following authentication methods:
 This method avoids storing credentials in Kubernetes by enabling the
 usage of [Azure Managed Identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview) authentication mechanism.
 This can be enabled by setting the `inheritFromAzureAD` option to `true`.
-Managed Identitity can be configured for the AKS Cluster by following
+Managed Identity can be configured for the AKS Cluster by following
 the [Azure documentation](https://learn.microsoft.com/en-us/azure/aks/use-managed-identity?pivots=system-assigned).
 
 ```yaml
