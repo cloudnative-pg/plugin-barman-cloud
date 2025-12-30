@@ -359,8 +359,14 @@ For detailed Barman restore operations and troubleshooting, refer to the
    ```
 
 :::note
-RFC 3339 timestamps without an explicit timezone suffix
-(e.g., `2024-01-15T10:30:00`) are interpreted as UTC.
+Timestamps without an explicit timezone suffix
+(e.g., `2024-01-15 10:30:00`) are interpreted as UTC.
+:::
+
+:::warning
+Always specify an explicit timezone in your timestamp to avoid ambiguity.
+For example, use `2024-01-15T10:30:00Z` or `2024-01-15T10:30:00+02:00`
+instead of `2024-01-15 10:30:00`.
 :::
 
 :::note
