@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.9.0...v0.10.0) (2025-12-30)
+
+
+### Features
+
+* Add `pprof-server` support  ([#538](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/538)) ([921b20c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/921b20c249240ec271d410bd4531c41272b9c505)), closes [#421](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/421)
+* Remove wal from cache after archiving ([#659](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/659)) ([df22bf2](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/df22bf221674d5e0c42c8a70ce2b590f355a5d46))
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#685](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/685)) ([df2f91d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/df2f91d885e426eb4a3f91dba338f6a93ee31787))
+* **deps:** Update all non-major go dependencies ([#701](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/701)) ([db96dcc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/db96dcc1288b4cfd5c531e7cf5e89a855d83d76a))
+* **deps:** Update k8s.io/utils digest to 383b50a ([#695](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/695)) ([95ef5dc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/95ef5dce1d38c63e82aed505f273402602a1b30b))
+* **deps:** Update k8s.io/utils digest to 9d40a56 ([#684](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/684)) ([0ea3d91](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0ea3d918111ac532d1d94575ba5ba4bd3b0304cb))
+* **deps:** Update kubernetes packages to v0.35.0 ([#694](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/694)) ([30dbc44](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/30dbc44016371931365cf65bff39a0087bda9b97))
+* **deps:** Update module google.golang.org/grpc to v1.78.0 ([#697](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/697)) ([3f8d4f7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3f8d4f72573ef8ae5deb3bad7e36db2dc2c36708))
+* **deps:** Update module sigs.k8s.io/kustomize/api to v0.21.0 ([#651](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/651)) ([ef19031](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ef19031326c197fe08b05c14415b4468604119fb))
+* Don't log full environment variables at default log level ([#589](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/589)) ([a487c4e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a487c4ef50c8185f2e38b858271270d46d4bb5a1))
+* **targetTime:** Treat RFC3339-like timestamps without timezone as UTC ([#700](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/700)) ([1f1d300](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1f1d30043b3ce059866eee616f280a6e4ae3c760)), closes [#699](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/699)
+
 ## [0.9.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.8.0...v0.9.0) (2025-11-06)
 
 
