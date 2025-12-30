@@ -1,3 +1,4 @@
+AKS
 AccessDenied
 AdditionalContainerArgs
 Akamai
@@ -5,6 +6,7 @@ Azurite
 BarmanObjectStore
 BarmanObjectStoreConfiguration
 BarmanObjectStores
+CLI
 CNCF
 CRD
 CloudNativePG
@@ -38,6 +40,7 @@ PITR
 PoR
 PostgreSQL
 Postgres
+PowerShell
 README
 RPO
 RTO
@@ -45,6 +48,7 @@ RecoveryWindow
 ResourceRequirements
 RetentionPolicy
 SAS
+SDK
 SFO
 SPDX
 SPDX
