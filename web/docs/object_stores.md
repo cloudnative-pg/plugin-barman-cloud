@@ -230,9 +230,9 @@ is Microsoft’s cloud-based object storage solution.
 Barman Cloud supports the following authentication methods:
 
 - [Connection String](https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string)
-- Storage Account Name + [Access Key](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage)
-- Storage Account Name + [SAS Token](https://learn.microsoft.com/en-us/azure/storage/blobs/sas-service-create)
-- [Azure AD Managed Identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview)
+- Storage Account Name + [Storage Account Access Key](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage)
+- Storage Account Name + [Storage Account SAS Token](https://learn.microsoft.com/en-us/azure/storage/blobs/sas-service-create)
+- [Azure AD Managed Identity](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview)
 - [Default Azure Credentials](https://learn.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet)
 
 ### Azure AD Managed Identity
