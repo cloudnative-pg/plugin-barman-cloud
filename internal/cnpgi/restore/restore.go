@@ -109,7 +109,7 @@ func (impl JobHookImpl) Restore(
 		}
 
 		if err := impl.checkBackupDestination(
-			ctx,
+			common.ContextWithProviderOptions(ctx, targetObjectStore),
 			configuration.Cluster,
 			&targetObjectStore.Spec.Configuration,
 			targetObjectStore.Name,
@@ -117,6 +117,8 @@ func (impl JobHookImpl) Restore(
 			return nil, err
 		}
 	}
+
+	ctx = common.ContextWithProviderOptions(ctx, recoveryObjectStore)
 
 	// Detect the backup to recover
 	backup, env, err := loadBackupObjectFromExternalCluster(

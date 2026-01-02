@@ -15,6 +15,7 @@ RUN go mod download
 COPY ../cmd/manager/main.go cmd/manager/main.go
 COPY ../api/ api/
 COPY ../internal/ internal/
+COPY ../pkg/ pkg/
 
 ENV GOCACHE=/root/.cache/go-build
 ENV GOMODCACHE=/go/pkg/mod

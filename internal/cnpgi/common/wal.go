@@ -127,6 +127,8 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
+	ctx = ContextWithProviderOptions(ctx, objectStore)
+
 	envArchive, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(
 		ctx,
 		w.Client,
