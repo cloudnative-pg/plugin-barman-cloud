@@ -206,7 +206,7 @@ When a backup fails, follow these steps in order:
      plugins:
        - name: barman-cloud.cloudnative-pg.io
          parameters:
-           barmanObjectStore: <your-objectstore-name>
+           barmanObjectName: <your-objectstore-name>
    ```
    
    c. **Check plugin deployment is running**:
