@@ -474,14 +474,10 @@ If problems persist:
 
 ### Plugin Limitations
 
-1. **Installation method**: Currently only supports manifest and Kustomize
-   installation ([#351](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/351) -
-   Helm chart requested)
-
-2. **Sidecar resource sharing**: The plugin sidecar container shares pod
+1. **Sidecar resource sharing**: The plugin sidecar container shares pod
    resources with PostgreSQL
 
-3. **Plugin restart behavior**: Restarting the sidecar container requires
+2. **Plugin restart behavior**: Restarting the sidecar container requires
    restarting the entire PostgreSQL pod
 
 ## Recap of General Debugging Steps
@@ -577,4 +573,3 @@ kubectl get secret -n <namespace> <secret-name> -o jsonpath='{.data}' | jq 'keys
 * **"NoSuchBucket"** — Verify the bucket exists and the endpoint URL is correct.
 * **"Connection timeout"** — Check network connectivity and firewall rules.
 * **"SSL certificate problem"** — For self-signed certificates, verify the CA bundle configuration.
-
