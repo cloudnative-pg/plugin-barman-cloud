@@ -29,6 +29,16 @@ the specific object storage provider you are using.
 
 The following sections detail the setup for each.
 
+:::note Authentication Methods
+The Barman Cloud Plugin does not independently test all authentication methods
+supported by `barman-cloud`. The plugin's responsibility is limited to passing
+the provided credentials to `barman-cloud`, which then handles authentication
+according to its own implementation. Users should refer to the
+[Barman Cloud documentation](https://docs.pgbarman.org/release/latest/) to
+verify that their chosen authentication method is supported and properly
+configured.
+:::
+
 ---
 
 ## AWS S3
