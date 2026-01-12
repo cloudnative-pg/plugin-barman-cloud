@@ -71,8 +71,9 @@ func newAzuriteDeployment(namespace, name string) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name: name,
-							// TODO: renovate the image
-							Image: "mcr.microsoft.com/azure-storage/azurite",
+							// renovate: datasource=docker depName=mcr.microsoft.com/azure-storage/azurite versioning=docker
+							// Version: 3.35.0
+							Image: "mcr.microsoft.com/azure-storage/azurite@sha256:647c63a91102a9d8e8000aab803436e1fc85fbb285e7ce830a82ee5d6661cf37",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 10000,

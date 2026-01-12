@@ -38,6 +38,15 @@
     {
       customType: 'regex',
       managerFilePatterns: [
+        '\\.go$',
+      ],
+      matchStrings: [
+        '// renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: versioning=(?<versioning>[^\\s]+?))?\\s+(?:// Version: (?<currentValue>[^\\s]+?)\\s+)?Image:\\s*"[^@]+@(?<currentDigest>sha256:[a-f0-9]+)"',
+      ],
+    },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
         '/(^docs/config\\.yaml$)/',
       ],
       matchStrings: [
