@@ -85,9 +85,13 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_CRDGENREF_SHA: ee59e34a99940e45f87a16177b1d640975b05b74
+      # renovate: datasource=go depName=github.com/elastic/crd-ref-docs
+      CRDREFDOCS_VERSION: v0.2.0
     cmds:
       - >
-        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/crd-ref-docs@${DAGGER_CRDGENREF_SHA} generate
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/crd-ref-docs@${DAGGER_CRDGENREF_SHA}
+        --version ${CRDREFDOCS_VERSION}
+        generate
         --src .
         --source-path api/v1
         --config-file hack/crd-gen-refs/config.yaml
