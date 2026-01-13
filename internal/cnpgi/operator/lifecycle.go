@@ -353,30 +353,31 @@ func reconcilePodSpec(
 	sidecarTemplate corev1.Container,
 	config sidecarConfiguration,
 ) error {
-	envs := []corev1.EnvVar{
-		{
+	envs := make([]corev1.EnvVar, 0, 5+len(config.env))
+	envs = append(envs,
+		corev1.EnvVar{
 			Name:  "NAMESPACE",
 			Value: cluster.Namespace,
 		},
-		{
+		corev1.EnvVar{
 			Name:  "CLUSTER_NAME",
 			Value: cluster.Name,
 		},
-		{
+		corev1.EnvVar{
 			// TODO: should we really use this one?
 			// should we mount an emptyDir volume just for that?
 			Name:  "SPOOL_DIRECTORY",
 			Value: "/controller/wal-restore-spool",
 		},
-		{
+		corev1.EnvVar{
 			Name:  "CUSTOM_CNPG_GROUP",
 			Value: cluster.GetObjectKind().GroupVersionKind().Group,
 		},
-		{
+		corev1.EnvVar{
 			Name:  "CUSTOM_CNPG_VERSION",
 			Value: cluster.GetObjectKind().GroupVersionKind().Version,
 		},
-	}
+	)
 
 	envs = append(envs, config.env...)
 
