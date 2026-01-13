@@ -11,6 +11,17 @@
   ],
   rebaseWhen: 'never',
   prConcurrentLimit: 5,
+  // Override default ignorePaths to scan test/e2e for emulator image dependencies
+  // Removed: '**/test/**'
+  ignorePaths: [
+    '**/node_modules/**',
+    '**/bower_components/**',
+    '**/vendor/**',
+    '**/examples/**',
+    '**/__tests__/**',
+    '**/tests/**',
+    '**/__fixtures__/**',
+  ],
   lockFileMaintenance: {
     enabled: true,
   },
@@ -28,7 +39,7 @@
     {
       customType: 'regex',
       managerFilePatterns: [
-        '/(^Taskfile\\.yml$)/',
+        '/(^|/)Taskfile\\.yml$/',
       ],
       matchStrings: [
         '# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: currentValue=(?<currentValue>[^\\s]+?))?\\s+[A-Za-z0-9_]+?_SHA\\s*:\\s*["\']?(?<currentDigest>[a-f0-9]+?)["\']?\\s',
@@ -38,7 +49,16 @@
     {
       customType: 'regex',
       managerFilePatterns: [
-        '/(^docs/config\\.yaml$)/',
+        '/\\.go$/',
+      ],
+      matchStrings: [
+        '//\\s*renovate:\\s*datasource=(?<datasource>[a-z-.]+?)\\s+depName=(?<depName>[^\\s]+?)(?:\\s+versioning=(?<versioning>[^\\s]+?))?\\s*\\n\\s*//\\s*Version:\\s*(?<currentValue>[^\\s]+?)\\s*\\n\\s*Image:\\s*"[^@]+@(?<currentDigest>sha256:[a-f0-9]+)"',
+      ],
+    },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)docs/config\\.yaml$/',
       ],
       matchStrings: [
         '# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?\\s+kubernetesVersion:\\s*["\']?(?<currentValue>.+?)["\']?\\s',

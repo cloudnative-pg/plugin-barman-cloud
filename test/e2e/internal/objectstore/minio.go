@@ -71,8 +71,9 @@ func newMinioDeployment(namespace, name string) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name: name,
-							// TODO: renovate the image
-							Image: "minio/minio:latest",
+							// renovate: datasource=docker depName=minio/minio versioning=docker
+							// Version: RELEASE.2025-09-07T16-13-09Z
+							Image: "minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
 							Args:  []string{"server", "/data"},
 							Ports: []corev1.ContainerPort{
 								{
