@@ -12,8 +12,9 @@
     },
     {
       "name": "k3s",
-      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.10",
-      "pin": "28eea1fcf3b6ecb38a628186107760acd717442f"
+      "source": "github.com/mnencia/daggerverse/k3s@feat/log-verbosity-control",
+      "pin": "76b0bc3fa496fe98c63c8b3db9013ab49a47705e"
     }
-  ]
+  ],
+  "disableDefaultFunctionCaching": true
 }
