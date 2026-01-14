@@ -22,6 +22,7 @@ package restore
 import (
 	"context"
 	"path"
+	"sync"
 
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/http"
 	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
@@ -49,11 +50,12 @@ func (c *CNPGI) Start(ctx context.Context) error {
 
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
-			InstanceName:   c.InstanceName,
-			Client:         c.Client,
-			SpoolDirectory: c.SpoolDirectory,
-			PGDataPath:     c.PGDataPath,
-			PGWALPath:      path.Join(c.PGDataPath, "pg_wal"),
+			InstanceName:     c.InstanceName,
+			Client:           c.Client,
+			SpoolDirectory:   c.SpoolDirectory,
+			PGDataPath:       c.PGDataPath,
+			PGWALPath:        path.Join(c.PGDataPath, "pg_wal"),
+			LastStatusUpdate: &sync.Map{},
 		})
 
 		restore.RegisterRestoreJobHooksServer(server, &JobHookImpl{
