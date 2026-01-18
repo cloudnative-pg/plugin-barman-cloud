@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 # Use plugin-barman-cloud-base to get the dependencies.
 # pip will build everything inside /usr, so we copy every file into a new
 # destination that will then be copied into the distroless container
-FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:3.17.0-202601131704 AS pythonbuilder
+FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:3.17.0-202601180001 AS pythonbuilder
 # Prepare a new /usr/ directory with the files we'll need in the final image
 RUN mkdir /new-usr/ && \
     cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
