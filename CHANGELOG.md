@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.10.0...v0.11.0) (2026-01-18)
+
+
+### Features
+
+* Add support for DefaultAzureCredential authentication mechanism ([#681](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/681)) ([2c134ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2c134eafe456ee77bbd46187040aa5041e5643ab))
+* **deps:** Update barman-cloud to v3.17.0 ([#702](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/702)) ([fa546ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fa546eae0581a191abb625904b95d85a65d3ab08))
+
+
+### Bug Fixes
+
+* **azure:** Update barman-cloud with Azure validation fix ([#710](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/710)) ([0153abb](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0153abba82437fdb9fa47094c83aaa532ce45f67)), closes [#705](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/705)
+* **deps:** Update all non-major go dependencies ([#719](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/719)) ([4a637d7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4a637d7c58aad9dae70303af05e2a5fd95526d63))
+* **deps:** Update k8s.io/utils digest to 914a6e7 ([#715](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/715)) ([b3bcf6d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b3bcf6d9c1295a3acbe38124c70de18e5db85cf1))
+
 ## [0.10.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.9.0...v0.10.0) (2025-12-30)
 
 
