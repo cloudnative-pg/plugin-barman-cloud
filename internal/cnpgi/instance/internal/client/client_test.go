@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package client
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -59,6 +60,7 @@ var _ = Describe("ExtendedClient Get", func() {
 		extendedClient *ExtendedClient
 		secretInClient *corev1.Secret
 		objectStore    *barmancloudv1.ObjectStore
+		cancelCtx      context.CancelFunc
 	)
 
 	BeforeEach(func() {
@@ -79,7 +81,14 @@ var _ = Describe("ExtendedClient Get", func() {
 		baseClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(secretInClient, objectStore).Build()
-		extendedClient = NewExtendedClient(baseClient).(*ExtendedClient)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancelCtx = cancel
+		extendedClient = NewExtendedClient(ctx, baseClient).(*ExtendedClient)
+	})
+
+	AfterEach(func() {
+		// Cancel the context to stop the cleanup routine
+		cancelCtx()
 	})
 
 	It("returns secret from cache if not expired", func(ctx SpecContext) {
@@ -163,4 +172,142 @@ var _ = Describe("ExtendedClient Get", func() {
 			Expect(secretInClient.GetResourceVersion()).To(Equal("from cache"))
 			Expect(objectStore.GetResourceVersion()).To(Equal("from cache"))
 		})
+})
+
+var _ = Describe("ExtendedClient Cache Cleanup", func() {
+	var (
+		extendedClient *ExtendedClient
+		cancelCtx      context.CancelFunc
+	)
+
+	BeforeEach(func() {
+		baseClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			Build()
+		ctx, cancel := context.WithCancel(context.Background())
+		cancelCtx = cancel
+		extendedClient = NewExtendedClient(ctx, baseClient).(*ExtendedClient)
+	})
+
+	AfterEach(func() {
+		cancelCtx()
+	})
+
+	It("cleans up expired entries", func(ctx SpecContext) {
+		// Add some expired entries
+		expiredSecret1 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "expired-secret-1",
+			},
+		}
+		expiredSecret2 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "expired-secret-2",
+			},
+		}
+		validSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "valid-secret",
+			},
+		}
+
+		// Add expired entries (2 minutes ago)
+		addToCache(extendedClient, expiredSecret1, time.Now().Add(-2*time.Minute).Unix())
+		addToCache(extendedClient, expiredSecret2, time.Now().Add(-2*time.Minute).Unix())
+		// Add valid entry (just now)
+		addToCache(extendedClient, validSecret, time.Now().Unix())
+
+		Expect(extendedClient.cachedObjects).To(HaveLen(3))
+
+		// Trigger cleanup
+		extendedClient.cleanupExpiredEntries(ctx)
+
+		// Only the valid entry should remain
+		Expect(extendedClient.cachedObjects).To(HaveLen(1))
+		Expect(extendedClient.cachedObjects[0].entry.GetName()).To(Equal("valid-secret"))
+	})
+
+	It("does nothing when all entries are valid", func(ctx SpecContext) {
+		validSecret1 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "valid-secret-1",
+			},
+		}
+		validSecret2 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "valid-secret-2",
+			},
+		}
+
+		addToCache(extendedClient, validSecret1, time.Now().Unix())
+		addToCache(extendedClient, validSecret2, time.Now().Unix())
+
+		Expect(extendedClient.cachedObjects).To(HaveLen(2))
+
+		// Trigger cleanup
+		extendedClient.cleanupExpiredEntries(ctx)
+
+		// Both entries should remain
+		Expect(extendedClient.cachedObjects).To(HaveLen(2))
+	})
+
+	It("does nothing when cache is empty", func(ctx SpecContext) {
+		Expect(extendedClient.cachedObjects).To(BeEmpty())
+
+		// Trigger cleanup
+		extendedClient.cleanupExpiredEntries(ctx)
+
+		Expect(extendedClient.cachedObjects).To(BeEmpty())
+	})
+
+	It("removes all entries when all are expired", func(ctx SpecContext) {
+		expiredSecret1 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "expired-secret-1",
+			},
+		}
+		expiredSecret2 := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "expired-secret-2",
+			},
+		}
+
+		addToCache(extendedClient, expiredSecret1, time.Now().Add(-2*time.Minute).Unix())
+		addToCache(extendedClient, expiredSecret2, time.Now().Add(-2*time.Minute).Unix())
+
+		Expect(extendedClient.cachedObjects).To(HaveLen(2))
+
+		// Trigger cleanup
+		extendedClient.cleanupExpiredEntries(ctx)
+
+		Expect(extendedClient.cachedObjects).To(BeEmpty())
+	})
+
+	It("stops cleanup routine when context is cancelled", func() {
+		// Create a new client with a short cleanup interval for testing
+		baseClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			Build()
+		ctx, cancel := context.WithCancel(context.Background())
+		ec := NewExtendedClient(ctx, baseClient).(*ExtendedClient)
+		ec.cleanupInterval = 10 * time.Millisecond
+
+		// Cancel the context immediately
+		cancel()
+
+		// Verify the cleanup routine actually stops by waiting for the done channel
+		select {
+		case <-ec.cleanupDone:
+			// Success: cleanup routine exited as expected
+		case <-time.After(1 * time.Second):
+			Fail("cleanup routine did not stop within timeout")
+		}
+	})
 })
