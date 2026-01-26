@@ -129,6 +129,46 @@ These strategies help you safeguard backups without requiring broad delete
 permissions, ensuring both security and compliance with minimal operational
 overhead.
 
+### S3 Lifecycle Policy
+
+Barman Cloud requires the following permissions in the S3 bucket:
+
+- [`s3:AbortMultipartUpload`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html)
+- [`s3:CreateBucket`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html)
+- [`s3:DeleteObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html)
+- [`s3:GetObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)
+- [`s3:ListBucket`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html)
+- [`s3:PutObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)
+
+Here's an example of what such a bucket policy may look like:
+
+```json
+{
+  "Statement": [
+    {
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:CreateBucket",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:user/MaryMajor"
+      },
+      "Resource": [
+        "arn:aws:s3:::amzn-s3-demo-bucket1",
+        "arn:aws:s3:::amzn-s3-demo-bucket1/*"
+      ],
+      "Sid": "statement1",
+    }
+  ],
+  "Version":"2012-10-17"
+}
+```
+
 ### S3-Compatible Storage Providers
 
 You can use S3-compatible services like **MinIO**, **Linode (Akamai) Object Storage**,
