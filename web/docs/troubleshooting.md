@@ -406,7 +406,7 @@ For detailed PITR configuration and WAL management, see the
 
 3. **Adjust provider-specific settings (endpoint, path style, etc.)**
    - See [Object Store Configuration](object_stores.md) for provider-specific settings
-   - Ensure `endpointURL` and `s3UsePathStyle` match your storage type
+   - Ensure `endpointURL` is set correctly for your storage provider
    - Verify network policies allow egress to your storage provider
 
 ## Diagnostic Commands
