@@ -381,34 +381,6 @@ tasks:
         build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
-  publish-barman-base:
-    desc: Build and publish a barman-cloud base container image
-    vars:
-      BARMAN_BASE_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-base{{if not (hasPrefix "refs/heads/main" .GITHUB_REF)}}-testing{{end}}
-      BARMAN_VERSION:
-        sh: grep "^barman" containers/sidecar-requirements.in | sed -E 's/.*==([^ ]+)/\1/'
-      BUILD_DATE:
-        sh: date +"%Y%m%d%H%M"
-    requires:
-      # We expect this to run in a GitHub workflow, so we put a few GitHub-specific vars here
-      # to prevent running this task locally by accident.
-      vars:
-        - CI
-        - GITHUB_REPOSITORY
-        - GITHUB_REF
-        - GITHUB_REF_NAME
-        - REGISTRY_USER
-        - REGISTRY_PASSWORD
-    env:
-      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
-    cmds:
-      - >
-        dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.barmanbase --platform linux/amd64 --platform linux/arm64
-        publish --ref {{.BARMAN_BASE_IMAGE_NAME}} --tags "{{.BARMAN_VERSION}}-{{.BUILD_DATE}}"
-
   controller-gen:
     desc: Run controller-gen
     run: once

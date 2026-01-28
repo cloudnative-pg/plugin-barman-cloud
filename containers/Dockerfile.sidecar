@@ -2,7 +2,7 @@
 # The container needs to provide and build two components:
 # * barman-cloud
 # * instance plugin
-# Both components are built before going into a distroless container
+# Both components are built before going into the final container
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM golang:1.25.6 AS gobuilder
@@ -33,19 +33,27 @@ COPY ../internal/ internal/
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
-# Use plugin-barman-cloud-base to get the dependencies.
-# pip will build everything inside /usr, so we copy every file into a new
-# destination that will then be copied into the distroless container
-FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:3.17.0-202601131704 AS pythonbuilder
-# Prepare a new /usr/ directory with the files we'll need in the final image
-RUN mkdir /new-usr/ && \
-    cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
-    /new-usr/
+# Build wheel files for Python dependencies
+FROM python:3.13-slim-trixie AS pythonbuilder
+WORKDIR /build
 
-# Joint process
-# Now we put everything that was build from the origin into our
-# distroless container
-FROM gcr.io/distroless/python3-debian12:nonroot
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-common \
+        build-essential && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y --no-install-recommends libpq-dev
+
+# Copy requirements
+COPY containers/sidecar-requirements.txt .
+
+# Build wheels with pip cache mount
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --wheel-dir=/wheels -r sidecar-requirements.txt
+
+# Final sidecar image
+FROM python:3.13-slim-trixie
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
     DESCRIPTION="Container image that provides the barman-cloud sidecar"
@@ -60,7 +68,23 @@ LABEL summary="$SUMMARY" \
       version="" \
       release="1"
 
-COPY --from=pythonbuilder /new-usr/* /usr/
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-common && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
+    apt-get install -y --no-install-recommends libpq5 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install wheels using bind mount (wheels not included in final layers)
+# and ensure all Python bytecode is freshly compiled with correct timestamps
+RUN --mount=type=bind,from=pythonbuilder,source=/wheels,target=/wheels \
+    pip install --no-cache-dir /wheels/*.whl && \
+    python -m compileall -q
+
+# Copy Go manager binary
 COPY --from=gobuilder /workspace/manager /manager
+
 USER 26:26
 ENTRYPOINT ["/manager"]
