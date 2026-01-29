@@ -43,7 +43,10 @@ RUN apt-get update && \
         postgresql-common \
         build-essential && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get install -y --no-install-recommends libpq-dev
+    apt-get install -y --no-install-recommends \
+        libpq-dev \
+        liblz4-dev \
+        libsnappy-dev
 
 # Copy requirements
 COPY containers/sidecar-requirements.txt .
@@ -73,7 +76,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         postgresql-common && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get install -y --no-install-recommends libpq5 && \
+    apt-get install -y --no-install-recommends \
+        libpq5 \
+        liblz4-1 \
+        libsnappy1v5 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
