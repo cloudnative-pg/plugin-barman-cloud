@@ -59,11 +59,9 @@ RUN apt-get update && \
 COPY containers/sidecar-requirements.txt .
 
 # Create virtualenv and install dependencies
-# Compileall ensures all bytecode is freshly compiled with correct timestamps
 RUN python3 -m venv /venv && \
     /venv/bin/pip install --upgrade pip setuptools wheel && \
-    /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt && \
-    /venv/bin/python -m compileall -q /venv
+    /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt
 
 # Download and extract runtime library packages and their dependencies
 # Using apt-cache to automatically resolve dependencies, filtering out packages
@@ -91,7 +89,7 @@ RUN mkdir -p /dependencies /build/downloads && \
     done
 
 # Final sidecar image
-# Using distroless base for minimal attack surface (no shell, no package manager)
+# Using distroless base for minimal size and less extra packages
 FROM gcr.io/distroless/python3-debian13:nonroot
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
@@ -117,6 +115,10 @@ COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
 
 # Copy Go manager binary
 COPY --from=gobuilder /workspace/manager /manager
+
+# Compile all Python bytecode as root to avoid runtime compilation
+USER 0:0
+RUN ["/venv/bin/python3", "-m", "compileall", "-q", "/usr/lib/python3.13", "/venv"]
 
 USER 26:26
 ENTRYPOINT ["/manager"]
