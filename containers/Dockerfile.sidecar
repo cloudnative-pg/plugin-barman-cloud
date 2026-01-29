@@ -10,7 +10,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /workspace
-# Copy the Go Modules manifests
+
 COPY ../go.mod go.mod
 COPY ../go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
@@ -20,35 +20,73 @@ RUN go mod download
 ENV GOCACHE=/root/.cache/go-build
 ENV GOMODCACHE=/go/pkg/mod
 
-# Copy the go source
 COPY ../cmd/manager/main.go cmd/manager/main.go
 COPY ../api/ api/
 COPY ../internal/ internal/
 
-# Build
-# the GOARCH has not a default value to allow the binary be built according to the host where the command
-# was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
-# the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
-# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
+# Build Go binary for target platform (TARGETOS/TARGETARCH)
+# Docker BuildKit sets these based on --platform flag or defaults to the build host platform
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
-# Use plugin-barman-cloud-base to get the dependencies.
-# pip will build everything inside /usr, so we copy every file into a new
-# destination that will then be copied into the distroless container
-FROM ghcr.io/cloudnative-pg/plugin-barman-cloud-base:3.17.0-202601131704 AS pythonbuilder
-# Prepare a new /usr/ directory with the files we'll need in the final image
-RUN mkdir /new-usr/ && \
-    cp -r --parents /usr/local/lib/ /usr/lib/*-linux-gnu/ /usr/local/bin/ \
-    /new-usr/
+# Build Python virtualenv with all dependencies
+FROM debian:trixie-slim AS pythonbuilder
+WORKDIR /build
 
-# Joint process
-# Now we put everything that was build from the origin into our
-# distroless container
-FROM gcr.io/distroless/python3-debian12:nonroot
+# Install postgresql-common and setup pgdg repository first
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-common && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-dev \
+        build-essential \
+        libpq-dev \
+        liblz4-dev \
+        libsnappy-dev
+
+COPY containers/sidecar-requirements.txt .
+
+# Create virtualenv and install dependencies
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel && \
+    /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt
+
+# Download and extract runtime library packages and their dependencies
+# Using apt-cache to automatically resolve dependencies, filtering out packages
+# already present in the distroless base image.
+# Distroless package list from: https://github.com/GoogleContainerTools/distroless/blob/main/base/config.bzl
+# and https://github.com/GoogleContainerTools/distroless/blob/main/python3/config.bzl
+RUN mkdir -p /dependencies /build/downloads && \
+    cd /build/downloads && \
+    DISTROLESS_PACKAGES="libc6 libssl3t64 libzstd1 zlib1g libgcc-s1 libstdc++6 \
+        libbz2-1.0 libdb5.3t64 libexpat1 liblzma5 libsqlite3-0 libuuid1 \
+        libncursesw6 libtinfo6 libcom-err2 libcrypt1 libgssapi-krb5-2 \
+        libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libnsl2 \
+        libreadline8t64 libtirpc3t64 libffi8 libpython3.13-minimal \
+        libpython3.13-stdlib python3.13-minimal python3.13-venv" && \
+    apt-cache depends --recurse --no-recommends --no-suggests \
+        --no-conflicts --no-breaks --no-replaces --no-enhances \
+        $DISTROLESS_PACKAGES 2>/dev/null | grep "^\w" | sort -u > /tmp/distroless.txt && \
+    apt-cache depends --recurse --no-recommends --no-suggests \
+        --no-conflicts --no-breaks --no-replaces --no-enhances \
+        libpq5 liblz4-1 libsnappy1v5 2>/dev/null | grep "^\w" | sort -u | \
+        grep -v -F -x -f /tmp/distroless.txt > /tmp/packages.txt && \
+    apt-get download $(cat /tmp/packages.txt) && \
+    for deb in *.deb; do \
+        dpkg -x "$deb" /dependencies; \
+    done
+
+# Final sidecar image using distroless base for minimal size and fewer packages
+FROM gcr.io/distroless/python3-debian13:nonroot
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
-    DESCRIPTION="Container image that provides the barman-cloud sidecar"
+    DESCRIPTION="Container image that provides the barman-cloud sidecar" \
+    PATH="/venv/bin:$PATH"
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \
@@ -60,7 +98,13 @@ LABEL summary="$SUMMARY" \
       version="" \
       release="1"
 
-COPY --from=pythonbuilder /new-usr/* /usr/
+COPY --from=pythonbuilder /venv /venv
+COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
 COPY --from=gobuilder /workspace/manager /manager
+
+# Compile all Python bytecode as root to avoid runtime compilation
+USER 0:0
+RUN ["/venv/bin/python3", "-c", "import sysconfig, compileall; compileall.compile_dir(sysconfig.get_path('stdlib'), quiet=1); compileall.compile_dir('/venv', quiet=1)"]
+
 USER 26:26
 ENTRYPOINT ["/manager"]
