@@ -65,25 +65,27 @@ RUN python3 -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt && \
     /venv/bin/python -m compileall -q /venv
 
-# Download and extract runtime library packages
-# Using apt-get download + dpkg -x ensures we get all files from packages
-# Note: libcrypto is part of libssl3t64, and liblber is part of libldap2
+# Download and extract runtime library packages and their dependencies
+# Using apt-cache to automatically resolve dependencies, filtering out packages
+# already present in the distroless base image.
+# Distroless package list from: https://github.com/GoogleContainerTools/distroless/blob/main/base/config.bzl
+# and https://github.com/GoogleContainerTools/distroless/blob/main/python3/config.bzl
 RUN mkdir -p /dependencies /build/downloads && \
     cd /build/downloads && \
-    apt-get download \
-        libpq5 \
-        liblz4-1 \
-        libsnappy1v5 \
-        libssl3t64 \
-        libgssapi-krb5-2 \
-        libkrb5-3 \
-        libk5crypto3 \
-        libcom-err2 \
-        libkrb5support0 \
-        libldap2 \
-        libsasl2-2 \
-        libkeyutils1 \
-        libzstd1 && \
+    DISTROLESS_PACKAGES="libc6 libssl3t64 libzstd1 zlib1g libgcc-s1 libstdc++6 \
+        libbz2-1.0 libdb5.3t64 libexpat1 liblzma5 libsqlite3-0 libuuid1 \
+        libncursesw6 libtinfo6 libcom-err2 libcrypt1 libgssapi-krb5-2 \
+        libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libnsl2 \
+        libreadline8t64 libtirpc3t64 libffi8 libpython3.13-minimal \
+        libpython3.13-stdlib python3.13-minimal python3.13-venv" && \
+    apt-cache depends --recurse --no-recommends --no-suggests \
+        --no-conflicts --no-breaks --no-replaces --no-enhances \
+        $DISTROLESS_PACKAGES 2>/dev/null | grep "^\w" | sort -u > /tmp/distroless.txt && \
+    apt-cache depends --recurse --no-recommends --no-suggests \
+        --no-conflicts --no-breaks --no-replaces --no-enhances \
+        libpq5 liblz4-1 libsnappy1v5 2>/dev/null | grep "^\w" | sort -u | \
+        grep -v -F -x -f /tmp/distroless.txt > /tmp/packages.txt && \
+    apt-get download $(cat /tmp/packages.txt) && \
     for deb in *.deb; do \
         dpkg -x "$deb" /dependencies; \
     done
