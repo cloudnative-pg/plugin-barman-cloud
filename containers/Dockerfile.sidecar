@@ -2,7 +2,7 @@
 # The container needs to provide and build two components:
 # * barman-cloud
 # * instance plugin
-# Both components are built before going into the final container
+# Both components are built before going into a distroless container
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM golang:1.25.6 AS gobuilder
@@ -33,17 +33,24 @@ COPY ../internal/ internal/
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
-# Build wheel files for Python dependencies
-FROM python:3.13-slim-trixie AS pythonbuilder
+# Build Python virtualenv with all dependencies
+# Using virtualenv ensures bytecode is compiled with correct timestamps
+FROM debian:trixie-slim AS pythonbuilder
 WORKDIR /build
 
+# Install postgresql-common and setup pgdg repository first
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-common && \
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+
 # Install build dependencies
+# After pgdg repo setup, this ensures we get updated versions from apt.postgresql.org
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        postgresql-common \
-        build-essential && \
-    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-dev \
+        build-essential \
         libpq-dev \
         liblz4-dev \
         libsnappy-dev
@@ -51,15 +58,43 @@ RUN apt-get update && \
 # Copy requirements
 COPY containers/sidecar-requirements.txt .
 
-# Build wheels with pip cache mount
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip wheel --wheel-dir=/wheels -r sidecar-requirements.txt
+# Create virtualenv and install dependencies
+# Compileall ensures all bytecode is freshly compiled with correct timestamps
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel && \
+    /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt && \
+    /venv/bin/python -m compileall -q /venv
+
+# Download and extract runtime library packages
+# Using apt-get download + dpkg -x ensures we get all files from packages
+# Note: libcrypto is part of libssl3t64, and liblber is part of libldap2
+RUN mkdir -p /dependencies /build/downloads && \
+    cd /build/downloads && \
+    apt-get download \
+        libpq5 \
+        liblz4-1 \
+        libsnappy1v5 \
+        libssl3t64 \
+        libgssapi-krb5-2 \
+        libkrb5-3 \
+        libk5crypto3 \
+        libcom-err2 \
+        libkrb5support0 \
+        libldap2 \
+        libsasl2-2 \
+        libkeyutils1 \
+        libzstd1 && \
+    for deb in *.deb; do \
+        dpkg -x "$deb" /dependencies; \
+    done
 
 # Final sidecar image
-FROM python:3.13-slim-trixie
+# Using distroless base for minimal attack surface (no shell, no package manager)
+FROM gcr.io/distroless/python3-debian13:nonroot
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
-    DESCRIPTION="Container image that provides the barman-cloud sidecar"
+    DESCRIPTION="Container image that provides the barman-cloud sidecar" \
+    PATH="/venv/bin:$PATH"
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \
@@ -71,23 +106,12 @@ LABEL summary="$SUMMARY" \
       version="" \
       release="1"
 
-# Install runtime dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        postgresql-common && \
-    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
-    apt-get install -y --no-install-recommends \
-        libpq5 \
-        liblz4-1 \
-        libsnappy1v5 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Copy virtualenv with pre-compiled bytecode
+COPY --from=pythonbuilder /venv /venv
 
-# Install wheels using bind mount (wheels not included in final layers)
-# and ensure all Python bytecode is freshly compiled with correct timestamps
-RUN --mount=type=bind,from=pythonbuilder,source=/wheels,target=/wheels \
-    pip install --no-cache-dir /wheels/*.whl && \
-    python -m compileall -q
+# Copy runtime libraries from extracted packages
+# All libraries are in /usr/lib/x86_64-linux-gnu
+COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
 
 # Copy Go manager binary
 COPY --from=gobuilder /workspace/manager /manager
