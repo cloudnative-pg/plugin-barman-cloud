@@ -99,7 +99,8 @@ func Start(ctx context.Context) error {
 	}
 
 	if err := mgr.Add(&CatalogMaintenanceRunnable{
-		Client:   customCacheClient,
+		Client: customCacheClient,
+		//nolint:staticcheck // SA1019: old API required for RBAC compatibility
 		Recorder: mgr.GetEventRecorderFor("policy-runnable"),
 		ClusterKey: types.NamespacedName{
 			Namespace: namespace,
