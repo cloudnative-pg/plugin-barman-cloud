@@ -10,7 +10,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /workspace
-# Copy the Go Modules manifests
+
 COPY ../go.mod go.mod
 COPY ../go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
@@ -20,21 +20,16 @@ RUN go mod download
 ENV GOCACHE=/root/.cache/go-build
 ENV GOMODCACHE=/go/pkg/mod
 
-# Copy the go source
 COPY ../cmd/manager/main.go cmd/manager/main.go
 COPY ../api/ api/
 COPY ../internal/ internal/
 
-# Build
-# the GOARCH has not a default value to allow the binary be built according to the host where the command
-# was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
-# the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
-# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
+# Build Go binary for target platform (TARGETOS/TARGETARCH)
+# Docker BuildKit sets these based on --platform flag or defaults to the build host platform
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager cmd/manager/main.go
 
 # Build Python virtualenv with all dependencies
-# Using virtualenv ensures bytecode is compiled with correct timestamps
 FROM debian:trixie-slim AS pythonbuilder
 WORKDIR /build
 
@@ -44,7 +39,6 @@ RUN apt-get update && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
 # Install build dependencies
-# After pgdg repo setup, this ensures we get updated versions from apt.postgresql.org
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -55,7 +49,6 @@ RUN apt-get update && \
         liblz4-dev \
         libsnappy-dev
 
-# Copy requirements
 COPY containers/sidecar-requirements.txt .
 
 # Create virtualenv and install dependencies
@@ -88,8 +81,7 @@ RUN mkdir -p /dependencies /build/downloads && \
         dpkg -x "$deb" /dependencies; \
     done
 
-# Final sidecar image
-# Using distroless base for minimal size and less extra packages
+# Final sidecar image using distroless base for minimal size and fewer packages
 FROM gcr.io/distroless/python3-debian13:nonroot
 
 ENV SUMMARY="CloudNativePG Barman plugin" \
@@ -106,13 +98,8 @@ LABEL summary="$SUMMARY" \
       version="" \
       release="1"
 
-# Copy virtualenv with pre-compiled bytecode
 COPY --from=pythonbuilder /venv /venv
-
-# Copy runtime libraries from extracted packages
 COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
-
-# Copy Go manager binary
 COPY --from=gobuilder /workspace/manager /manager
 
 # Compile all Python bytecode as root to avoid runtime compilation
