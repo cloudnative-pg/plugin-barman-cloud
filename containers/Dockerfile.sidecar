@@ -110,7 +110,6 @@ LABEL summary="$SUMMARY" \
 COPY --from=pythonbuilder /venv /venv
 
 # Copy runtime libraries from extracted packages
-# All libraries are in /usr/lib/x86_64-linux-gnu
 COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
 
 # Copy Go manager binary
@@ -118,7 +117,7 @@ COPY --from=gobuilder /workspace/manager /manager
 
 # Compile all Python bytecode as root to avoid runtime compilation
 USER 0:0
-RUN ["/venv/bin/python3", "-m", "compileall", "-q", "/usr/lib/python3.13", "/venv"]
+RUN ["/venv/bin/python3", "-c", "import sysconfig, compileall; compileall.compile_dir(sysconfig.get_path('stdlib'), quiet=1); compileall.compile_dir('/venv', quiet=1)"]
 
 USER 26:26
 ENTRYPOINT ["/manager"]
