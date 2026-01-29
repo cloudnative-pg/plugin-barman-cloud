@@ -133,8 +133,6 @@ overhead.
 
 Barman Cloud requires the following permissions in the S3 bucket:
 
-- [`s3:AbortMultipartUpload`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html)
-- [`s3:CreateBucket`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html)
 - [`s3:DeleteObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html)
 - [`s3:GetObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html)
 - [`s3:ListBucket`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html)
@@ -147,8 +145,6 @@ Here's an example of what such a bucket policy may look like:
   "Statement": [
     {
       "Action": [
-        "s3:AbortMultipartUpload",
-        "s3:CreateBucket",
         "s3:DeleteObject",
         "s3:GetObject",
         "s3:ListBucket",
