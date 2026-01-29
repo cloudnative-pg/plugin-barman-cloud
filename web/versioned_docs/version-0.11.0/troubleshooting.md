@@ -339,7 +339,7 @@ For detailed Barman restore operations and troubleshooting, refer to the
        recovery:
          source: origin
          recoveryTarget:
-           targetTime: "2024-01-15 10:30:00"
+           targetTime: "2024-01-15T10:30:00Z"
 
      externalClusters:
        - name: origin
@@ -357,6 +357,17 @@ For detailed Barman restore operations and troubleshooting, refer to the
    kubectl logs -n <namespace> <cluster-pod> \
      -c plugin-barman-cloud | grep -i wal
    ```
+
+:::note
+Timestamps without an explicit timezone suffix
+(e.g., `2024-01-15 10:30:00`) are interpreted as UTC.
+:::
+
+:::warning
+Always specify an explicit timezone in your timestamp to avoid ambiguity.
+For example, use `2024-01-15T10:30:00Z` or `2024-01-15T10:30:00+02:00`
+instead of `2024-01-15 10:30:00`.
+:::
 
 :::note
 For detailed PITR configuration and WAL management, see the
@@ -395,7 +406,7 @@ For detailed PITR configuration and WAL management, see the
 
 3. **Adjust provider-specific settings (endpoint, path style, etc.)**
    - See [Object Store Configuration](object_stores.md) for provider-specific settings
-   - Ensure `endpointURL` match your storage type
+   - Ensure `endpointURL` is set correctly for your storage provider
    - Verify network policies allow egress to your storage provider
 
 ## Diagnostic Commands
