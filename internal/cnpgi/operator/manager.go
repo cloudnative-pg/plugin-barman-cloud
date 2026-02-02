@@ -31,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -102,6 +103,14 @@ func Start(ctx context.Context) error {
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
+	var cacheOptions cache.Options
+	if viper.GetString("watch-namespace") != "" {
+		setupLog.Info("Watching a single namespace", "namespace", viper.GetString("watch-namespace"))
+		cacheOptions = cache.Options{
+			DefaultNamespaces: map[string]cache.Config{viper.GetString("watch-namespace"): {}},
+		}
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
@@ -120,6 +129,7 @@ func Start(ctx context.Context) error {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		LeaderElectionReleaseOnCancel: true,
+		Cache:                         cacheOptions,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
