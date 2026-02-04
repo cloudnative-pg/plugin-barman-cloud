@@ -2,7 +2,7 @@ module github.com/cloudnative-pg/plugin-barman-cloud
 
 go 1.25.0
 
-toolchain go1.25.6
+toolchain go1.25.7
 
 require (
 	github.com/cert-manager/cert-manager v1.19.2
