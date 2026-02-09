@@ -111,6 +111,19 @@ spec:
         [...]
 ```
 
+In addition, configure the `ObjectStore` to inherit permissions from the IAM role referenced in the service account:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  [...]
+spec:
+  configuration:
+    s3Credentials:
+      inheritFromIAMRole: true
+```
+
 ### S3 Lifecycle Policy
 
 Barman Cloud uploads backup files to S3 but does not modify them afterward.
