@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.6
 
 require (
-	github.com/cert-manager/cert-manager v1.19.2
+	github.com/cert-manager/cert-manager v1.19.3
 	github.com/cloudnative-pg/api v1.28.0
 	github.com/cloudnative-pg/barman-cloud v0.4.1-0.20260108104508-ced266c145f5
 	github.com/cloudnative-pg/cloudnative-pg v1.28.0
