@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 24
       - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger

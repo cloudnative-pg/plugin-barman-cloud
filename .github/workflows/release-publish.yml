@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger
