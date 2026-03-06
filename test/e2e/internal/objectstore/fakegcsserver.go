@@ -72,8 +72,8 @@ func newGCSDeployment(namespace, name string) *appsv1.Deployment {
 						{
 							Name:  name,
 							// renovate: datasource=docker depName=fsouza/fake-gcs-server versioning=docker
-							// Version: 1.53.1
-							Image: "fsouza/fake-gcs-server@sha256:e0dd21cc6188b8a1538cb840e29289e80c05e5ee8594ed7aa54d61cbae192517",
+							// Version: 1.54.0
+							Image: "fsouza/fake-gcs-server@sha256:3730da0e31f7e5186a90ec4899dc2c336104e7599df400411392ef17e684c31f",
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 4443,
