@@ -478,7 +478,7 @@ metadata:
 spec:
   configuration:
     destinationPath: s3://BUCKET_NAME/
-    endpointURL: http://<tenant>-hl:9000
+    endpointURL: https://<tenant>-hl:9000
     s3Credentials:
       accessKeyId:
         name: minio-creds
