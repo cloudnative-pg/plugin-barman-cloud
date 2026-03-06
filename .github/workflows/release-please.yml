@@ -51,10 +51,12 @@ jobs:
       # We use a GitHub token with write permissions to create the release,
       # otherwise we won't be able to trigger a new run when pushing on main.
       - name: Run release-please
+        env:
+          REPO_URL: ${{ github.repository }}
         run: |
           npx release-please release-pr \
             --token="${{ secrets.REPO_PAT }}" \
-            --repo-url="${{ github.repository }}"
+            --repo-url="${REPO_URL}"
           npx release-please github-release \
             --token="${{ secrets.REPO_PAT }}" \
-            --repo-url="${{ github.repository }}"
+            --repo-url="${REPO_URL}"
