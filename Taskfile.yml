@@ -184,7 +184,7 @@ tasks:
       - start-build-network
     env:
       # renovate: datasource=docker depName=registry versioning=semver
-      REGISTRY_VERSION: 3.0.0
+      REGISTRY_VERSION: 3
     cmds:
       - >
         docker run -d --name {{ .REGISTRY_NAME }}
