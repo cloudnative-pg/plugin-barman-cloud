@@ -32,7 +32,7 @@ metadata:
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: http://minio:9000
+    endpointURL: https://minio:9000
     s3Credentials:
       accessKeyId:
         name: minio
