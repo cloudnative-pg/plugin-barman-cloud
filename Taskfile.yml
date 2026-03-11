@@ -183,7 +183,7 @@ tasks:
       - generate-certs
       - start-build-network
     env:
-      # TODO: renovate
+      # renovate: datasource=docker depName=registry versioning=semver
       REGISTRY_VERSION: 2
     cmds:
       - >
