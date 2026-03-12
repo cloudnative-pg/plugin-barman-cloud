@@ -22,13 +22,13 @@ barman==3.17.0 \
     --hash=sha256:07b033da14e72f103de44261c31bd0c3169bbb2e4de3481c6bb3510e9870d38e \
     --hash=sha256:d6618990a6dbb31af3286d746a278a038534b7e3cc617c2b379ef7ebdeb7ed5a
     # via -r sidecar-requirements.in
-boto3==1.42.63 \
-    --hash=sha256:cd008cfd0d7ea30f1c5e22daf0998c55b7c6c68cb68eea05110e33fe641173d5 \
-    --hash=sha256:d502a89a0acc701692ae020d15981f2a82e9eb3485acc651cfd0cf1a3afe79ee
+boto3==1.42.66 \
+    --hash=sha256:3bec5300fb2429c3be8e8961fdb1f11e85195922c8a980022332c20af05616d5 \
+    --hash=sha256:7c6c60dc5500e8a2967a306372a5fdb4c7f9a5b8adc5eb9aa2ebb5081c51ff47
     # via barman
-botocore==1.42.63 \
-    --hash=sha256:1fdfc33cff58d21e8622cf620ba2bba3cff324557932aaf935b5374e4610f059 \
-    --hash=sha256:83f39d04f2b316bdfc59a3cac2d12238bde7126ac99d9a57d910dbd86d58c528
+botocore==1.42.66 \
+    --hash=sha256:39756a21142b646de552d798dde2105759b0b8fa0d881a34c26d15bd4c9448fa \
+    --hash=sha256:ac48af1ab527dfa08c4617c387413ca56a7f87780d7bfc1da34ef847a59219a5
     # via
     #   boto3
     #   s3transfer
