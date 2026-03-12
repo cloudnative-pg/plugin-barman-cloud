@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.11.0...v0.11.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#751](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/751)) ([5001fe7](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/5001fe783130fb57a3881da3e4f534a658e3b654))
+* **deps:** Update all non-major go dependencies ([#757](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/757)) ([d031c23](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/d031c2353223796dfd182b7d6c2856855ed3011d))
+* **deps:** Update dependency @easyops-cn/docusaurus-search-local to ^0.55.0 ([#753](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/753)) ([60d32cc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/60d32cca0cebc28ddf85696ac1432c732ce7779c))
+* **deps:** Update k8s.io/utils digest to b8788ab ([#784](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/784)) ([f64ff8e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f64ff8e13f203f43ae144e998be3f072cf4f3b18))
+* **deps:** Update kubernetes packages to v0.35.2 ([#788](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/788)) ([a7e28f6](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a7e28f6cadcdd197b027a46fc209e84ee760ab0d))
+* **deps:** Update module github.com/cert-manager/cert-manager to v1.19.3 [security] ([#775](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/775)) ([79238f5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/79238f5772cbf7e98a51a636d3661a6828c444be))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.23.3 ([#789](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/789)) ([3f726ea](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3f726ea83e996f6ead84c69bc797113e24314045))
+* **deps:** Update module sigs.k8s.io/kustomize/api to v0.21.1 ([#790](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/790)) ([84a388e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/84a388e5d719a1b312b15b21d4ce3ac06543dbe3))
+* **security:** Harden GitHub Actions workflows against expression injection ([#773](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/773)) ([ce7b761](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ce7b7612aeab6b7b4cfdccc540640829b67d7ac6))
+
 ## [0.11.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.10.0...v0.11.0) (2026-01-30)
 
 
