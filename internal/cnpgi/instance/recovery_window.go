@@ -33,7 +33,8 @@ import (
 )
 
 // updateRecoveryWindow updates the recovery window inside the object
-// store status subresource
+// store status subresource. It uses retry logic to handle concurrent
+// updates from backup completion and retention policy enforcement.
 func updateRecoveryWindow(
 	ctx context.Context,
 	c client.Client,
@@ -41,24 +42,33 @@ func updateRecoveryWindow(
 	objectStore *barmancloudv1.ObjectStore,
 	serverName string,
 ) error {
-	// Set the recovery window inside the barman object store object
-	convertTime := func(t *time.Time) *metav1.Time {
-		if t == nil {
-			return nil
+	objectStoreKey := client.ObjectKeyFromObject(objectStore)
+
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var freshObjectStore barmancloudv1.ObjectStore
+		if err := c.Get(ctx, objectStoreKey, &freshObjectStore); err != nil {
+			return err
 		}
-		return ptr.To(metav1.NewTime(*t))
-	}
 
-	recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
-	recoveryWindow.FirstRecoverabilityPoint = convertTime(backupList.GetFirstRecoverabilityPoint())
-	recoveryWindow.LastSuccessfulBackupTime = convertTime(backupList.GetLastSuccessfulBackupTime())
+		// Set the recovery window inside the barman object store object
+		convertTime := func(t *time.Time) *metav1.Time {
+			if t == nil {
+				return nil
+			}
+			return ptr.To(metav1.NewTime(*t))
+		}
 
-	if objectStore.Status.ServerRecoveryWindow == nil {
-		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
-	}
-	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+		recoveryWindow := freshObjectStore.Status.ServerRecoveryWindow[serverName]
+		recoveryWindow.FirstRecoverabilityPoint = convertTime(backupList.GetFirstRecoverabilityPoint())
+		recoveryWindow.LastSuccessfulBackupTime = convertTime(backupList.GetLastSuccessfulBackupTime())
 
-	return c.Status().Update(ctx, objectStore)
+		if freshObjectStore.Status.ServerRecoveryWindow == nil {
+			freshObjectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
+		}
+		freshObjectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+
+		return c.Status().Update(ctx, &freshObjectStore)
+	})
 }
 
 // setLastFailedBackupTime sets the last failed backup time in the
