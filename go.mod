@@ -7,7 +7,7 @@ toolchain go1.26.1
 require (
 	github.com/cert-manager/cert-manager v1.19.4
 	github.com/cloudnative-pg/api v1.28.1
-	github.com/cloudnative-pg/barman-cloud v0.4.1-0.20260302035520-53b8620f1bd6
+	github.com/cloudnative-pg/barman-cloud v0.5.0
 	github.com/cloudnative-pg/cloudnative-pg v1.28.1
 	github.com/cloudnative-pg/cnpg-i v0.3.1
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
@@ -117,7 +117,7 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
