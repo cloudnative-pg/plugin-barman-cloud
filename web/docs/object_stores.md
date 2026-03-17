@@ -272,9 +272,10 @@ flow, which uses [`DefaultAzureCredential`](https://learn.microsoft.com/en-us/py
 to automatically discover and use available credentials in the following order:
 
 1. **Environment Variables** — `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID` for Service Principal authentication
-2. **Managed Identity** — Uses the managed identity assigned to the pod
-3. **Azure CLI** — Uses credentials from the Azure CLI if available
-4. **Azure PowerShell** — Uses credentials from Azure PowerShell if available
+2. **Workload Identity** — Uses `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and a federated service account token
+3. **Managed Identity** — Uses the managed identity assigned to the pod
+4. **Azure CLI** — Uses credentials from the Azure CLI if available
+5. **Azure PowerShell** — Uses credentials from Azure PowerShell if available
 
 This approach is particularly useful for getting started with development and testing; it allows
 the SDK to attempt multiple authentication mechanisms seamlessly across different environments.
@@ -293,6 +294,30 @@ spec:
     azureCredentials:
       useDefaultAzureCredentials: true
   [...]
+```
+
+When `useDefaultAzureCredentials: true` is set, the plugin sidecar projects a
+service account token with the Azure workload identity audience and exposes it
+as `AZURE_FEDERATED_TOKEN_FILE`. If your platform does not already inject
+`AZURE_CLIENT_ID` and `AZURE_TENANT_ID`, you can provide them through
+`.spec.instanceSidecarConfiguration.env`:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: azure-store
+spec:
+  configuration:
+    destinationPath: "<destination path here>"
+    azureCredentials:
+      useDefaultAzureCredentials: true
+  instanceSidecarConfiguration:
+    env:
+    - name: AZURE_CLIENT_ID
+      value: "<managed-identity-client-id>"
+    - name: AZURE_TENANT_ID
+      value: "<tenant-id>"
 ```
 
 ### Access Key, SAS Token, or Connection String
