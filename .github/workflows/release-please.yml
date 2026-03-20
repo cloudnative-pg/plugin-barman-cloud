@@ -19,19 +19,19 @@ jobs:
       #   We'll use the cli until there's a fix for
       #   https://github.com/googleapis/release-please/issues/2280.
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install node
         uses: actions/setup-node@v6
         with:
           node-version: 24
       - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger
         env:
           # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-          DAGGER_VERSION: 0.19.5
+          DAGGER_VERSION: 0.20.1
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Create image and manifest
@@ -42,7 +42,7 @@ jobs:
           task publish
           task manifest
       - name: Attach manifest to workflow run
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: manifest.yaml
           path: ./manifest.yaml
@@ -51,10 +51,12 @@ jobs:
       # We use a GitHub token with write permissions to create the release,
       # otherwise we won't be able to trigger a new run when pushing on main.
       - name: Run release-please
+        env:
+          REPO_URL: ${{ github.repository }}
         run: |
           npx release-please release-pr \
             --token="${{ secrets.REPO_PAT }}" \
-            --repo-url="${{ github.repository }}"
+            --repo-url="${REPO_URL}"
           npx release-please github-release \
             --token="${{ secrets.REPO_PAT }}" \
-            --repo-url="${{ github.repository }}"
+            --repo-url="${REPO_URL}"

@@ -32,19 +32,19 @@ jobs:
           df -h
           echo "-----------------------------------------------------"
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         # We need the full history for the commitlint task
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Install Dagger
         env:
           # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-          DAGGER_VERSION: 0.19.5
+          DAGGER_VERSION: 0.20.1
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run CI task
@@ -63,7 +63,7 @@ jobs:
         run: |
           task publish
       - name: Attach manifest to workflow run
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: manifest.yaml
           path: ./manifest.yaml

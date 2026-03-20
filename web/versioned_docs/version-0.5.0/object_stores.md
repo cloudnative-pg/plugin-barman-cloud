@@ -103,7 +103,7 @@ spec:
 
 ### S3 Lifecycle Policy
 
-Barman Cloud uploads backup files to S3 but does not modify or delete them afterward.
+Barman Cloud uploads backup files to S3 but does not modify them afterward.
 To enhance data durability and protect against accidental or malicious loss,
 it's recommended to implement the following best practices:
 
