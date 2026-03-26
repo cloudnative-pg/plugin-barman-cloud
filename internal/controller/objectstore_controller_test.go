@@ -22,70 +22,301 @@ package controller
 import (
 	"context"
 
+	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
-	"k8s.io/apimachinery/pkg/api/errors"
+	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
-var _ = Describe("ObjectStore Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+func newFakeScheme() *runtime.Scheme {
+	s := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(s)
+	_ = cnpgv1.AddToScheme(s)
+	_ = barmancloudv1.AddToScheme(s)
+	return s
+}
 
-		ctx := context.Background()
+func newTestCluster(name, namespace, objectStoreName string) *cnpgv1.Cluster {
+	return &cnpgv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: cnpgv1.ClusterSpec{
+			Plugins: []cnpgv1.PluginConfiguration{
+				{
+					Name: metadata.PluginName,
+					Parameters: map[string]string{
+						"barmanObjectName": objectStoreName,
+					},
+				},
+			},
+		},
+	}
+}
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+func newTestObjectStore(name, namespace, secretName string) *barmancloudv1.ObjectStore {
+	return &barmancloudv1.ObjectStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: barmancloudv1.ObjectStoreSpec{
+			Configuration: barmanapi.BarmanObjectStoreConfiguration{
+				DestinationPath: "s3://bucket/path",
+				BarmanCredentials: barmanapi.BarmanCredentials{
+					AWS: &barmanapi.S3Credentials{
+						AccessKeyIDReference: &machineryapi.SecretKeySelector{
+							LocalObjectReference: machineryapi.LocalObjectReference{
+								Name: secretName,
+							},
+							Key: "ACCESS_KEY_ID",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+var _ = Describe("referencesObjectStore", func() {
+	It("should return true when ObjectStore is in the list", func() {
+		refs := []client.ObjectKey{
+			{Name: "store-a", Namespace: "default"},
+			{Name: "store-b", Namespace: "default"},
 		}
-		objectstore := &barmancloudv1.ObjectStore{}
+		Expect(referencesObjectStore(refs, client.ObjectKey{
+			Name: "store-b", Namespace: "default",
+		})).To(BeTrue())
+	})
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind ObjectStore")
-			err := k8sClient.Get(ctx, typeNamespacedName, objectstore)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &barmancloudv1.ObjectStore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					Spec: barmancloudv1.ObjectStoreSpec{
-						Configuration: barmanapi.BarmanObjectStoreConfiguration{DestinationPath: "/tmp"},
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+	It("should return false when ObjectStore is not in the list", func() {
+		refs := []client.ObjectKey{
+			{Name: "store-a", Namespace: "default"},
+		}
+		Expect(referencesObjectStore(refs, client.ObjectKey{
+			Name: "store-b", Namespace: "default",
+		})).To(BeFalse())
+	})
+
+	It("should return false when namespace differs", func() {
+		refs := []client.ObjectKey{
+			{Name: "store-a", Namespace: "ns1"},
+		}
+		Expect(referencesObjectStore(refs, client.ObjectKey{
+			Name: "store-a", Namespace: "ns2",
+		})).To(BeFalse())
+	})
+
+	It("should return false for empty list", func() {
+		Expect(referencesObjectStore(nil, client.ObjectKey{
+			Name: "store-a", Namespace: "default",
+		})).To(BeFalse())
+	})
+})
+
+var _ = Describe("ObjectStoreReconciler", func() {
+	var (
+		ctx        context.Context
+		scheme     *runtime.Scheme
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme = newFakeScheme()
+	})
+
+	Describe("Reconcile", func() {
+		It("should create a Role for a Cluster that references the ObjectStore", func() {
+			objectStore := newTestObjectStore("my-store", "default", "aws-creds")
+			cluster := newTestCluster("my-cluster", "default", "my-store")
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(objectStore, cluster).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{
+				Client: fakeClient,
+				Scheme: scheme,
 			}
-		})
 
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &barmancloudv1.ObjectStore{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the specific resource instance ObjectStore")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &ObjectStoreReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "my-store",
+					Namespace: "default",
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+			Expect(result).To(Equal(reconcile.Result{}))
+
+			var role rbacv1.Role
+			err = fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "my-cluster-barman-cloud",
+			}, &role)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(role.Rules).To(HaveLen(3))
+
+			// Verify the secrets rule contains the expected secret
+			secretsRule := role.Rules[2]
+			Expect(secretsRule.ResourceNames).To(ContainElement("aws-creds"))
+
+			// Verify owner reference is set to the Cluster
+			Expect(role.OwnerReferences).To(HaveLen(1))
+			Expect(role.OwnerReferences[0].Name).To(Equal("my-cluster"))
+			Expect(role.OwnerReferences[0].Kind).To(Equal("Cluster"))
+		})
+
+		It("should skip Clusters that don't reference the ObjectStore", func() {
+			objectStore := newTestObjectStore("my-store", "default", "aws-creds")
+			cluster := newTestCluster("my-cluster", "default", "other-store")
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(objectStore, cluster).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{
+				Client: fakeClient,
+				Scheme: scheme,
+			}
+
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "my-store",
+					Namespace: "default",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(reconcile.Result{}))
+
+			// No Role should have been created
+			var role rbacv1.Role
+			err = fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "my-cluster-barman-cloud",
+			}, &role)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should succeed with no Clusters in the namespace", func() {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{
+				Client: fakeClient,
+				Scheme: scheme,
+			}
+
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "my-store",
+					Namespace: "default",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(reconcile.Result{}))
+		})
+	})
+
+	Describe("reconcileRBACForCluster", func() {
+		It("should skip deleted ObjectStores and still reconcile the Role", func() {
+			// Cluster references two ObjectStores, but one is deleted
+			cluster := newTestCluster("my-cluster", "default", "store-a")
+			existingStore := newTestObjectStore("store-a", "default", "aws-creds")
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(existingStore).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{
+				Client: fakeClient,
+				Scheme: scheme,
+			}
+
+			// Pass two keys, but "store-b" doesn't exist
+			err := reconciler.reconcileRBACForCluster(ctx, cluster, []client.ObjectKey{
+				{Name: "store-a", Namespace: "default"},
+				{Name: "store-b", Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Role should be created with only store-a's secrets
+			var role rbacv1.Role
+			err = fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "my-cluster-barman-cloud",
+			}, &role)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(role.Rules).To(HaveLen(3))
+
+			// ObjectStore rule should only reference store-a
+			objectStoreRule := role.Rules[0]
+			Expect(objectStoreRule.ResourceNames).To(ContainElement("store-a"))
+			Expect(objectStoreRule.ResourceNames).NotTo(ContainElement("store-b"))
+
+			// Verify owner reference is set
+			Expect(role.OwnerReferences).To(HaveLen(1))
+			Expect(role.OwnerReferences[0].Name).To(Equal("my-cluster"))
+		})
+
+		It("should update Role when ObjectStore credentials change", func() {
+			cluster := newTestCluster("my-cluster", "default", "my-store")
+			oldStore := newTestObjectStore("my-store", "default", "old-secret")
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(oldStore).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{
+				Client: fakeClient,
+				Scheme: scheme,
+			}
+
+			// First reconcile - creates Role with old-secret
+			err := reconciler.reconcileRBACForCluster(ctx, cluster, []client.ObjectKey{
+				{Name: "my-store", Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Update the ObjectStore with new credentials
+			var currentStore barmancloudv1.ObjectStore
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Name: "my-store", Namespace: "default",
+			}, &currentStore)).To(Succeed())
+			currentStore.Spec.Configuration.BarmanCredentials.AWS.AccessKeyIDReference.LocalObjectReference.Name = "new-secret"
+			Expect(fakeClient.Update(ctx, &currentStore)).To(Succeed())
+
+			// Second reconcile - should patch Role with new-secret
+			err = reconciler.reconcileRBACForCluster(ctx, cluster, []client.ObjectKey{
+				{Name: "my-store", Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			var role rbacv1.Role
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "my-cluster-barman-cloud",
+			}, &role)).To(Succeed())
+
+			secretsRule := role.Rules[2]
+			Expect(secretsRule.ResourceNames).To(ContainElement("new-secret"))
+			Expect(secretsRule.ResourceNames).NotTo(ContainElement("old-secret"))
 		})
 	})
 })

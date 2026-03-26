@@ -102,6 +102,8 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindPFlag("server-address", cmd.Flags().Lookup("server-address"))
 
 	_ = viper.BindEnv("sidecar-image", "SIDECAR_IMAGE")
+	_ = viper.BindEnv("custom-cnpg-group", "CUSTOM_CNPG_GROUP")
+	_ = viper.BindEnv("custom-cnpg-version", "CUSTOM_CNPG_VERSION")
 
 	return cmd
 }
