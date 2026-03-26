@@ -22,7 +22,6 @@ package restore
 import (
 	"context"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
@@ -33,20 +32,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	pluginscheme "github.com/cloudnative-pg/plugin-barman-cloud/internal/scheme"
 )
 
-var scheme = runtime.NewScheme()
+// generateScheme creates a runtime.Scheme with all type definitions
+// needed by the restore sidecar. CNPG types are registered under a
+// configurable API group to support custom CNPG-based operators.
+func generateScheme(ctx context.Context) *runtime.Scheme {
+	result := runtime.NewScheme()
 
-func init() {
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
-	utilruntime.Must(cnpgv1.AddToScheme(scheme))
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(barmancloudv1.AddToScheme(result))
+	utilruntime.Must(clientgoscheme.AddToScheme(result))
+	pluginscheme.AddCNPGToScheme(ctx, result)
+
+	return result
 }
 
 // Start starts the sidecar informers and CNPG-i server
 func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
 	setupLog.Info("Starting barman cloud instance plugin")
+
+	scheme := generateScheme(ctx)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,

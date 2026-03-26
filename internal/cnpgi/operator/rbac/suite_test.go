@@ -17,7 +17,7 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package controller
+package rbac_test
 
 import (
 	"testing"
@@ -26,8 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestControllers(t *testing.T) {
+func TestRBAC(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
+	RunSpecs(t, "RBAC Suite")
 }

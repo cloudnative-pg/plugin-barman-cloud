@@ -28,16 +28,15 @@ import (
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	extendedclient "github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/instance/internal/client"
+	pluginscheme "github.com/cloudnative-pg/plugin-barman-cloud/internal/scheme"
 )
 
 // Start starts the sidecar informers and CNPG-i server
@@ -127,26 +126,7 @@ func generateScheme(ctx context.Context) *runtime.Scheme {
 
 	utilruntime.Must(barmancloudv1.AddToScheme(result))
 	utilruntime.Must(clientgoscheme.AddToScheme(result))
-
-	cnpgGroup := viper.GetString("custom-cnpg-group")
-	cnpgVersion := viper.GetString("custom-cnpg-version")
-	if len(cnpgGroup) == 0 {
-		cnpgGroup = cnpgv1.SchemeGroupVersion.Group
-	}
-	if len(cnpgVersion) == 0 {
-		cnpgVersion = cnpgv1.SchemeGroupVersion.Version
-	}
-
-	// Proceed with custom registration of the CNPG scheme
-	schemeGroupVersion := schema.GroupVersion{Group: cnpgGroup, Version: cnpgVersion}
-	schemeBuilder := &scheme.Builder{GroupVersion: schemeGroupVersion}
-	schemeBuilder.Register(&cnpgv1.Cluster{}, &cnpgv1.ClusterList{})
-	schemeBuilder.Register(&cnpgv1.Backup{}, &cnpgv1.BackupList{})
-	schemeBuilder.Register(&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{})
-	utilruntime.Must(schemeBuilder.AddToScheme(result))
-
-	schemeLog := log.FromContext(ctx)
-	schemeLog.Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)
+	pluginscheme.AddCNPGToScheme(ctx, result)
 
 	return result
 }
