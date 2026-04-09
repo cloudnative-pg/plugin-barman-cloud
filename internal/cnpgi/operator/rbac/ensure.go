@@ -29,10 +29,12 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
 
@@ -40,10 +42,9 @@ import (
 // the desired state derived from the given ObjectStores. On creation,
 // the Cluster is set as the owner of the Role for garbage collection.
 //
-// This function is called from both the Pre hook (gRPC) and the
-// ObjectStore controller. To handle concurrent modifications
-// gracefully, AlreadyExists on Create and Conflict on Patch are
-// retried once rather than returned as errors.
+// This function is called from the Pre hook (gRPC). It creates the
+// Role if it does not exist, then patches rules and labels to match
+// the desired state.
 func EnsureRole(
 	ctx context.Context,
 	c client.Client,
@@ -51,108 +52,126 @@ func EnsureRole(
 	barmanObjects []barmancloudv1.ObjectStore,
 ) error {
 	newRole := specs.BuildRole(cluster, barmanObjects)
+	roleKey := client.ObjectKeyFromObject(newRole)
 
-	roleKey := client.ObjectKey{
-		Namespace: newRole.Namespace,
-		Name:      newRole.Name,
-	}
-
-	var role rbacv1.Role
-	err := c.Get(ctx, roleKey, &role)
-
-	switch {
-	case apierrs.IsNotFound(err):
-		role, err := createRole(ctx, c, cluster, newRole)
-		if err != nil {
-			return err
-		}
-		if role == nil {
-			// Created successfully, nothing else to do.
-			return nil
-		}
-		// AlreadyExists: fall through to patch with the re-read role.
-		return patchRoleRules(ctx, c, newRole.Rules, role)
-
-	case err != nil:
+	if err := ensureRoleExists(ctx, c, cluster, newRole); err != nil {
 		return err
-
-	default:
-		return patchRoleRules(ctx, c, newRole.Rules, &role)
 	}
+
+	return patchRole(ctx, c, roleKey, newRole.Rules, map[string]string{
+		metadata.ClusterLabelName: cluster.Name,
+	})
 }
 
-// createRole attempts to create the Role. If another writer created
-// it concurrently (AlreadyExists), it re-reads and returns the
-// existing Role for the caller to patch. On success it returns nil.
-func createRole(
+// EnsureRoleRules updates the rules of an existing Role to match
+// the desired state derived from the given ObjectStores. Unlike
+// EnsureRole, this function does not create Roles or set owner
+// references — it only patches rules on Roles that already exist.
+// It is intended for the ObjectStore controller path where no
+// Cluster object is available. Returns nil if the Role does not
+// exist (the Pre hook has not created it yet).
+func EnsureRoleRules(
+	ctx context.Context,
+	c client.Client,
+	roleKey client.ObjectKey,
+	barmanObjects []barmancloudv1.ObjectStore,
+) error {
+	err := patchRole(ctx, c, roleKey, specs.BuildRoleRules(barmanObjects), nil)
+	if apierrs.IsNotFound(err) {
+		log.FromContext(ctx).Debug("Role not found, skipping rule update",
+			"name", roleKey.Name, "namespace", roleKey.Namespace)
+		return nil
+	}
+
+	return err
+}
+
+// ensureRoleExists creates the Role if it does not exist. Returns
+// nil on success and nil on AlreadyExists (another writer created
+// it concurrently). The caller always follows up with patchRole.
+func ensureRoleExists(
 	ctx context.Context,
 	c client.Client,
 	cluster *cnpgv1.Cluster,
 	newRole *rbacv1.Role,
-) (*rbacv1.Role, error) {
+) error {
 	contextLogger := log.FromContext(ctx)
 
+	var existing rbacv1.Role
+	err := c.Get(ctx, client.ObjectKeyFromObject(newRole), &existing)
+	if err == nil {
+		return nil
+	}
+	if !apierrs.IsNotFound(err) {
+		return err
+	}
+
 	if err := controllerutil.SetControllerReference(cluster, newRole, c.Scheme()); err != nil {
-		return nil, err
+		return err
 	}
 
 	contextLogger.Info("Creating role",
 		"name", newRole.Name, "namespace", newRole.Namespace)
 
 	createErr := c.Create(ctx, newRole)
-	if createErr == nil {
-		return nil, nil
-	}
-	if !apierrs.IsAlreadyExists(createErr) {
-		return nil, createErr
+	if createErr == nil || apierrs.IsAlreadyExists(createErr) {
+		return nil
 	}
 
-	contextLogger.Info("Role was created concurrently, checking rules")
-
-	var role rbacv1.Role
-	if err := c.Get(ctx, client.ObjectKeyFromObject(newRole), &role); err != nil {
-		return nil, err
-	}
-
-	return &role, nil
+	return createErr
 }
 
-// patchRoleRules patches the Role's rules if they differ from the
-// desired state. On Conflict (concurrent modification), it retries
-// once with a fresh read.
-func patchRoleRules(
+// patchRole patches the Role's rules and optionally its labels to
+// match the desired state. When desiredLabels is nil, labels are
+// not modified. Uses retry.RetryOnConflict for concurrent
+// modification handling.
+func patchRole(
 	ctx context.Context,
 	c client.Client,
+	roleKey client.ObjectKey,
 	desiredRules []rbacv1.PolicyRule,
-	role *rbacv1.Role,
+	desiredLabels map[string]string,
 ) error {
-	if equality.Semantic.DeepEqual(desiredRules, role.Rules) {
-		return nil
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var role rbacv1.Role
+		if err := c.Get(ctx, roleKey, &role); err != nil {
+			return err
+		}
+
+		rulesMatch := equality.Semantic.DeepEqual(desiredRules, role.Rules)
+		labelsMatch := desiredLabels == nil || !labelsNeedUpdate(role.Labels, desiredLabels)
+
+		if rulesMatch && labelsMatch {
+			return nil
+		}
+
+		contextLogger := log.FromContext(ctx)
+		contextLogger.Info("Patching role",
+			"name", role.Name, "namespace", role.Namespace)
+
+		oldRole := role.DeepCopy()
+		role.Rules = desiredRules
+
+		if desiredLabels != nil {
+			if role.Labels == nil {
+				role.Labels = make(map[string]string, len(desiredLabels))
+			}
+			for k, v := range desiredLabels {
+				role.Labels[k] = v
+			}
+		}
+
+		return c.Patch(ctx, &role, client.MergeFrom(oldRole))
+	})
+}
+
+// labelsNeedUpdate returns true if any key in desired is missing
+// or has a different value in existing.
+func labelsNeedUpdate(existing, desired map[string]string) bool {
+	for k, v := range desired {
+		if existing[k] != v {
+			return true
+		}
 	}
-
-	contextLogger := log.FromContext(ctx)
-	contextLogger.Info("Patching role",
-		"name", role.Name, "namespace", role.Namespace, "rules", desiredRules)
-
-	oldRole := role.DeepCopy()
-	role.Rules = desiredRules
-
-	patchErr := c.Patch(ctx, role, client.MergeFrom(oldRole))
-	if patchErr == nil || !apierrs.IsConflict(patchErr) {
-		return patchErr
-	}
-
-	// Conflict: re-read and retry once.
-	contextLogger.Info("Role was modified concurrently, retrying patch")
-	if err := c.Get(ctx, client.ObjectKeyFromObject(role), role); err != nil {
-		return err
-	}
-	if equality.Semantic.DeepEqual(desiredRules, role.Rules) {
-		return nil
-	}
-
-	oldRole = role.DeepCopy()
-	role.Rules = desiredRules
-
-	return c.Patch(ctx, role, client.MergeFrom(oldRole))
+	return false
 }
