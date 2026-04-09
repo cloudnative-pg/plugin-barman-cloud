@@ -91,8 +91,8 @@ func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, 
 	}
 
 	enabledPlugins := cnpgv1.GetPluginConfigurationEnabledPluginNames(cluster.Spec.Plugins)
-	if enabledForBackups := slices.Contains(enabledPlugins, metadata.PluginName); !enabledForBackups {
-		contextLogger.Debug("Skipping maintenance cycle: plugin is configured for restore only")
+	if !slices.Contains(enabledPlugins, metadata.PluginName) {
+		contextLogger.Debug("Skipping maintenance cycle: plugin is not enabled for backups")
 		return 0, nil
 	}
 
