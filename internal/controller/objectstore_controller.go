@@ -90,7 +90,7 @@ func (r *ObjectStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		if err := r.reconcileRoleRules(ctx, role, objectStoreNames); err != nil {
 			contextLogger.Error(err, "Failed to reconcile RBAC for role",
-				"roleName", role.Name, "namespace", role.Namespace)
+				"roleName", role.Name)
 			errs = append(errs, fmt.Errorf("while reconciling role %s: %w", role.Name, err))
 		}
 	}
