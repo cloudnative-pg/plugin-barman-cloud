@@ -17,8 +17,6 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 */
 
-// Package rbac contains utilities to reconcile RBAC resources
-// for the barman-cloud plugin.
 package rbac
 
 import (
@@ -31,7 +29,6 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
@@ -106,7 +103,7 @@ func ensureRoleExists(
 		return err
 	}
 
-	if err := controllerutil.SetControllerReference(cluster, newRole, c.Scheme()); err != nil {
+	if err := specs.SetControllerReference(cluster, newRole); err != nil {
 		return err
 	}
 

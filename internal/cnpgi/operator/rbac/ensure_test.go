@@ -49,6 +49,10 @@ func newScheme() *runtime.Scheme {
 
 func newCluster(name, namespace string) *cnpgv1.Cluster {
 	return &cnpgv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: cnpgv1.SchemeGroupVersion.String(),
+			Kind:       cnpgv1.ClusterKind,
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
