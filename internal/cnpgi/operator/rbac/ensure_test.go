@@ -21,6 +21,7 @@ package rbac_test
 
 import (
 	"context"
+	"fmt"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -28,11 +29,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
@@ -176,6 +179,56 @@ var _ = Describe("EnsureRole", func() {
 
 			Expect(role.OwnerReferences).To(HaveLen(1))
 			Expect(role.OwnerReferences[0].Name).To(Equal("test-cluster"))
+		})
+	})
+
+	Context("when Role creation fails with a transient error", func() {
+		BeforeEach(func() {
+			internalErr := apierrs.NewInternalError(fmt.Errorf("etcd timeout"))
+			fakeClient = fake.NewClientBuilder().
+				WithScheme(newScheme()).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+						return internalErr
+					},
+				}).
+				Build()
+		})
+
+		It("should propagate the error", func() {
+			err := rbac.EnsureRole(ctx, fakeClient, cluster, objects)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrs.IsInternalError(err)).To(BeTrue())
+		})
+	})
+
+	Context("when the Role has pre-existing unrelated labels", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.Role{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+					Labels: map[string]string{
+						"app.kubernetes.io/managed-by": "helm",
+					},
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should preserve unrelated labels while adding the cluster label", func() {
+			err := rbac.EnsureRole(ctx, fakeClient, cluster, objects)
+			Expect(err).NotTo(HaveOccurred())
+
+			var role rbacv1.Role
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &role)).To(Succeed())
+
+			Expect(role.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "helm"))
+			Expect(role.Labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "test-cluster"))
 		})
 	})
 

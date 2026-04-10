@@ -21,18 +21,21 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -292,6 +295,54 @@ var _ = Describe("ObjectStoreReconciler", func() {
 			Expect(updatedRole.Rules[0].ResourceNames).To(BeEmpty())
 			Expect(updatedRole.Rules[1].ResourceNames).To(BeEmpty())
 			Expect(updatedRole.Rules[2].ResourceNames).To(BeEmpty())
+		})
+
+		It("should return an error when listing Roles fails", func() {
+			internalErr := apierrs.NewInternalError(fmt.Errorf("etcd timeout"))
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, c client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if _, ok := list.(*rbacv1.RoleList); ok {
+							return internalErr
+						}
+						return c.List(ctx, list, opts...)
+					},
+				}).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{Client: fakeClient, Scheme: scheme}
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-store", Namespace: "default"},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("while listing roles"))
+		})
+
+		It("should return an error when fetching an ObjectStore fails with a transient error", func() {
+			store := newTestObjectStore("my-store", "default", "aws-creds")
+			role := newLabeledRole("my-cluster", "default", []barmancloudv1.ObjectStore{*store})
+
+			internalErr := apierrs.NewInternalError(fmt.Errorf("etcd timeout"))
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(role).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*barmancloudv1.ObjectStore); ok {
+							return internalErr
+						}
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).
+				Build()
+
+			reconciler := &ObjectStoreReconciler{Client: fakeClient, Scheme: scheme}
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: "my-store", Namespace: "default"},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("while reconciling role"))
 		})
 
 		It("should reconcile multiple Roles referencing the same ObjectStore", func() {

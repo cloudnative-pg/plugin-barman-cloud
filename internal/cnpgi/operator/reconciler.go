@@ -141,11 +141,11 @@ func (r ReconcilerImplementation) ensureRoleBinding(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
 ) error {
-	var role rbacv1.RoleBinding
+	var roleBinding rbacv1.RoleBinding
 	if err := r.Client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      specs.GetRBACName(cluster.Name),
-	}, &role); err != nil {
+	}, &roleBinding); err != nil {
 		if apierrs.IsNotFound(err) {
 			return r.createRoleBinding(ctx, cluster)
 		}

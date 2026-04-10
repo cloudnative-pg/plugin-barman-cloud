@@ -87,4 +87,14 @@ var _ = Describe("SetControllerReference", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("has no GVK set"))
 	})
+
+	It("should fail when the owner does not implement runtime.Object", func() {
+		// metav1.ObjectMeta satisfies metav1.Object but not runtime.Object.
+		owner := &metav1.ObjectMeta{Name: "my-cluster"}
+		controlled := &rbacv1.Role{}
+
+		err := SetControllerReference(owner, controlled)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("is not a runtime.Object"))
+	})
 })
