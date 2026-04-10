@@ -155,18 +155,34 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	// Step 2: Check if the archive location is safe to perform archiving
+	// Step 2: Check if the archive location is safe to perform archiving.
+	// This is a one-time check gated by the .check-empty-wal-archive flag
+	// file, which is deleted after the first successful WAL archive.
+	// Timeline detection only runs here — steady-state archiving is
+	// completely unaffected.
 	checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
 	if err != nil {
 		return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
 	}
 
 	if utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting {
+		// Detect the server's current timeline from pg_controldata so
+		// barman-cloud-check-wal-archive can tolerate WAL from earlier
+		// timelines in the archive (expected after a failover).
+		timeline, err := currentTimeline(ctx, w.PGDataPath)
+		if err != nil {
+			contextLogger.Error(err,
+				"Cannot determine PostgreSQL timeline for WAL archive check; "+
+					"archive attempt will be retried by PostgreSQL")
+			return nil, err
+		}
+
 		if err := CheckBackupDestination(
 			ctx,
 			&objectStore.Spec.Configuration,
 			arch,
 			configuration.ServerName,
+			timeline,
 		); err != nil {
 			return nil, err
 		}

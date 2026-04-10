@@ -285,9 +285,11 @@ func (impl *JobHookImpl) checkBackupDestination(
 		}
 	}
 
-	// Check if we're ok to archive in the desired destination
+	// Check if we're ok to archive in the desired destination.
+	// During restore/bootstrap, timeline is 0 (omit --timeline) so the
+	// check remains strict — the archive must be empty.
 	if utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) {
-		return common.CheckBackupDestination(ctx, barmanConfiguration, walArchiver, serverName)
+		return common.CheckBackupDestination(ctx, barmanConfiguration, walArchiver, serverName, 0)
 	}
 
 	return nil

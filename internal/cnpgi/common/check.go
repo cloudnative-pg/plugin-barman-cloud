@@ -28,21 +28,33 @@ import (
 )
 
 // CheckBackupDestination checks if the backup destination is suitable
-// to archive WALs
+// to archive WALs.
+//
+// The timeline parameter, when > 0, is passed to
+// barman-cloud-check-wal-archive via --timeline so that WAL from earlier
+// timelines (expected after a failover) does not cause the check to fail.
 func CheckBackupDestination(
 	ctx context.Context,
 	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
 	barmanArchiver *archiver.WALArchiver,
 	serverName string,
+	timeline int,
 ) error {
 	contextLogger := log.FromContext(ctx)
 	contextLogger.Info(
-		"Checking backup destination with barman-cloud-wal-archive",
-		"serverName", serverName)
+		"Checking backup destination with barman-cloud-check-wal-archive",
+		"serverName", serverName,
+		"timeline", timeline)
 
-	// Get WAL archive options
+	// Build options, passing --timeline when available so that WAL from
+	// earlier timelines in the archive is accepted after a failover.
+	var opts []archiver.CheckWalArchiveOption
+	if timeline > 0 {
+		opts = append(opts, archiver.WithTimeline(timeline))
+	}
+
 	checkWalOptions, err := barmanArchiver.BarmanCloudCheckWalArchiveOptions(
-		ctx, barmanConfiguration, serverName)
+		ctx, barmanConfiguration, serverName, opts...)
 	if err != nil {
 		log.Error(err, "while getting barman-cloud-wal-archive options")
 		return err
