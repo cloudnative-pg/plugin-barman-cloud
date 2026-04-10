@@ -17,8 +17,6 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 */
 
-// Package scheme provides utilities for building runtime schemes
-// with support for custom CNPG API groups.
 package scheme
 
 import (

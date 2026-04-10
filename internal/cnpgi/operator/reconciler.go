@@ -30,7 +30,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
@@ -163,7 +162,7 @@ func (r ReconcilerImplementation) createRoleBinding(
 	cluster *cnpgv1.Cluster,
 ) error {
 	roleBinding := specs.BuildRoleBinding(cluster)
-	if err := controllerutil.SetControllerReference(cluster, roleBinding, r.Client.Scheme()); err != nil {
+	if err := specs.SetControllerReference(cluster, roleBinding); err != nil {
 		return err
 	}
 	return r.Client.Create(ctx, roleBinding)

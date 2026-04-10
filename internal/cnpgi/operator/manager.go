@@ -37,32 +37,23 @@ import (
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/controller"
-	pluginscheme "github.com/cloudnative-pg/plugin-barman-cloud/internal/scheme"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-// generateScheme creates a runtime.Scheme with all type definitions
-// needed by the operator. CNPG types are registered under a
-// configurable API group to support custom CNPG-based operators.
-func generateScheme(ctx context.Context) *runtime.Scheme {
-	result := runtime.NewScheme()
+var scheme = runtime.NewScheme()
 
-	utilruntime.Must(clientgoscheme.AddToScheme(result))
-	utilruntime.Must(barmancloudv1.AddToScheme(result))
-	pluginscheme.AddCNPGToScheme(ctx, result)
+func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
-
-	return result
 }
 
 // Start starts the manager
 func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
-
-	scheme := generateScheme(ctx)
 
 	var tlsOpts []func(*tls.Config)
 
