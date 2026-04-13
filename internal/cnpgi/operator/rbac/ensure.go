@@ -42,6 +42,13 @@ import (
 // This function is called from the Pre hook (gRPC). It creates the
 // Role if it does not exist, then patches rules and labels to match
 // the desired state.
+//
+// Note: the ObjectStore controller (EnsureRoleRules) can patch the
+// same Role concurrently. Both paths use RetryOnConflict but compute
+// desired rules from their own view of ObjectStores. If the Pre hook
+// reads stale ObjectStore data from the informer cache, it may
+// briefly revert a fresher update. This is self-healing: the next
+// ObjectStore reconcile restores the correct state.
 func EnsureRole(
 	ctx context.Context,
 	c client.Client,

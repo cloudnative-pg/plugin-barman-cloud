@@ -68,6 +68,10 @@ func (r *ObjectStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	contextLogger.Info("ObjectStore reconciliation start")
 
+	// NOTE: Roles created before the introduction of ClusterLabelName
+	// are not discovered here. The Pre hook patches the label on every
+	// Cluster reconciliation, so unlabeled Roles are picked up after
+	// the next Cluster reconcile cycle.
 	var roleList rbacv1.RoleList
 	if err := r.List(ctx, &roleList,
 		client.InNamespace(req.Namespace),

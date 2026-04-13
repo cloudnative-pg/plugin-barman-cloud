@@ -33,6 +33,11 @@ import (
 // the operator does not know the CNPG API group at compile time
 // (it may be customized), while the Cluster object decoded from
 // the gRPC request carries the correct GVK in its TypeMeta.
+//
+// This function replaces all existing owner references rather than
+// merging, so it assumes the controlled object has a single owner.
+// This holds for plugin-managed Roles and RoleBindings, which are
+// exclusively owned by one Cluster.
 func SetControllerReference(owner, controlled metav1.Object) error {
 	ro, ok := owner.(runtime.Object)
 	if !ok {

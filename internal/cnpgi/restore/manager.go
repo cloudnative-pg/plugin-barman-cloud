@@ -32,7 +32,6 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 )
 
-
 // Start starts the sidecar informers and CNPG-i server
 func Start(ctx context.Context) error {
 	setupLog := log.FromContext(ctx)
