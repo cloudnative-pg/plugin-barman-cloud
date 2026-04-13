@@ -11,7 +11,7 @@ require (
 	github.com/cloudnative-pg/cloudnative-pg v1.29.0
 	github.com/cloudnative-pg/cnpg-i v0.5.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
-	github.com/cloudnative-pg/machinery v0.3.3
+	github.com/cloudnative-pg/machinery v0.4.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/cobra v1.10.2
@@ -75,7 +75,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.4.0 // indirect
-	github.com/lib/pq v1.12.0 // indirect
+	github.com/lib/pq v1.12.3 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
@@ -118,7 +118,7 @@ require (
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
