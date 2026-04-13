@@ -17,17 +17,6 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package controller
-
-import (
-	"testing"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-)
-
-func TestControllers(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
-}
+// Package rbac contains utilities to reconcile RBAC resources
+// for the barman-cloud plugin.
+package rbac

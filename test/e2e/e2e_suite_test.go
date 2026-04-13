@@ -37,6 +37,7 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
 
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/backup"
+	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/credentialrotation"
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/replicacluster"
 
 	. "github.com/onsi/ginkgo/v2"
