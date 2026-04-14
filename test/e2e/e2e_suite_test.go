@@ -37,6 +37,7 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
 
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/backup"
+	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/credentialrotation"
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/replicacluster"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -57,9 +58,11 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 	const barmanCloudKustomizationPath = "./kustomize/kubernetes/"
 	barmanCloudKustomization := &kustomizeTypes.Kustomization{
 		Resources: []string{barmanCloudKustomizationPath},
+		// Override the image from the base kustomization (kubernetes/kustomization.yaml)
+		// with the locally-built one. The Name must match the newName in the base.
 		Images: []kustomizeTypes.Image{
 			{
-				Name:    "docker.io/library/plugin-barman-cloud",
+				Name:    "ghcr.io/cloudnative-pg/plugin-barman-cloud-testing",
 				NewName: "registry.barman-cloud-plugin:5000/plugin-barman-cloud",
 				NewTag:  "testing",
 			},

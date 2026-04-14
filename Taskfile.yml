@@ -6,6 +6,8 @@ output: prefixed
 
 # Variables that are shared across tasks.
 vars:
+  GO_VERSION:
+    sh: sed -n 's/^toolchain go//p' go.mod
   # renovate: datasource=docker depName=kindest/node versioning=semver
   E2E_KUBERNETES_VERSION: v1.35.1
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
@@ -21,7 +23,7 @@ tasks:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_GOLANGCI_LINT_SHA: 5dcc7e4c4cd5ed230046955f42e27f2166545155
       # renovate: datasource=docker depName=golangci/golangci-lint versioning=semver
-      GOLANGCI_LINT_VERSION: v2.11.2
+      GOLANGCI_LINT_VERSION: v2.11.4
     cmds:
       - >
         GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
@@ -44,7 +46,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: 9d731d14460bb9c71a9ad8f395e61bbda7d42449
+      DAGGER_SPELLCHECK_SHA: 7003781e935b3cd4a8976e04179f660bac2d5603
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -58,7 +60,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: 9d731d14460bb9c71a9ad8f395e61bbda7d42449
+      DAGGER_COMMITLINT_SHA: 7003781e935b3cd4a8976e04179f660bac2d5603
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -72,7 +74,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: 9d731d14460bb9c71a9ad8f395e61bbda7d42449
+      DAGGER_UNCOMMITTED_SHA: 7003781e935b3cd4a8976e04179f660bac2d5603
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
@@ -84,7 +86,7 @@ tasks:
       - controller-gen
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CRDGENREF_SHA: 9d731d14460bb9c71a9ad8f395e61bbda7d42449
+      DAGGER_CRDGENREF_SHA: 7003781e935b3cd4a8976e04179f660bac2d5603
       # renovate: datasource=go depName=github.com/elastic/crd-ref-docs
       CRDREFDOCS_VERSION: v0.3.0
     cmds:
@@ -128,8 +130,6 @@ tasks:
   go-test:
     desc: Run go test
     env:
-      # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.26.1
       # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
@@ -137,7 +137,7 @@ tasks:
     cmds:
       - >
         GITHUB_REF= dagger -s call -m ./dagger/gotest
-        --go-version ${GOLANG_IMAGE_VERSION}
+        --go-version {{.GO_VERSION}}
         --kube-version ${K8S_VERSION}
         --setup-envtest-version ${SETUP_ENVTEST_VERSION}
         unit-test --src .
@@ -206,7 +206,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.20.1
+      DAGGER_VERSION: 0.20.5
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
@@ -231,7 +231,7 @@ tasks:
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64
+        build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64
         publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/plugin-barman-cloud --tags testing
 
   # We build an image and push it to a local registry.
@@ -248,7 +248,7 @@ tasks:
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64
+        build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64
         publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/sidecar-barman-cloud --tags testing
 
   build-images:
@@ -305,8 +305,6 @@ tasks:
       - build-images
       - start-kind-cluster
     vars:
-      # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.26.1
       KUBECONFIG_PATH:
         sh: mktemp -t kubeconfig-XXXXX
     env:
@@ -317,15 +315,12 @@ tasks:
         GITHUB_REF= dagger call -m  dagger/e2e/ run
         --source .
         --kubeconfig {{.KUBECONFIG_PATH}}
-        --go-version {{ .GOLANG_IMAGE_VERSION }}
+        --go-version {{.GO_VERSION}}
 
   e2e-ephemeral:
     desc: Run e2e tests in an ephemeral k3s cluster
     deps:
       - build-images
-    vars:
-      # renovate: datasource=docker depName=golang versioning=semver
-      GOLANG_IMAGE_VERSION: 1.26.1
     env:
       _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
     cmds:
@@ -334,7 +329,7 @@ tasks:
         --source .
         --ca certs/ca.pem
         --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}}
-        --go-version {{ .GOLANG_IMAGE_VERSION }}
+        --go-version {{.GO_VERSION}}
 
   ci:
     desc: Run the CI pipeline
@@ -373,12 +368,12 @@ tasks:
       - >
         dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.plugin --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
         dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.sidecar --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
   controller-gen:
@@ -386,7 +381,7 @@ tasks:
     run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: 9d731d14460bb9c71a9ad8f395e61bbda7d42449
+      DAGGER_CONTROLLER_GEN_SHA: 7003781e935b3cd4a8976e04179f660bac2d5603
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
