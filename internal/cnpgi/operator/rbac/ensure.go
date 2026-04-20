@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
 
@@ -62,9 +61,7 @@ func EnsureRole(
 		return err
 	}
 
-	return patchRole(ctx, c, roleKey, newRole.Rules, map[string]string{
-		metadata.ClusterLabelName: cluster.Name,
-	})
+	return patchRole(ctx, c, roleKey, newRole.Rules, specs.GetRequiredLabels(cluster))
 }
 
 // EnsureRoleRules updates the rules of an existing Role to match
@@ -88,6 +85,48 @@ func EnsureRoleRules(
 	}
 
 	return err
+}
+
+// EnsureRoleBinding ensures the RoleBinding for the given Cluster matches
+// the desired state.
+//
+// This function is called from the Pre hook (gRPC). It creates the RoleBinding
+// if it does not exist, otherwise it patches RoleRef, Subjects, and labels to match
+// the desired state.
+func EnsureRoleBinding(ctx context.Context, c client.Client, cluster *cnpgv1.Cluster) error {
+	contextLogger := log.FromContext(ctx)
+
+	desiredRoleBinding := specs.BuildRoleBinding(cluster)
+	if err := specs.SetControllerReference(cluster, desiredRoleBinding); err != nil {
+		return err
+	}
+
+	roleBinding := &rbacv1.RoleBinding{}
+
+	if err := c.Get(ctx, client.ObjectKey{
+		Namespace: cluster.Namespace,
+		Name:      specs.GetRBACName(cluster.Name),
+	}, roleBinding); err != nil {
+		if apierrs.IsNotFound(err) {
+			contextLogger.Info("Creating RoleBinding", "name", desiredRoleBinding.Name,
+				"namespace", desiredRoleBinding.Namespace)
+			return c.Create(ctx, desiredRoleBinding)
+		}
+	}
+
+	if !roleBindingNeedsUpdate(roleBinding, desiredRoleBinding) {
+		return nil
+	}
+
+	contextLogger.Info("Patching role binding",
+		"name", roleBinding.Name, "namespace", roleBinding.Namespace)
+
+	oldRoleBinding := roleBinding.DeepCopy()
+	roleBinding.Labels = desiredRoleBinding.Labels
+	roleBinding.RoleRef = desiredRoleBinding.RoleRef
+	roleBinding.Subjects = desiredRoleBinding.Subjects
+
+	return c.Patch(ctx, roleBinding, client.MergeFrom(oldRoleBinding))
 }
 
 // ensureRoleExists creates the Role if it does not exist. Returns
@@ -177,5 +216,27 @@ func labelsNeedUpdate(existing, desired map[string]string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// roleBindingNeedsUpdate returns true if the existing RoleBinding's
+// RoleRef or Subjects differ from the desired, or if labels need update.
+func roleBindingNeedsUpdate(existing, desired *rbacv1.RoleBinding) bool {
+	if existing == nil || desired == nil {
+		return existing != desired
+	}
+
+	if !equality.Semantic.DeepEqual(existing.RoleRef, desired.RoleRef) {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(existing.Subjects, desired.Subjects) {
+		return true
+	}
+
+	if labelsNeedUpdate(existing.Labels, desired.Labels) {
+		return true
+	}
+
 	return false
 }

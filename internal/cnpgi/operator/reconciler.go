@@ -27,14 +27,12 @@ import (
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/rbac"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
 
 // ReconcilerImplementation implements the Reconciler capability
@@ -117,7 +115,7 @@ func (r ReconcilerImplementation) Pre(
 		return nil, err
 	}
 
-	if err := r.ensureRoleBinding(ctx, &cluster); err != nil {
+	if err := rbac.EnsureRoleBinding(ctx, r.Client, &cluster); err != nil {
 		return nil, err
 	}
 
@@ -135,35 +133,4 @@ func (r ReconcilerImplementation) Post(
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
 	}, nil
-}
-
-func (r ReconcilerImplementation) ensureRoleBinding(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-) error {
-	var roleBinding rbacv1.RoleBinding
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      specs.GetRBACName(cluster.Name),
-	}, &roleBinding); err != nil {
-		if apierrs.IsNotFound(err) {
-			return r.createRoleBinding(ctx, cluster)
-		}
-		return err
-	}
-
-	// TODO: this assumes role bindings never change.
-	// Is that true? Should we relax this assumption?
-	return nil
-}
-
-func (r ReconcilerImplementation) createRoleBinding(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-) error {
-	roleBinding := specs.BuildRoleBinding(cluster)
-	if err := specs.SetControllerReference(cluster, roleBinding); err != nil {
-		return err
-	}
-	return r.Client.Create(ctx, roleBinding)
 }
