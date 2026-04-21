@@ -15,7 +15,7 @@ for space, speed, or a balance of both.
 
 - `bzip2`
 - `gzip`
-- `lz4` (WAL only)
+- `lz4`
 - `snappy`
 - `xz` (WAL only)
 - `zstd` (WAL only)
@@ -41,3 +41,5 @@ network throughput.
 | bzip2       | 25,404           | 13,886            | 395                    | 67                   | 5.9:1 |
 | gzip        | 116,281          | 3,077             | 395                    | 91                   | 4.3:1 |
 | snappy      | 8,134            | 8,341             | 395                    | 166                  | 2.4:1 |
+
+Numbers come from a 2021 Barman proof of concept ([EnterpriseDB/barman#344](https://github.com/EnterpriseDB/barman/issues/344#issuecomment-992547396)), which predates `lz4` support for base backups. `lz4` is not yet benchmarked.
