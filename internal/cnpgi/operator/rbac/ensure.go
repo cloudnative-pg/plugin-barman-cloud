@@ -225,7 +225,7 @@ func labelsNeedUpdate(existing, desired map[string]string) bool {
 }
 
 // roleBindingNeedsUpdate returns true if the existing RoleBinding's
-// RoleRef or Subjects differ from the desired, or if labels need update.
+// Subjects differ from the desired or if labels need update.
 func roleBindingNeedsUpdate(existing, desired *rbacv1.RoleBinding) bool {
 	if !equality.Semantic.DeepEqual(existing.Subjects, desired.Subjects) {
 		return true

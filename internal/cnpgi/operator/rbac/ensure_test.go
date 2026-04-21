@@ -25,6 +25,7 @@ import (
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,6 +42,15 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/rbac"
 )
+
+func expectRequiredLabels(labels map[string]string, clusterName string) {
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(metadata.ClusterLabelName, clusterName))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, utils.AppName))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppInstanceLabelName, clusterName))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppManagedByLabelName, "plugin-barman-cloud"))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppComponentLabelName, utils.DatabaseComponentName))
+	ExpectWithOffset(1, labels).To(HaveKey(utils.KubernetesAppVersionLabelName))
+}
 
 func newScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
@@ -124,7 +134,7 @@ var _ = Describe("EnsureRole", func() {
 			Expect(role.OwnerReferences[0].Name).To(Equal("test-cluster"))
 			Expect(role.OwnerReferences[0].Kind).To(Equal("Cluster"))
 
-			Expect(role.Labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "test-cluster"))
+			expectRequiredLabels(role.Labels, "test-cluster")
 		})
 	})
 
@@ -210,7 +220,7 @@ var _ = Describe("EnsureRole", func() {
 					Name:      "test-cluster-barman-cloud",
 					Namespace: "default",
 					Labels: map[string]string{
-						"app.kubernetes.io/managed-by": "helm",
+						"custom-label": "custom-value",
 					},
 				},
 			}
@@ -227,8 +237,8 @@ var _ = Describe("EnsureRole", func() {
 				Name:      "test-cluster-barman-cloud",
 			}, &role)).To(Succeed())
 
-			Expect(role.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "helm"))
-			Expect(role.Labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "test-cluster"))
+			Expect(role.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			expectRequiredLabels(role.Labels, "test-cluster")
 		})
 	})
 
@@ -257,8 +267,198 @@ var _ = Describe("EnsureRole", func() {
 				Name:      "test-cluster-barman-cloud",
 			}, &role)).To(Succeed())
 
-			Expect(role.Labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "test-cluster"))
+			expectRequiredLabels(role.Labels, "test-cluster")
 			Expect(role.Rules).To(HaveLen(3))
+		})
+	})
+})
+
+var _ = Describe("EnsureRoleBinding", func() {
+	var (
+		ctx        context.Context
+		cluster    *cnpgv1.Cluster
+		fakeClient client.Client
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cluster = newCluster("test-cluster", "default")
+	})
+
+	Context("when the RoleBinding does not exist", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+		})
+
+		It("should create the RoleBinding with owner reference, labels, and correct subjects", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			Expect(rb.OwnerReferences).To(HaveLen(1))
+			Expect(rb.OwnerReferences[0].Name).To(Equal("test-cluster"))
+			Expect(rb.OwnerReferences[0].Kind).To(Equal("Cluster"))
+
+			expectRequiredLabels(rb.Labels, "test-cluster")
+
+			Expect(rb.Subjects).To(HaveLen(1))
+			Expect(rb.Subjects[0].Name).To(Equal("test-cluster"))
+			Expect(rb.Subjects[0].Kind).To(Equal("ServiceAccount"))
+
+			Expect(rb.RoleRef.Kind).To(Equal("Role"))
+			Expect(rb.RoleRef.Name).To(Equal("test-cluster-barman-cloud"))
+		})
+	})
+
+	Context("when the RoleBinding exists with matching state", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			Expect(rbac.EnsureRoleBinding(ctx, fakeClient, cluster)).To(Succeed())
+		})
+
+		It("should not patch the RoleBinding", func() {
+			var before rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &before)).To(Succeed())
+
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var after rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &after)).To(Succeed())
+
+			Expect(after.ResourceVersion).To(Equal(before.ResourceVersion))
+		})
+	})
+
+	Context("when the RoleBinding exists with different subjects", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     "ServiceAccount",
+						Name:     "old-sa",
+						APIGroup: "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "test-cluster-barman-cloud",
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should patch the subjects to match the desired state", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			Expect(rb.Subjects).To(HaveLen(1))
+			Expect(rb.Subjects[0].Name).To(Equal("test-cluster"))
+		})
+	})
+
+	Context("when the RoleBinding has pre-existing unrelated labels", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+					Labels: map[string]string{
+						"custom-label": "custom-value",
+					},
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "test-cluster",
+						Namespace: "default",
+						APIGroup:  "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "test-cluster-barman-cloud",
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should preserve unrelated labels while adding the required labels", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			Expect(rb.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			expectRequiredLabels(rb.Labels, "test-cluster")
+		})
+	})
+
+	Context("when the RoleBinding exists without labels (upgrade scenario)", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "test-cluster",
+						Namespace: "default",
+						APIGroup:  "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "test-cluster-barman-cloud",
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should add the required labels", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			expectRequiredLabels(rb.Labels, "test-cluster")
 		})
 	})
 })
