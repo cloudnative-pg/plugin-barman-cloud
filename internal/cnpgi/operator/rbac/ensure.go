@@ -91,7 +91,7 @@ func EnsureRoleRules(
 // the desired state.
 //
 // This function is called from the Pre hook (gRPC). It creates the RoleBinding
-// if it does not exist, otherwise it patches RoleRef, Subjects, and labels to match
+// if it does not exist, otherwise it patches Subjects and labels to match
 // the desired state.
 func EnsureRoleBinding(ctx context.Context, c client.Client, cluster *cnpgv1.Cluster) error {
 	contextLogger := log.FromContext(ctx)
@@ -112,6 +112,7 @@ func EnsureRoleBinding(ctx context.Context, c client.Client, cluster *cnpgv1.Clu
 				"namespace", desiredRoleBinding.Namespace)
 			return c.Create(ctx, desiredRoleBinding)
 		}
+		return err
 	}
 
 	if !roleBindingNeedsUpdate(roleBinding, desiredRoleBinding) {
@@ -122,8 +123,12 @@ func EnsureRoleBinding(ctx context.Context, c client.Client, cluster *cnpgv1.Clu
 		"name", roleBinding.Name, "namespace", roleBinding.Namespace)
 
 	oldRoleBinding := roleBinding.DeepCopy()
-	roleBinding.Labels = desiredRoleBinding.Labels
-	roleBinding.RoleRef = desiredRoleBinding.RoleRef
+	if roleBinding.Labels == nil {
+		roleBinding.Labels = make(map[string]string, len(desiredRoleBinding.Labels))
+	}
+	for k, v := range desiredRoleBinding.Labels {
+		roleBinding.Labels[k] = v
+	}
 	roleBinding.Subjects = desiredRoleBinding.Subjects
 
 	return c.Patch(ctx, roleBinding, client.MergeFrom(oldRoleBinding))
@@ -222,14 +227,6 @@ func labelsNeedUpdate(existing, desired map[string]string) bool {
 // roleBindingNeedsUpdate returns true if the existing RoleBinding's
 // RoleRef or Subjects differ from the desired, or if labels need update.
 func roleBindingNeedsUpdate(existing, desired *rbacv1.RoleBinding) bool {
-	if existing == nil || desired == nil {
-		return existing != desired
-	}
-
-	if !equality.Semantic.DeepEqual(existing.RoleRef, desired.RoleRef) {
-		return true
-	}
-
 	if !equality.Semantic.DeepEqual(existing.Subjects, desired.Subjects) {
 		return true
 	}
