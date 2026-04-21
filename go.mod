@@ -7,7 +7,7 @@ toolchain go1.26.2
 require (
 	github.com/cert-manager/cert-manager v1.20.2
 	github.com/cloudnative-pg/api v1.29.0
-	github.com/cloudnative-pg/barman-cloud v0.5.0
+	github.com/cloudnative-pg/barman-cloud v0.5.1
 	github.com/cloudnative-pg/cloudnative-pg v1.29.0
 	github.com/cloudnative-pg/cnpg-i v0.5.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
@@ -140,5 +140,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/cloudnative-pg/barman-cloud => github.com/cloudnative-pg/barman-cloud v0.5.1-0.20260421102124-68d21f378690
