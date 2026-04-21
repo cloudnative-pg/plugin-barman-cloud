@@ -24,6 +24,7 @@ import (
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
+
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
