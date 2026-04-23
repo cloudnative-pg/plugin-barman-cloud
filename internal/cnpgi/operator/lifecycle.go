@@ -145,18 +145,25 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
+	useAzureWorkloadIdentity, err := impl.collectAzureWorkloadIdentityUsage(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
-		env:          env,
-		certificates: certificates,
-		resources:    resources,
+		env:                      env,
+		certificates:             certificates,
+		resources:                resources,
+		useAzureWorkloadIdentity: useAzureWorkloadIdentity,
 	})
 }
 
 type sidecarConfiguration struct {
-	env            []corev1.EnvVar
-	certificates   []corev1.VolumeProjection
-	resources      corev1.ResourceRequirements
-	additionalArgs []string
+	env                      []corev1.EnvVar
+	certificates             []corev1.VolumeProjection
+	resources                corev1.ResourceRequirements
+	additionalArgs           []string
+	useAzureWorkloadIdentity bool
 }
 
 func reconcileJob(
@@ -243,11 +250,17 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
+	useAzureWorkloadIdentity, err := impl.collectAzureWorkloadIdentityUsage(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
-		env:            env,
-		certificates:   certificates,
-		resources:      resources,
-		additionalArgs: additionalArgs,
+		env:                      env,
+		certificates:             certificates,
+		resources:                resources,
+		additionalArgs:           additionalArgs,
+		useAzureWorkloadIdentity: useAzureWorkloadIdentity,
 	})
 }
 
@@ -299,6 +312,25 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 	}
 
 	return nil, nil
+}
+
+func (impl LifecycleImplementation) collectAzureWorkloadIdentityUsage(
+	ctx context.Context,
+	pluginConfiguration *config.PluginConfiguration,
+) (bool, error) {
+	for _, objectKey := range pluginConfiguration.GetReferredBarmanObjectsKey() {
+		var objectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, objectKey, &objectStore); err != nil {
+			return false, fmt.Errorf("while getting object store %s: %w", objectKey.String(), err)
+		}
+
+		if objectStore.Spec.Configuration.Azure != nil &&
+			objectStore.Spec.Configuration.Azure.UseDefaultAzureCredentials {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func reconcileInstancePod(
@@ -378,6 +410,13 @@ func reconcilePodSpec(
 			Value: cluster.GetObjectKind().GroupVersionKind().Version,
 		},
 	)
+
+	if config.useAzureWorkloadIdentity {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "AZURE_FEDERATED_TOKEN_FILE",
+			Value: azureFederatedTokenFilePath,
+		})
+	}
 
 	envs = append(envs, config.env...)
 
@@ -466,12 +505,49 @@ func reconcilePodSpec(
 		spec.Volumes = removeVolume(spec.Volumes, barmanCertificatesVolumeName)
 	}
 
+	if config.useAzureWorkloadIdentity {
+		sidecarTemplate.VolumeMounts = ensureVolumeMount(
+			sidecarTemplate.VolumeMounts,
+			corev1.VolumeMount{
+				Name:      azureFederatedTokenVolumeName,
+				MountPath: azureFederatedTokenMountPath,
+				ReadOnly:  true,
+			},
+		)
+
+		spec.Volumes = ensureVolume(spec.Volumes, corev1.Volume{
+			Name: azureFederatedTokenVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Path:              azureFederatedTokenFileName,
+								Audience:          azureFederatedTokenAudience,
+								ExpirationSeconds: ptr.To[int64](azureFederatedTokenExpirationSeconds),
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
 	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
 		return err
 	}
 
 	return nil
 }
+
+const (
+	azureFederatedTokenVolumeName        = "azure-identity-token"
+	azureFederatedTokenMountPath         = "/var/run/secrets/azure/tokens"
+	azureFederatedTokenFileName          = "azure-identity-token"
+	azureFederatedTokenFilePath          = azureFederatedTokenMountPath + "/" + azureFederatedTokenFileName
+	azureFederatedTokenAudience          = "api://AzureADTokenExchange"
+	azureFederatedTokenExpirationSeconds = 3600
+)
 
 // TODO: move to machinery once the logic is finalized
 

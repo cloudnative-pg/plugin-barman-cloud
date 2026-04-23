@@ -22,6 +22,7 @@ package operator
 import (
 	"encoding/json"
 
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
@@ -386,6 +387,134 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(args).To(Equal([]string{"--log-level=info"}))
 		})
+	})
+
+	Describe("collectAzureWorkloadIdentityUsage", func() {
+		It("returns true when any referred object store uses default Azure credentials", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                  cluster,
+				BarmanObjectName:         "primary-store",
+				RecoveryBarmanObjectName: "recovery-store",
+			}
+			primaryStore := &barmancloudv1.ObjectStore{
+				ObjectMeta: metav1.ObjectMeta{Name: pc.BarmanObjectName, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					Configuration: barmanapi.BarmanObjectStoreConfiguration{
+						BarmanCredentials: barmanapi.BarmanCredentials{
+							Azure: &barmanapi.AzureCredentials{UseDefaultAzureCredentials: true},
+						},
+					},
+				},
+			}
+			recoveryStore := &barmancloudv1.ObjectStore{
+				ObjectMeta: metav1.ObjectMeta{Name: pc.RecoveryBarmanObjectName, Namespace: ns},
+			}
+			cli := buildClientFunc(primaryStore, recoveryStore).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			useWorkloadIdentity, err := impl.collectAzureWorkloadIdentityUsage(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(useWorkloadIdentity).To(BeTrue())
+		})
+
+		It("returns false when none of the referred object stores use default Azure credentials", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:          cluster,
+				BarmanObjectName: "primary-store",
+			}
+			primaryStore := &barmancloudv1.ObjectStore{
+				ObjectMeta: metav1.ObjectMeta{Name: pc.BarmanObjectName, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					Configuration: barmanapi.BarmanObjectStoreConfiguration{
+						BarmanCredentials: barmanapi.BarmanCredentials{
+							Azure: &barmanapi.AzureCredentials{InheritFromAzureAD: true},
+						},
+					},
+				},
+			}
+			cli := buildClientFunc(primaryStore).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			useWorkloadIdentity, err := impl.collectAzureWorkloadIdentityUsage(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(useWorkloadIdentity).To(BeFalse())
+		})
+	})
+})
+
+var _ = Describe("reconcilePodSpec", func() {
+	It("injects the Azure federated token volume and env when workload identity is enabled", func() {
+		cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-1", Namespace: "ns-1"}}
+		spec := &corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "postgres",
+					Env: []corev1.EnvVar{
+						{Name: "AZURE_CLIENT_ID", Value: "client-id"},
+					},
+				},
+			},
+		}
+
+		err := reconcilePodSpec(
+			cluster,
+			spec,
+			"postgres",
+			corev1.Container{Args: []string{"instance"}},
+			sidecarConfiguration{useAzureWorkloadIdentity: true},
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(spec.Volumes).To(ContainElement(HaveField("Name", azureFederatedTokenVolumeName)))
+		Expect(spec.InitContainers).To(HaveLen(1))
+		Expect(spec.InitContainers[0].Env).To(ContainElement(corev1.EnvVar{
+			Name:  "AZURE_FEDERATED_TOKEN_FILE",
+			Value: azureFederatedTokenFilePath,
+		}))
+		Expect(spec.InitContainers[0].Env).To(ContainElement(corev1.EnvVar{
+			Name:  "AZURE_CLIENT_ID",
+			Value: "client-id",
+		}))
+		Expect(spec.InitContainers[0].VolumeMounts).To(ContainElement(corev1.VolumeMount{
+			Name:      azureFederatedTokenVolumeName,
+			MountPath: azureFederatedTokenMountPath,
+			ReadOnly:  true,
+		}))
+	})
+
+	It("does not override an existing federated token file env", func() {
+		cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-1", Namespace: "ns-1"}}
+		spec := &corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "postgres",
+					Env: []corev1.EnvVar{
+						{Name: "AZURE_FEDERATED_TOKEN_FILE", Value: "/custom/token"},
+					},
+				},
+			},
+		}
+
+		err := reconcilePodSpec(
+			cluster,
+			spec,
+			"postgres",
+			corev1.Container{Args: []string{"instance"}},
+			sidecarConfiguration{useAzureWorkloadIdentity: true},
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(spec.InitContainers).To(HaveLen(1))
+		Expect(spec.InitContainers[0].Env).To(ContainElement(corev1.EnvVar{
+			Name:  "AZURE_FEDERATED_TOKEN_FILE",
+			Value: "/custom/token",
+		}))
+		Expect(spec.InitContainers[0].Env).NotTo(ContainElement(corev1.EnvVar{
+			Name:  "AZURE_FEDERATED_TOKEN_FILE",
+			Value: azureFederatedTokenFilePath,
+		}))
 	})
 })
 
