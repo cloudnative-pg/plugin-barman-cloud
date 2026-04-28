@@ -30,7 +30,7 @@ import (
 )
 
 var _ = Describe("BuildLabels", func() {
-	It("should return all expected labels for a cluster without an image", func() {
+	It("should return the recommended labels with plugin identity", func() {
 		cluster := &cnpgv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-cluster",
@@ -40,14 +40,15 @@ var _ = Describe("BuildLabels", func() {
 		labels := BuildLabels(cluster)
 
 		Expect(labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "my-cluster"))
-		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, utils.AppName))
+		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, metadata.AppLabelValue))
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppInstanceLabelName, "my-cluster"))
-		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppManagedByLabelName, "plugin-barman-cloud"))
+		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, metadata.Data.Version))
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppComponentLabelName, utils.DatabaseComponentName))
+		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppManagedByLabelName, metadata.ManagedByLabelValue))
 		Expect(labels).To(HaveLen(6))
 	})
 
-	It("should use the major version from the image catalog ref", func() {
+	It("should report the plugin version regardless of the cluster's Postgres image", func() {
 		cluster := &cnpgv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "pg16-cluster",
@@ -61,7 +62,7 @@ var _ = Describe("BuildLabels", func() {
 		}
 		labels := BuildLabels(cluster)
 
-		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, "16"))
+		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, metadata.Data.Version))
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppInstanceLabelName, "pg16-cluster"))
 	})
 })

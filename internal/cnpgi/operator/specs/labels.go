@@ -20,28 +20,22 @@ SPDX-License-Identifier: Apache-2.0
 package specs
 
 import (
-	"fmt"
-
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
-// BuildLabels returns the labels that must be present on all plugin-managed objects for a given Cluster.
+// BuildLabels returns the Kubernetes recommended labels applied to
+// every object managed by this plugin for the given Cluster. See
+// https://github.com/cloudnative-pg/plugin-barman-cloud/issues/545.
 func BuildLabels(cluster *cnpgv1.Cluster) map[string]string {
-	requiredLabels := map[string]string{
-		metadata.ClusterLabelName: cluster.Name,
-		// Kubernetes recommended labels
-		utils.KubernetesAppLabelName:          utils.AppName,
+	return map[string]string{
+		metadata.ClusterLabelName:             cluster.Name,
+		utils.KubernetesAppLabelName:          metadata.AppLabelValue,
 		utils.KubernetesAppInstanceLabelName:  cluster.Name,
-		utils.KubernetesAppManagedByLabelName: "plugin-barman-cloud",
+		utils.KubernetesAppVersionLabelName:   metadata.Data.Version,
 		utils.KubernetesAppComponentLabelName: utils.DatabaseComponentName,
+		utils.KubernetesAppManagedByLabelName: metadata.ManagedByLabelValue,
 	}
-
-	if version, err := cluster.GetPostgresqlMajorVersion(); err == nil && version != 0 {
-		requiredLabels[utils.KubernetesAppVersionLabelName] = fmt.Sprint(version)
-	}
-
-	return requiredLabels
 }

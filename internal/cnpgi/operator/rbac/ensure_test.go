@@ -45,11 +45,11 @@ import (
 
 func expectRequiredLabels(labels map[string]string, clusterName string) {
 	ExpectWithOffset(1, labels).To(HaveKeyWithValue(metadata.ClusterLabelName, clusterName))
-	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, utils.AppName))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, metadata.AppLabelValue))
 	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppInstanceLabelName, clusterName))
-	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppManagedByLabelName, "plugin-barman-cloud"))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppManagedByLabelName, metadata.ManagedByLabelValue))
 	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppComponentLabelName, utils.DatabaseComponentName))
-	ExpectWithOffset(1, labels).To(HaveKey(utils.KubernetesAppVersionLabelName))
+	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, metadata.Data.Version))
 }
 
 func newScheme() *runtime.Scheme {
