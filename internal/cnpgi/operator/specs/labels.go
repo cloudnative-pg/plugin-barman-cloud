@@ -28,8 +28,8 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
-// GetRequiredLabels returns the labels that must be present on all plugin-managed objects for a given Cluster.
-func GetRequiredLabels(cluster *cnpgv1.Cluster) map[string]string {
+// BuildLabels returns the labels that must be present on all plugin-managed objects for a given Cluster.
+func BuildLabels(cluster *cnpgv1.Cluster) map[string]string {
 	requiredLabels := map[string]string{
 		metadata.ClusterLabelName: cluster.Name,
 		// Kubernetes recommended labels

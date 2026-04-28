@@ -61,7 +61,7 @@ func EnsureRole(
 		return err
 	}
 
-	return patchRole(ctx, c, roleKey, newRole.Rules, specs.GetRequiredLabels(cluster))
+	return patchRole(ctx, c, roleKey, newRole.Rules, specs.BuildLabels(cluster))
 }
 
 // EnsureRoleRules updates the rules of an existing Role to match

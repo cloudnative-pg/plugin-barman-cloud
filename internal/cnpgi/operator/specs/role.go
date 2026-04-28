@@ -40,7 +40,7 @@ func BuildRole(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
-			Labels:    GetRequiredLabels(cluster),
+			Labels:    BuildLabels(cluster),
 		},
 		Rules: BuildRoleRules(barmanObjects),
 	}
@@ -128,7 +128,7 @@ func BuildRoleBinding(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
-			Labels:    GetRequiredLabels(cluster),
+			Labels:    BuildLabels(cluster),
 		},
 		Subjects: []rbacv1.Subject{
 			{

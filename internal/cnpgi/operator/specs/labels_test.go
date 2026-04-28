@@ -29,7 +29,7 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
-var _ = Describe("GetRequiredLabels", func() {
+var _ = Describe("BuildLabels", func() {
 	It("should return all expected labels for a cluster without an image", func() {
 		cluster := &cnpgv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +37,7 @@ var _ = Describe("GetRequiredLabels", func() {
 				Namespace: "default",
 			},
 		}
-		labels := GetRequiredLabels(cluster)
+		labels := BuildLabels(cluster)
 
 		Expect(labels).To(HaveKeyWithValue(metadata.ClusterLabelName, "my-cluster"))
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppLabelName, utils.AppName))
@@ -59,7 +59,7 @@ var _ = Describe("GetRequiredLabels", func() {
 				},
 			},
 		}
-		labels := GetRequiredLabels(cluster)
+		labels := BuildLabels(cluster)
 
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, "16"))
 		Expect(labels).To(HaveKeyWithValue(utils.KubernetesAppInstanceLabelName, "pg16-cluster"))
