@@ -52,6 +52,33 @@ func expectRequiredLabels(labels map[string]string, clusterName string) {
 	ExpectWithOffset(1, labels).To(HaveKeyWithValue(utils.KubernetesAppVersionLabelName, metadata.Data.Version))
 }
 
+// newPatchCountingClient returns a fake client plus a pointer to a
+// counter incremented on every Patch call. Useful for asserting
+// that a "no-op" reconcile path issues no Patch — more reliable
+// than comparing ResourceVersion across reads, which depends on
+// fake-client RV-bumping semantics that are not part of the
+// controller-runtime contract.
+func newPatchCountingClient(initObjs ...client.Object) (client.Client, *int) {
+	count := 0
+	c := fake.NewClientBuilder().
+		WithScheme(newScheme()).
+		WithObjects(initObjs...).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Patch: func(
+				ctx context.Context,
+				client client.WithWatch,
+				obj client.Object,
+				patch client.Patch,
+				opts ...client.PatchOption,
+			) error {
+				count++
+				return client.Patch(ctx, obj, patch, opts...)
+			},
+		}).
+		Build()
+	return c, &count
+}
+
 func newScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	utilruntime.Must(rbacv1.AddToScheme(s))
@@ -139,28 +166,18 @@ var _ = Describe("EnsureRole", func() {
 	})
 
 	Context("when the Role exists with matching rules", func() {
+		var patchCount *int
+
 		BeforeEach(func() {
-			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			fakeClient, patchCount = newPatchCountingClient()
 			Expect(rbac.EnsureRole(ctx, fakeClient, cluster, objects)).To(Succeed())
+			*patchCount = 0
 		})
 
 		It("should not patch the Role", func() {
-			var before rbacv1.Role
-			Expect(fakeClient.Get(ctx, client.ObjectKey{
-				Namespace: "default",
-				Name:      "test-cluster-barman-cloud",
-			}, &before)).To(Succeed())
-
 			err := rbac.EnsureRole(ctx, fakeClient, cluster, objects)
 			Expect(err).NotTo(HaveOccurred())
-
-			var after rbacv1.Role
-			Expect(fakeClient.Get(ctx, client.ObjectKey{
-				Namespace: "default",
-				Name:      "test-cluster-barman-cloud",
-			}, &after)).To(Succeed())
-
-			Expect(after.ResourceVersion).To(Equal(before.ResourceVersion))
+			Expect(*patchCount).To(BeZero())
 		})
 	})
 
@@ -242,6 +259,38 @@ var _ = Describe("EnsureRole", func() {
 		})
 	})
 
+	Context("when the Role exists with a stale label value", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.Role{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+					Labels: map[string]string{
+						// Stale value as if written by an older plugin
+						// version.
+						utils.KubernetesAppVersionLabelName: "0.0.0-stale",
+					},
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should overwrite the stale value with the current plugin's value", func() {
+			err := rbac.EnsureRole(ctx, fakeClient, cluster, objects)
+			Expect(err).NotTo(HaveOccurred())
+
+			var role rbacv1.Role
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &role)).To(Succeed())
+
+			Expect(role.Labels).To(HaveKeyWithValue(
+				utils.KubernetesAppVersionLabelName, metadata.Data.Version))
+		})
+	})
+
 	Context("when the Role exists without the cluster label (upgrade scenario)", func() {
 		BeforeEach(func() {
 			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
@@ -316,32 +365,22 @@ var _ = Describe("EnsureRoleBinding", func() {
 	})
 
 	Context("when the RoleBinding exists with matching state", func() {
+		var patchCount *int
+
 		BeforeEach(func() {
-			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			fakeClient, patchCount = newPatchCountingClient()
 			Expect(rbac.EnsureRoleBinding(ctx, fakeClient, cluster)).To(Succeed())
+			*patchCount = 0
 		})
 
 		It("should not patch the RoleBinding", func() {
-			var before rbacv1.RoleBinding
-			Expect(fakeClient.Get(ctx, client.ObjectKey{
-				Namespace: "default",
-				Name:      "test-cluster-barman-cloud",
-			}, &before)).To(Succeed())
-
 			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
 			Expect(err).NotTo(HaveOccurred())
-
-			var after rbacv1.RoleBinding
-			Expect(fakeClient.Get(ctx, client.ObjectKey{
-				Namespace: "default",
-				Name:      "test-cluster-barman-cloud",
-			}, &after)).To(Succeed())
-
-			Expect(after.ResourceVersion).To(Equal(before.ResourceVersion))
+			Expect(*patchCount).To(BeZero())
 		})
 	})
 
-	Context("when the RoleBinding exists with different subjects", func() {
+	Context("when the RoleBinding exists with extra user-added subjects", func() {
 		BeforeEach(func() {
 			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
 			existing := &rbacv1.RoleBinding{
@@ -352,7 +391,7 @@ var _ = Describe("EnsureRoleBinding", func() {
 				Subjects: []rbacv1.Subject{
 					{
 						Kind:     "ServiceAccount",
-						Name:     "old-sa",
+						Name:     "user-debug-sa",
 						APIGroup: "",
 					},
 				},
@@ -365,7 +404,7 @@ var _ = Describe("EnsureRoleBinding", func() {
 			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
 		})
 
-		It("should patch the subjects to match the desired state", func() {
+		It("should add the plugin's subject without removing user-added ones", func() {
 			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -375,8 +414,62 @@ var _ = Describe("EnsureRoleBinding", func() {
 				Name:      "test-cluster-barman-cloud",
 			}, &rb)).To(Succeed())
 
-			Expect(rb.Subjects).To(HaveLen(1))
-			Expect(rb.Subjects[0].Name).To(Equal("test-cluster"))
+			// Additive policy: the user-added subject must remain.
+			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
+				Kind:     "ServiceAccount",
+				Name:     "user-debug-sa",
+				APIGroup: "",
+			}))
+			// The plugin's required subject must be present.
+			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      "test-cluster",
+				Namespace: "default",
+				APIGroup:  "",
+			}))
+		})
+	})
+
+	Context("when the RoleBinding exists with a stale label value", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+					Labels: map[string]string{
+						utils.KubernetesAppVersionLabelName: "0.0.0-stale",
+					},
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "test-cluster",
+						Namespace: "default",
+						APIGroup:  "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "test-cluster-barman-cloud",
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should overwrite the stale value with the current plugin's value", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			Expect(rb.Labels).To(HaveKeyWithValue(
+				utils.KubernetesAppVersionLabelName, metadata.Data.Version))
 		})
 	})
 
@@ -420,6 +513,108 @@ var _ = Describe("EnsureRoleBinding", func() {
 
 			Expect(rb.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
 			expectRequiredLabels(rb.Labels, "test-cluster")
+		})
+	})
+
+	Context("when the RoleBinding has a divergent RoleRef", func() {
+		BeforeEach(func() {
+			fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).Build()
+			existing := &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "test-cluster",
+						Namespace: "default",
+						APIGroup:  "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "wrong-role",
+				},
+			}
+			Expect(fakeClient.Create(ctx, existing)).To(Succeed())
+		})
+
+		It("should return a descriptive error since RoleRef is immutable", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("RoleRef"))
+			Expect(err.Error()).To(ContainSubstring("wrong-role"))
+		})
+	})
+
+	Context("when an AlreadyExists race happens during a stale-cache create (plugin pod startup)", func() {
+		var preExisting *rbacv1.RoleBinding
+
+		BeforeEach(func() {
+			preExisting = &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-barman-cloud",
+					Namespace: "default",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "test-cluster",
+						Namespace: "default",
+						APIGroup:  "",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "Role",
+					Name:     "test-cluster-barman-cloud",
+				},
+			}
+
+			// First Get returns NotFound (simulates cold informer
+			// cache after plugin pod restart). Subsequent Gets
+			// fall through to real fake-client behavior.
+			gets := 0
+			fakeClient = fake.NewClientBuilder().
+				WithScheme(newScheme()).
+				WithObjects(preExisting).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(
+						ctx context.Context,
+						c client.WithWatch,
+						key client.ObjectKey,
+						obj client.Object,
+						opts ...client.GetOption,
+					) error {
+						gets++
+						if gets == 1 {
+							return apierrs.NewNotFound(
+								rbacv1.Resource("rolebindings"), key.Name)
+						}
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).
+				Build()
+		})
+
+		It("should tolerate the AlreadyExists and reconcile from the existing object", func() {
+			err := rbac.EnsureRoleBinding(ctx, fakeClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			var rb rbacv1.RoleBinding
+			Expect(fakeClient.Get(ctx, client.ObjectKey{
+				Namespace: "default",
+				Name:      "test-cluster-barman-cloud",
+			}, &rb)).To(Succeed())
+
+			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      "test-cluster",
+				Namespace: "default",
+				APIGroup:  "",
+			}))
 		})
 	})
 
@@ -506,23 +701,21 @@ var _ = Describe("EnsureRoleRules", func() {
 		})
 
 		It("should not patch when rules already match", func() {
-			// Seed with the same objects so rules match
+			// Replace the seeded client with a counting one,
+			// then re-seed via EnsureRole so the desired rules
+			// are already in place when EnsureRoleRules runs.
+			var patchCount *int
+			fakeClient, patchCount = newPatchCountingClient()
 			cluster := newCluster("test-cluster", "default")
 			Expect(rbac.EnsureRole(ctx, fakeClient, cluster, objects)).To(Succeed())
+			*patchCount = 0
 
 			roleKey := client.ObjectKey{
 				Namespace: "default",
 				Name:      "test-cluster-barman-cloud",
 			}
-
-			var before rbacv1.Role
-			Expect(fakeClient.Get(ctx, roleKey, &before)).To(Succeed())
-
 			Expect(rbac.EnsureRoleRules(ctx, fakeClient, roleKey, objects)).To(Succeed())
-
-			var after rbacv1.Role
-			Expect(fakeClient.Get(ctx, roleKey, &after)).To(Succeed())
-			Expect(after.ResourceVersion).To(Equal(before.ResourceVersion))
+			Expect(*patchCount).To(BeZero())
 		})
 
 		It("should not modify labels", func() {
