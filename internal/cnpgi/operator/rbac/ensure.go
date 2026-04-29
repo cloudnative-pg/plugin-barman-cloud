@@ -21,6 +21,7 @@ package rbac
 
 import (
 	"context"
+	"fmt"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 )
 
@@ -62,9 +62,7 @@ func EnsureRole(
 		return err
 	}
 
-	return patchRole(ctx, c, roleKey, newRole.Rules, map[string]string{
-		metadata.ClusterLabelName: cluster.Name,
-	})
+	return patchRole(ctx, c, roleKey, newRole.Rules, specs.BuildLabels(cluster))
 }
 
 // EnsureRoleRules updates the rules of an existing Role to match
@@ -88,6 +86,143 @@ func EnsureRoleRules(
 	}
 
 	return err
+}
+
+// EnsureRoleBinding ensures the RoleBinding for the given Cluster
+// is present and carries the recommended labels.
+//
+// This function is called from the Pre hook (gRPC). It creates the
+// RoleBinding if it does not exist, then reconciles labels and
+// Subjects:
+//   - Labels are written per-key. Keys the plugin manages overwrite
+//     existing values; unrelated keys (anything outside the desired
+//     set) are left alone.
+//   - Subjects are additive. The plugin guarantees its own Subject
+//     is bound, but never removes Subjects added by other actors —
+//     a Subject is a grant of access, and silently revoking access
+//     someone else granted is the wrong default.
+//
+// RoleRef is immutable in Kubernetes. If the existing RoleBinding
+// points to a different Role, the plugin fails loudly so the
+// operator notices and recreates the object.
+func EnsureRoleBinding(ctx context.Context, c client.Client, cluster *cnpgv1.Cluster) error {
+	desiredRoleBinding := specs.BuildRoleBinding(cluster)
+	if err := specs.SetControllerReference(cluster, desiredRoleBinding); err != nil {
+		return err
+	}
+
+	roleBinding, err := getOrCreateRoleBinding(ctx, c, desiredRoleBinding)
+	if err != nil || roleBinding == nil {
+		// Either an error, or we just created the object with the
+		// desired state — nothing to patch.
+		return err
+	}
+
+	return reconcileRoleBinding(ctx, c, roleBinding, desiredRoleBinding)
+}
+
+// getOrCreateRoleBinding returns the existing RoleBinding when it
+// is already present on the API server, or nil after a successful
+// Create when the just-created object already carries the desired
+// state (so the caller can skip the patch path).
+//
+// On a stale-informer-cache race during plugin pod startup, where
+// Get returns NotFound but Create returns AlreadyExists, the
+// function re-Gets to return the racing winner — the caller then
+// falls through to reconciliation against that real object.
+func getOrCreateRoleBinding(
+	ctx context.Context,
+	c client.Client,
+	desired *rbacv1.RoleBinding,
+) (*rbacv1.RoleBinding, error) {
+	contextLogger := log.FromContext(ctx)
+
+	rb := &rbacv1.RoleBinding{}
+	err := c.Get(ctx, client.ObjectKeyFromObject(desired), rb)
+	if err == nil {
+		return rb, nil
+	}
+	if !apierrs.IsNotFound(err) {
+		return nil, err
+	}
+
+	createErr := c.Create(ctx, desired)
+	switch {
+	case createErr == nil:
+		contextLogger.Info("Created RoleBinding",
+			"name", desired.Name, "namespace", desired.Namespace)
+		// Just-created with the desired state — caller skips patch.
+		return nil, nil
+	case apierrs.IsAlreadyExists(createErr):
+		contextLogger.Debug(
+			"RoleBinding already exists, likely a stale informer cache; re-fetching",
+			"name", desired.Name, "namespace", desired.Namespace)
+		// Re-Get to return the racing winner so the caller can
+		// reconcile against the real existing object.
+		fetched := &rbacv1.RoleBinding{}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(desired), fetched); err != nil {
+			return nil, err
+		}
+		return fetched, nil
+	default:
+		return nil, createErr
+	}
+}
+
+// reconcileRoleBinding brings an existing RoleBinding's labels and
+// Subjects into alignment with desired. It re-Gets the object on
+// conflict-retry so each attempt observes fresh server state, and
+// uses optimistic locking so a competing writer's patch is rejected
+// with 409 instead of silently last-write-winning.
+//
+// On the first attempt the function uses the existing object passed
+// in by the caller, avoiding a second Get on the steady-state path.
+func reconcileRoleBinding(
+	ctx context.Context,
+	c client.Client,
+	existing, desired *rbacv1.RoleBinding,
+) error {
+	contextLogger := log.FromContext(ctx)
+	first := true
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var roleBinding *rbacv1.RoleBinding
+		if first {
+			roleBinding = existing
+			first = false
+		} else {
+			roleBinding = &rbacv1.RoleBinding{}
+			if err := c.Get(ctx, client.ObjectKeyFromObject(desired), roleBinding); err != nil {
+				return err
+			}
+		}
+
+		// RoleRef is immutable in Kubernetes; we cannot patch it.
+		// Divergence at the canonical name is corruption regardless
+		// of who wrote the existing object — fail loudly so the
+		// operator notices and deletes the RoleBinding, and the
+		// next Pre call recreates it correctly.
+		if !equality.Semantic.DeepEqual(roleBinding.RoleRef, desired.RoleRef) {
+			return fmt.Errorf(
+				"RoleBinding %s/%s has divergent immutable RoleRef "+
+					"(existing=%+v, desired=%+v); delete the RoleBinding to allow recreation",
+				roleBinding.Namespace, roleBinding.Name,
+				roleBinding.RoleRef, desired.RoleRef)
+		}
+
+		if !roleBindingNeedsUpdate(roleBinding, desired) {
+			return nil
+		}
+
+		contextLogger.Info("Patching role binding",
+			"name", roleBinding.Name, "namespace", roleBinding.Namespace)
+
+		oldRoleBinding := roleBinding.DeepCopy()
+		roleBinding.Labels = mergeLabels(roleBinding.Labels, desired.Labels)
+		roleBinding.Subjects = mergeSubjects(roleBinding.Subjects, desired.Subjects)
+
+		return c.Patch(ctx, roleBinding,
+			client.MergeFromWithOptions(oldRoleBinding, client.MergeFromWithOptimisticLock{}))
+	})
 }
 
 // ensureRoleExists creates the Role if it does not exist. Returns
@@ -155,22 +290,32 @@ func patchRole(
 
 		oldRole := role.DeepCopy()
 		role.Rules = desiredRules
+		role.Labels = mergeLabels(role.Labels, desiredLabels)
 
-		if desiredLabels != nil {
-			if role.Labels == nil {
-				role.Labels = make(map[string]string, len(desiredLabels))
-			}
-			for k, v := range desiredLabels {
-				role.Labels[k] = v
-			}
-		}
-
-		return c.Patch(ctx, &role, client.MergeFrom(oldRole))
+		return c.Patch(ctx, &role,
+			client.MergeFromWithOptions(oldRole, client.MergeFromWithOptimisticLock{}))
 	})
 }
 
-// labelsNeedUpdate returns true if any key in desired is missing
-// or has a different value in existing.
+// mergeLabels writes the desired labels onto existing per-key.
+// Keys in desired overwrite the existing value; keys not in desired
+// (any unrelated label a user may have set) are left alone.
+func mergeLabels(existing, desired map[string]string) map[string]string {
+	if len(desired) == 0 {
+		return existing
+	}
+	if existing == nil {
+		existing = make(map[string]string, len(desired))
+	}
+	for k, v := range desired {
+		existing[k] = v
+	}
+	return existing
+}
+
+// labelsNeedUpdate returns true if a Patch is required to bring
+// existing labels into the state mergeLabels would produce, i.e.
+// any desired key is missing or has a different value in existing.
 func labelsNeedUpdate(existing, desired map[string]string) bool {
 	for k, v := range desired {
 		if existing[k] != v {
@@ -178,4 +323,47 @@ func labelsNeedUpdate(existing, desired map[string]string) bool {
 		}
 	}
 	return false
+}
+
+// containsSubject reports whether subjects contains an element that
+// is semantically equal to subject.
+func containsSubject(subjects []rbacv1.Subject, subject rbacv1.Subject) bool {
+	for _, s := range subjects {
+		if equality.Semantic.DeepEqual(s, subject) {
+			return true
+		}
+	}
+	return false
+}
+
+// mergeSubjects appends desired Subjects that are not already
+// present in existing.
+//
+// This is intentionally asymmetric to mergeLabels: labels are
+// metadata, so replacing stale plugin-set values is safe. A
+// Subject is a grant of access, so removing a Subject silently
+// revokes permissions an external operator chose to grant. The
+// plugin only requires that ITS Subject is present, not that it
+// is exclusive.
+func mergeSubjects(existing, desired []rbacv1.Subject) []rbacv1.Subject {
+	for _, d := range desired {
+		if !containsSubject(existing, d) {
+			existing = append(existing, d)
+		}
+	}
+	return existing
+}
+
+// roleBindingNeedsUpdate returns true if a Patch is required to
+// bring existing into alignment with desired — any desired Subject
+// missing (see mergeSubjects), or any desired label key missing
+// or holding a stale value (see mergeLabels).
+func roleBindingNeedsUpdate(existing, desired *rbacv1.RoleBinding) bool {
+	for _, s := range desired.Subjects {
+		if !containsSubject(existing.Subjects, s) {
+			return true
+		}
+	}
+
+	return labelsNeedUpdate(existing.Labels, desired.Labels)
 }
