@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.13.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.12.0...v0.13.0) (2026-04-29)
+
+
+### Features
+
+* Configure k8s recommended labels on subresources ([#865](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/865)) ([4bbaf18](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4bbaf18cd30174229d98e23151d2d257c90b561a)), closes [#545](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/545)
+
+
+### Bug Fixes
+
+* Add lz4 compression support for base backups ([#868](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/868)) ([e30154b](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e30154b938b053f688b5ab520000233e164df6b6)), closes [#867](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/867)
+* **deps:** Update all non-major go dependencies ([#877](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/877)) ([a81f6e3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a81f6e3d73ee348df22439f2daf062f4be598910))
+* **deps:** Update kubernetes monorepo to v0.35.4 ([#853](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/853)) ([21f811a](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/21f811a3f22b8f87ca9230a131f57f832c086fcf))
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.28.2 ([#874](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/874)) ([8cb32e5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/8cb32e5a5153347a6b05bf63816bcbc9d94f4d67))
+
 ## [0.12.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.11.0...v0.12.0) (2026-04-13)
 
 
