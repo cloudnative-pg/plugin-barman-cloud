@@ -56,6 +56,8 @@ Both checks are required before proceeding with the installation.
 
 import { InstallationSnippet } from '@site/src/components/Installation';
 
+### Directly using the manifest
+
 Install the plugin using `kubectl` by applying the manifest for the latest
 release:
 
@@ -97,6 +99,19 @@ deployment "barman-cloud" successfully rolled out
 ```
 
 This confirms that the plugin is deployed and ready to use.
+
+### Using the Helm Chart
+
+The plugin can be installed using the provided [Helm chart](https://github.com/cloudnative-pg/charts/tree/main/charts/plugin-barman-cloud):
+
+```sh
+helm repo add cnpg https://cloudnative-pg.github.io/charts
+helm upgrade --install barman-cloud \
+  --namespace cnpg-system \
+  --create-namespace \
+  --version 0.5.0 \
+  cnpg/plugin-barman-cloud
+```
 
 ## Testing the latest development snapshot
 
