@@ -365,9 +365,5 @@ func roleBindingNeedsUpdate(existing, desired *rbacv1.RoleBinding) bool {
 		}
 	}
 
-	if labelsNeedUpdate(existing.Labels, desired.Labels) {
-		return true
-	}
-
-	return false
+	return labelsNeedUpdate(existing.Labels, desired.Labels)
 }
