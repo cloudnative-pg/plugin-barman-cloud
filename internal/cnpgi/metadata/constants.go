@@ -28,7 +28,23 @@ const PluginName = "barman-cloud.cloudnative-pg.io"
 const (
 	// ClusterLabelName is the label applied to RBAC resources created
 	// by this plugin. Its value is the name of the owning Cluster.
+	//
+	// Discovery contract: internal/controller/objectstore_controller.go
+	// selects Roles by this key when an ObjectStore is reconciled.
+	// Renaming or removing the label would break that controller; new
+	// recommended-label keys are added alongside it, never in place
+	// of it.
 	ClusterLabelName = "barmancloud.cnpg.io/cluster"
+
+	// AppLabelValue is the value applied to app.kubernetes.io/name on
+	// every plugin-managed object. It identifies the application as
+	// the Barman Cloud plugin (see issue #545).
+	AppLabelValue = "barman-cloud-plugin"
+
+	// ManagedByLabelValue is the value applied to app.kubernetes.io/managed-by
+	// on every plugin-managed object. It identifies this plugin as
+	// the controller responsible for the object.
+	ManagedByLabelValue = "plugin-barman-cloud"
 
 	// CheckEmptyWalArchiveFile is the name of the file in the PGDATA that,
 	// if present, requires the WAL archiver to check that the backup object

@@ -15,6 +15,7 @@ DigitalOcean
 Docusaurus
 EDB
 EKS
+EnterpriseDB
 Enum
 EnvVar
 GCP
@@ -76,6 +77,7 @@ backends
 barmanObjectName
 barmanObjectStore
 barmancloud
+benchmarked
 boto
 bzip
 cd
