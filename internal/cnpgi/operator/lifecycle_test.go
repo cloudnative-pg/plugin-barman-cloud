@@ -139,10 +139,10 @@ var _ = Describe("LifecycleImplementation", func() {
 				Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							utils.JobRoleLabelName: "full-recovery",
+							utils.JobRoleLabelName: fullRecoveryJobName,
 						},
 					},
-					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "full-recovery"}}},
+					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: fullRecoveryJobName}}},
 				}},
 			}
 			jobJSON, _ := json.Marshal(job)

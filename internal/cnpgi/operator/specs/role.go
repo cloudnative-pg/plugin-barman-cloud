@@ -47,6 +47,8 @@ func BuildRole(
 }
 
 // BuildRoleRules builds the RBAC PolicyRules for the given ObjectStores.
+//
+//nolint:goconst
 func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRule {
 	secretsSet := stringset.New()
 	barmanObjectsSet := stringset.New()
