@@ -47,7 +47,7 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
+	barmancloudv1.AddKnownTypes(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

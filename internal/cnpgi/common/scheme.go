@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 )
@@ -40,7 +39,7 @@ import (
 func GenerateScheme(ctx context.Context) *runtime.Scheme {
 	result := runtime.NewScheme()
 
-	utilruntime.Must(barmancloudv1.AddToScheme(result))
+	barmancloudv1.AddKnownTypes(result)
 	utilruntime.Must(clientgoscheme.AddToScheme(result))
 
 	cnpgGroup := viper.GetString("custom-cnpg-group")
@@ -54,11 +53,11 @@ func GenerateScheme(ctx context.Context) *runtime.Scheme {
 
 	// Proceed with custom registration of the CNPG scheme
 	schemeGroupVersion := schema.GroupVersion{Group: cnpgGroup, Version: cnpgVersion}
-	schemeBuilder := &scheme.Builder{GroupVersion: schemeGroupVersion}
-	schemeBuilder.Register(&cnpgv1.Cluster{}, &cnpgv1.ClusterList{})
-	schemeBuilder.Register(&cnpgv1.Backup{}, &cnpgv1.BackupList{})
-	schemeBuilder.Register(&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{})
-	utilruntime.Must(schemeBuilder.AddToScheme(result))
+	result.AddKnownTypes(schemeGroupVersion,
+		&cnpgv1.Cluster{}, &cnpgv1.ClusterList{},
+		&cnpgv1.Backup{}, &cnpgv1.BackupList{},
+		&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{},
+	)
 
 	schemeLog := log.FromContext(ctx)
 	schemeLog.Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)

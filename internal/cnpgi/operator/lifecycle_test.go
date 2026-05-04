@@ -55,7 +55,7 @@ var _ = Describe("LifecycleImplementation", func() {
 	// helper to build a fake client with our scheme and optional objects
 	buildClientFunc := func(objs ...runtime.Object) *fake.ClientBuilder {
 		s := runtime.NewScheme()
-		_ = barmancloudv1.AddToScheme(s)
+		barmancloudv1.AddKnownTypes(s)
 		return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(objs...)
 	}
 
@@ -351,7 +351,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				},
 			}
 			s := runtime.NewScheme()
-			_ = barmancloudv1.AddToScheme(s)
+			barmancloudv1.AddKnownTypes(s)
 			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
 
 			impl := LifecycleImplementation{Client: cli}
@@ -378,7 +378,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				},
 			}
 			s := runtime.NewScheme()
-			_ = barmancloudv1.AddToScheme(s)
+			barmancloudv1.AddKnownTypes(s)
 			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
 
 			impl := LifecycleImplementation{Client: cli}
