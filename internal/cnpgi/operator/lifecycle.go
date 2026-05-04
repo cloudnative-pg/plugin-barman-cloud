@@ -41,6 +41,9 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
+// fullRecoveryJobName is the name of the restore job.
+const fullRecoveryJobName = "full-recovery"
+
 // LifecycleImplementation is the implementation of the lifecycle handler
 type LifecycleImplementation struct {
 	lifecycle.UnimplementedOperatorLifecycleServer
@@ -48,6 +51,8 @@ type LifecycleImplementation struct {
 }
 
 // GetCapabilities exposes the lifecycle capabilities
+//
+//nolint:goconst
 func (impl LifecycleImplementation) GetCapabilities(
 	_ context.Context,
 	_ *lifecycle.OperatorLifecycleCapabilitiesRequest,
@@ -186,7 +191,7 @@ func reconcileJob(
 	contextLogger.Debug("starting job reconciliation")
 
 	jobRole := getCNPGJobRole(&job)
-	if jobRole != "full-recovery" &&
+	if jobRole != fullRecoveryJobName &&
 		jobRole != "snapshot-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
 		return nil, nil
