@@ -39,7 +39,7 @@ var scheme = buildScheme()
 func buildScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
-	_ = barmancloudv1.AddToScheme(scheme)
+	barmancloudv1.AddKnownTypes(scheme)
 
 	return scheme
 }

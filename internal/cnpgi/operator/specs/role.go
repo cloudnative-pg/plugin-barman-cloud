@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
 // BuildRole builds the Role object for this cluster
@@ -41,15 +40,15 @@ func BuildRole(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
-			Labels: map[string]string{
-				metadata.ClusterLabelName: cluster.Name,
-			},
+			Labels:    BuildLabels(cluster),
 		},
 		Rules: BuildRoleRules(barmanObjects),
 	}
 }
 
 // BuildRoleRules builds the RBAC PolicyRules for the given ObjectStores.
+//
+//nolint:goconst
 func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRule {
 	secretsSet := stringset.New()
 	barmanObjectsSet := stringset.New()
@@ -135,6 +134,7 @@ func BuildRoleBinding(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
+			Labels:    BuildLabels(cluster),
 		},
 		Subjects: []rbacv1.Subject{
 			{

@@ -27,8 +27,6 @@ import (
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	crscheme "sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
 // AddCNPGToScheme registers CNPG types into the given scheme using
@@ -46,11 +44,11 @@ func AddCNPGToScheme(ctx context.Context, s *runtime.Scheme) {
 	}
 
 	schemeGroupVersion := schema.GroupVersion{Group: cnpgGroup, Version: cnpgVersion}
-	schemeBuilder := &crscheme.Builder{GroupVersion: schemeGroupVersion}
-	schemeBuilder.Register(&cnpgv1.Cluster{}, &cnpgv1.ClusterList{})
-	schemeBuilder.Register(&cnpgv1.Backup{}, &cnpgv1.BackupList{})
-	schemeBuilder.Register(&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{})
-	utilruntime.Must(schemeBuilder.AddToScheme(s))
+	s.AddKnownTypes(schemeGroupVersion,
+		&cnpgv1.Cluster{}, &cnpgv1.ClusterList{},
+		&cnpgv1.Backup{}, &cnpgv1.BackupList{},
+		&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{},
+	)
 
 	log.FromContext(ctx).Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)
 }
