@@ -41,6 +41,7 @@ configuration.
 - `.spec.configuration.data.additionalCommandArgs`: for `barman-cloud-backup`
 - `.spec.configuration.data.restoreAdditionalCommandArgs`: for `barman-cloud-restore`
 - `.spec.configuration.wal.archiveAdditionalCommandArgs`: for `barman-cloud-wal-archive`
+- `.spec.configuration.wal.restoreAdditionalCommandArgs`: for `barman-cloud-wal-restore`
 
 Each field accepts a list of string arguments. If an argument is already
 configured elsewhere in the plugin, the duplicate will be ignored.
@@ -83,6 +84,19 @@ spec:
     wal:
       archiveAdditionalCommandArgs:
         - "--max-concurrency=1"
+        - "--read-timeout=60"
+```
+
+### Example: Extra WAL Restore Options
+
+```yaml
+kind: ObjectStore
+metadata:
+  name: my-store
+spec:
+  configuration:
+    wal:
+      restoreAdditionalCommandArgs:
         - "--read-timeout=60"
 ```
 
