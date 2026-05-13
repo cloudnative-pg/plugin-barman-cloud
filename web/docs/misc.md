@@ -32,13 +32,14 @@ spec:
   [...]
 ```
 
-## Extra Options for Backup and WAL Archiving
+## Extra Options for Backup, WAL Archiving, and Restore
 
-You can pass additional command-line arguments to `barman-cloud-backup` and
-`barman-cloud-wal-archive` using the `additionalCommandArgs` field in the
-`ObjectStore` configuration.
+You can pass additional command-line arguments to the underlying
+`barman-cloud-*` commands using the corresponding fields in the `ObjectStore`
+configuration.
 
 - `.spec.configuration.data.additionalCommandArgs`: for `barman-cloud-backup`
+- `.spec.configuration.data.restoreAdditionalCommandArgs`: for `barman-cloud-restore`
 - `.spec.configuration.wal.archiveAdditionalCommandArgs`: for `barman-cloud-wal-archive`
 
 Each field accepts a list of string arguments. If an argument is already
@@ -56,6 +57,19 @@ spec:
       additionalCommandArgs:
         - "--min-chunk-size=5MB"
         - "--read-timeout=60"
+```
+
+### Example: Extra Restore Options
+
+```yaml
+kind: ObjectStore
+metadata:
+  name: my-store
+spec:
+  configuration:
+    data:
+      restoreAdditionalCommandArgs:
+        - "--read-timeout=900"
 ```
 
 ### Example: Extra WAL Archive Options
