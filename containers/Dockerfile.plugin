@@ -1,5 +1,5 @@
 # Build the manager binary
-# GO_VERSION must be passed as a build arg (read from go.mod toolchain directive by Taskfile)
+# GO_VERSION must be passed as a build arg (read from go.mod by Taskfile)
 ARG GO_VERSION
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS gobuilder
 ARG TARGETOS
