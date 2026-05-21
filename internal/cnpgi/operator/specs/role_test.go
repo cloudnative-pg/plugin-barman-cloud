@@ -78,13 +78,12 @@ var _ = Describe("BuildRoleRules", func() {
 		Expect(rules[2].ResourceNames).To(ConsistOf("secret-a", "secret-b"))
 	})
 
-	It("should produce rules with empty ResourceNames for empty input", func() {
+	It("should not produce a secrets rule for empty input", func() {
 		rules := BuildRoleRules(nil)
-		Expect(rules).To(HaveLen(3))
+		Expect(rules).To(HaveLen(2))
 		Expect(rules[0].ResourceNames).To(BeEmpty())
 		Expect(rules[0].ResourceNames).NotTo(BeNil())
 		Expect(rules[1].ResourceNames).To(BeEmpty())
-		Expect(rules[2].ResourceNames).To(BeEmpty())
 	})
 
 	It("should deduplicate secret names across ObjectStores", func() {
@@ -94,6 +93,31 @@ var _ = Describe("BuildRoleRules", func() {
 		}
 		rules := BuildRoleRules(objects)
 		Expect(rules[2].ResourceNames).To(Equal([]string{"shared-secret"}))
+	})
+
+	It("should not produce a secrets rule when ObjectStores use IAM role inheritance", func() {
+		objects := []barmancloudv1.ObjectStore{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "store-a",
+					Namespace: "default",
+				},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					Configuration: barmanapi.BarmanObjectStoreConfiguration{
+						DestinationPath: "s3://bucket/path",
+						BarmanCredentials: barmanapi.BarmanCredentials{
+							AWS: &barmanapi.S3Credentials{
+								InheritFromIAMRole: true,
+							},
+						},
+					},
+				},
+			},
+		}
+		rules := BuildRoleRules(objects)
+		Expect(rules).To(HaveLen(2))
+		Expect(rules[0].ResourceNames).To(Equal([]string{"store-a"}))
+		Expect(rules[1].ResourceNames).To(Equal([]string{"store-a"}))
 	})
 })
 
