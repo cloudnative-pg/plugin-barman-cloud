@@ -32,14 +32,21 @@ spec:
   [...]
 ```
 
-## Extra Options for Backup and WAL Archiving
+## Extra Options for Backup, WAL Archiving, Show, and List
 
-You can pass additional command-line arguments to `barman-cloud-backup` and
-`barman-cloud-wal-archive` using the `additionalCommandArgs` field in the
-`ObjectStore` configuration.
+You can pass additional command-line arguments to each barman-cloud
+invocation the plugin shells out to, using the matching
+`additionalCommandArgs` fields in the `ObjectStore` configuration.
 
 - `.spec.configuration.data.additionalCommandArgs`: for `barman-cloud-backup`
+- `.spec.configuration.data.showAdditionalCommandArgs`: for `barman-cloud-backup-show` (post-write verification)
+- `.spec.configuration.data.listAdditionalCommandArgs`: for `barman-cloud-backup-list` (retention pruning)
 - `.spec.configuration.wal.archiveAdditionalCommandArgs`: for `barman-cloud-wal-archive`
+
+If you need a flag that applies to every cloud command — such as
+`--addressing-style=virtual` for an S3-compatible endpoint that only
+accepts virtual-hosted-style requests — set it on all of the above so
+both writes and the post-write read-back / retention steps honor it.
 
 Each field accepts a list of string arguments. If an argument is already
 configured elsewhere in the plugin, the duplicate will be ignored.
