@@ -35,10 +35,50 @@ var ErrEndOfWALStreamReached = status.Errorf(codes.OutOfRange, "end of WAL reach
 var ErrMissingPermissions = status.Errorf(codes.FailedPrecondition,
 	"no permission to download the backup credentials, retrying")
 
-// newWALNotFoundError returns a error that states that a
-// certain WAL file has not been found. This error is
-// compatible with GRPC status codes, resulting in a 404
-// being used as a response code.
+// newWALNotFoundError returns an error indicating that the
+// requested WAL file is not present in the object store.
+// It carries a gRPC NotFound status so the operator can
+// treat it as a terminal condition.
 func newWALNotFoundError(walName string) error {
 	return status.Errorf(codes.NotFound, "wal %q not found", walName)
+}
+
+// newUnavailableError returns an error indicating that
+// downloading the given WAL file failed for a transient
+// reason (e.g. a connectivity blip). It carries a gRPC
+// Unavailable status so the operator will retry the
+// request.
+func newUnavailableError(walName string, err error) error {
+	return status.Errorf(
+		codes.Unavailable,
+		"transient error while downloading %q: %s",
+		walName,
+		err.Error(),
+	)
+}
+
+// newInvalidWALNameError returns an error indicating that
+// the requested WAL name is not valid. It carries a gRPC
+// InvalidArgument status so the operator treats it as a
+// terminal condition.
+func newInvalidWALNameError(walName string, err error) error {
+	return status.Errorf(
+		codes.InvalidArgument,
+		"invalid WAL name %q: %s",
+		walName,
+		err.Error(),
+	)
+}
+
+// newInternalWALRestoreError returns an error indicating
+// that downloading the given WAL file failed for an
+// unclassified reason. It carries a gRPC Internal status
+// so the operator treats it as a terminal condition.
+func newInternalWALRestoreError(walName string, err error) error {
+	return status.Errorf(
+		codes.Internal,
+		"internal error while downloading %q: %s",
+		walName,
+		err.Error(),
+	)
 }

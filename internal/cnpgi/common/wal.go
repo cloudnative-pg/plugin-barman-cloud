@@ -365,11 +365,28 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return newWALNotFoundError(walStatus[0].WalName)
+		walName := walStatus[0].WalName
+		walErr := walStatus[0].Err
+		switch {
+		case errors.Is(walErr, barmanRestorer.ErrWALNotFound):
+			// A missing WAL is a terminal condition: surface it as a
+			// gRPC NotFound so the operator stops retrying.
+			return newWALNotFoundError(walName)
+		case errors.Is(walErr, barmanRestorer.ErrInvalidWalName):
+			// A malformed WAL name will never succeed on retry.
+			return newInvalidWALNameError(walName, walErr)
+		case errors.Is(walErr, barmanRestorer.ErrConnectivity),
+			errors.Is(walErr, barmanRestorer.ErrGeneric):
+			// Connectivity and generic barman-cloud failures are
+			// considered transient: surface them as gRPC Unavailable
+			// so the operator retries the download.
+			return newUnavailableError(walName, walErr)
+		default:
+			// Unrecognized exit codes and unexpected failures (e.g. the
+			// barman-cloud command could not be executed) are surfaced
+			// as gRPC Internal so the operator treats them as terminal.
+			return newInternalWALRestoreError(walName, walErr)
 		}
-
-		return walStatus[0].Err
 	}
 
 	// We skip this step if streaming connection is not available
