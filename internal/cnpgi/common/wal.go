@@ -369,22 +369,23 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		walErr := walStatus[0].Err
 		switch {
 		case errors.Is(walErr, barmanRestorer.ErrWALNotFound):
-			// A missing WAL is a terminal condition: surface it as a
-			// gRPC NotFound so the operator stops retrying.
 			return newWALNotFoundError(walName)
 		case errors.Is(walErr, barmanRestorer.ErrInvalidWalName):
-			// A malformed WAL name will never succeed on retry.
+			// A malformed WAL name will never become valid on retry.
 			return newInvalidWALNameError(walName, walErr)
 		case errors.Is(walErr, barmanRestorer.ErrConnectivity),
 			errors.Is(walErr, barmanRestorer.ErrGeneric):
-			// Connectivity and generic barman-cloud failures are
-			// considered transient: surface them as gRPC Unavailable
-			// so the operator retries the download.
+			// barman-cloud exit codes 2 (connectivity) and 4
+			// (generic) both surface conditions that are retryable
+			// in practice — barman uses the "generic" bucket for
+			// some connection-class failures too, not just exit 2.
+			// Emit codes.Unavailable so the caller retries.
 			return newUnavailableError(walName, walErr)
 		default:
-			// Unrecognized exit codes and unexpected failures (e.g. the
-			// barman-cloud command could not be executed) are surfaced
-			// as gRPC Internal so the operator treats them as terminal.
+			// Unrecognized exit codes and unexpected failures
+			// (e.g. the barman-cloud command could not be
+			// executed). No positive signal that retry would
+			// help; emit codes.Internal.
 			return newInternalWALRestoreError(walName, walErr)
 		}
 	}
