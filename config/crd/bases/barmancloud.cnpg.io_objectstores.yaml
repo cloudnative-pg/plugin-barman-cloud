@@ -176,6 +176,37 @@ spec:
                         format: int32
                         minimum: 1
                         type: integer
+                      listAdditionalCommandArgs:
+                        description: |-
+                          ListAdditionalCommandArgs represents additional arguments that can be appended
+                          to the 'barman-cloud-backup-list' command-line invocation. This command is
+                          used internally for retention-policy enforcement; flags relevant to the
+                          underlying S3 client (e.g. `--addressing-style=virtual` for strictly
+                          virtual-hosted S3-compatible endpoints) generally belong here as well.
+
+                          Note:
+                          It's essential to ensure that the provided arguments are valid and supported
+                          by the 'barman-cloud-backup-list' command, to avoid potential errors or
+                          unintended behavior during execution.
+                        items:
+                          type: string
+                        type: array
+                      showAdditionalCommandArgs:
+                        description: |-
+                          ShowAdditionalCommandArgs represents additional arguments that can be appended
+                          to the 'barman-cloud-backup-show' command-line invocation. This command is
+                          used after a successful upload to verify and record metadata about the
+                          freshly-written backup, so flags relevant to the underlying S3 client
+                          (e.g. `--addressing-style=virtual` for strictly virtual-hosted S3-compatible
+                          endpoints) generally belong here as well.
+
+                          Note:
+                          It's essential to ensure that the provided arguments are valid and supported
+                          by the 'barman-cloud-backup-show' command, to avoid potential errors or
+                          unintended behavior during execution.
+                        items:
+                          type: string
+                        type: array
                     type: object
                   destinationPath:
                     description: |-
