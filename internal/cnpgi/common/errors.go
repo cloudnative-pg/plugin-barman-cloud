@@ -20,9 +20,37 @@ SPDX-License-Identifier: Apache-2.0
 package common
 
 import (
+	"errors"
+
+	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// classifyWALRestoreError maps an error returned by the WAL
+// restorer to a gRPC-coded error so the caller can tell terminal
+// failures apart from transient ones via the status code.
+func classifyWALRestoreError(walName string, walErr error) error {
+	switch {
+	case errors.Is(walErr, barmanRestorer.ErrWALNotFound):
+		return newWALNotFoundError(walName)
+	case errors.Is(walErr, barmanRestorer.ErrInvalidWalName):
+		// A malformed WAL name will never become valid on retry.
+		return newInvalidWALNameError(walName, walErr)
+	case errors.Is(walErr, barmanRestorer.ErrConnectivity),
+		errors.Is(walErr, barmanRestorer.ErrGeneric):
+		// barman-cloud exit codes 2 (connectivity) and 4
+		// (generic) both surface conditions that are retryable
+		// in practice — barman uses the "generic" bucket for
+		// some connection-class failures too, not just exit 2.
+		return newUnavailableError(walName, walErr)
+	default:
+		// Unrecognized exit codes and unexpected failures (e.g.
+		// the barman-cloud command could not be executed). No
+		// positive signal that retry would help.
+		return newInternalWALRestoreError(walName, walErr)
+	}
+}
 
 // ErrEndOfWALStreamReached is returned when end of WAL is detected in the cloud archive.
 var ErrEndOfWALStreamReached = status.Errorf(codes.OutOfRange, "end of WAL reached")

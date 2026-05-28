@@ -365,29 +365,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		walName := walStatus[0].WalName
-		walErr := walStatus[0].Err
-		switch {
-		case errors.Is(walErr, barmanRestorer.ErrWALNotFound):
-			return newWALNotFoundError(walName)
-		case errors.Is(walErr, barmanRestorer.ErrInvalidWalName):
-			// A malformed WAL name will never become valid on retry.
-			return newInvalidWALNameError(walName, walErr)
-		case errors.Is(walErr, barmanRestorer.ErrConnectivity),
-			errors.Is(walErr, barmanRestorer.ErrGeneric):
-			// barman-cloud exit codes 2 (connectivity) and 4
-			// (generic) both surface conditions that are retryable
-			// in practice — barman uses the "generic" bucket for
-			// some connection-class failures too, not just exit 2.
-			// Emit codes.Unavailable so the caller retries.
-			return newUnavailableError(walName, walErr)
-		default:
-			// Unrecognized exit codes and unexpected failures
-			// (e.g. the barman-cloud command could not be
-			// executed). No positive signal that retry would
-			// help; emit codes.Internal.
-			return newInternalWALRestoreError(walName, walErr)
-		}
+		return classifyWALRestoreError(walStatus[0].WalName, walStatus[0].Err)
 	}
 
 	// We skip this step if streaming connection is not available
