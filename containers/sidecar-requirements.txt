@@ -18,9 +18,9 @@ azure-storage-blob==12.29.0 \
     --hash=sha256:2824ddd7ebc9056034ebc76b17971a38e9aa5835abb0d565b9700493f2a6c657 \
     --hash=sha256:ccf8a1bcd5e49df83ab85aab793b579e5ba2eeea2ad8900b2f62ca3a37dc391f
     # via barman
-barman==3.18.0 \
-    --hash=sha256:8e752ac93d2f3a61e86b8374185209cae477a638ece7e6f540070f36d28d6997 \
-    --hash=sha256:ff90c44dafa4107b7574142771cdc2611c4cf1af818d93d3e67440a0c81164b9
+barman==3.19.1 \
+    --hash=sha256:0a6a9e1babf97687732d8b2a3eb79ea95d55246a5257b9433865cb6e755221c0 \
+    --hash=sha256:2f71c4a1f1ba53f694cbdf838bb9906d8ba02b97d1fd3041196e8999bec7a1ee
     # via -r sidecar-requirements.in
 boto3==1.43.14 \
     --hash=sha256:574335744656cfed0b362a0a0467aaf2eb2bf15526edcd02d31d3c661f4b09e4 \
@@ -788,6 +788,4 @@ zstandard==0.25.0 \
 setuptools==82.0.1 \
     --hash=sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9 \
     --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
-    # via
-    #   -r sidecar-requirements.in
-    #   barman
+    # via -r sidecar-requirements.in
