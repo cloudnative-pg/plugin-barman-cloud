@@ -55,7 +55,7 @@ var _ = Describe("LifecycleImplementation", func() {
 	// helper to build a fake client with our scheme and optional objects
 	buildClientFunc := func(objs ...runtime.Object) *fake.ClientBuilder {
 		s := runtime.NewScheme()
-		_ = barmancloudv1.AddToScheme(s)
+		barmancloudv1.AddKnownTypes(s)
 		return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(objs...)
 	}
 
@@ -139,10 +139,10 @@ var _ = Describe("LifecycleImplementation", func() {
 				Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							utils.JobRoleLabelName: "full-recovery",
+							utils.JobRoleLabelName: fullRecoveryJobName,
 						},
 					},
-					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "full-recovery"}}},
+					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: fullRecoveryJobName}}},
 				}},
 			}
 			jobJSON, _ := json.Marshal(job)
@@ -351,7 +351,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				},
 			}
 			s := runtime.NewScheme()
-			_ = barmancloudv1.AddToScheme(s)
+			barmancloudv1.AddKnownTypes(s)
 			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
 
 			impl := LifecycleImplementation{Client: cli}
@@ -378,7 +378,7 @@ var _ = Describe("LifecycleImplementation", func() {
 				},
 			}
 			s := runtime.NewScheme()
-			_ = barmancloudv1.AddToScheme(s)
+			barmancloudv1.AddKnownTypes(s)
 			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
 
 			impl := LifecycleImplementation{Client: cli}

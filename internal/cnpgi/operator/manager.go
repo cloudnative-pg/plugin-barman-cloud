@@ -24,7 +24,6 @@ import (
 	"crypto/tls"
 
 	// +kubebuilder:scaffold:imports
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,8 +47,7 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
-	utilruntime.Must(cnpgv1.AddToScheme(scheme))
+	barmancloudv1.AddKnownTypes(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

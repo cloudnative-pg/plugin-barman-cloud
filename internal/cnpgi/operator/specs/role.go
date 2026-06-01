@@ -21,6 +21,7 @@ package specs
 
 import (
 	"fmt"
+	"slices"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/stringset"
@@ -35,15 +36,20 @@ func BuildRole(
 	cluster *cnpgv1.Cluster,
 	barmanObjects []barmancloudv1.ObjectStore,
 ) *rbacv1.Role {
-	role := &rbacv1.Role{
+	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
+			Labels:    BuildLabels(cluster),
 		},
-
-		Rules: []rbacv1.PolicyRule{},
+		Rules: BuildRoleRules(barmanObjects),
 	}
+}
 
+// BuildRoleRules builds the RBAC PolicyRules for the given ObjectStores.
+//
+//nolint:goconst
+func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRule {
 	secretsSet := stringset.New()
 	barmanObjectsSet := stringset.New()
 
@@ -54,11 +60,10 @@ func BuildRole(
 		}
 	}
 
-	role.Rules = append(
-		role.Rules,
-		rbacv1.PolicyRule{
+	return []rbacv1.PolicyRule{
+		{
 			APIGroups: []string{
-				"barmancloud.cnpg.io",
+				barmancloudv1.GroupVersion.Group,
 			},
 			Verbs: []string{
 				"get",
@@ -70,9 +75,9 @@ func BuildRole(
 			},
 			ResourceNames: barmanObjectsSet.ToSortedList(),
 		},
-		rbacv1.PolicyRule{
+		{
 			APIGroups: []string{
-				"barmancloud.cnpg.io",
+				barmancloudv1.GroupVersion.Group,
 			},
 			Verbs: []string{
 				"update",
@@ -82,7 +87,7 @@ func BuildRole(
 			},
 			ResourceNames: barmanObjectsSet.ToSortedList(),
 		},
-		rbacv1.PolicyRule{
+		{
 			APIGroups: []string{
 				"",
 			},
@@ -96,9 +101,25 @@ func BuildRole(
 			},
 			ResourceNames: secretsSet.ToSortedList(),
 		},
-	)
+	}
+}
 
-	return role
+// ObjectStoreNamesFromRole extracts the ObjectStore names referenced
+// by a plugin-managed Role. It finds the objectstores rule
+// semantically (by APIGroup and Resource, not by index) and returns
+// a copy of its ResourceNames. Returns nil if no matching rule is
+// found.
+func ObjectStoreNamesFromRole(role *rbacv1.Role) []string {
+	for _, rule := range role.Rules {
+		if len(rule.APIGroups) == 1 &&
+			rule.APIGroups[0] == barmancloudv1.GroupVersion.Group &&
+			len(rule.Resources) == 1 &&
+			rule.Resources[0] == "objectstores" {
+			return slices.Clone(rule.ResourceNames)
+		}
+	}
+
+	return nil
 }
 
 // BuildRoleBinding builds the role binding object for this cluster
@@ -109,6 +130,7 @@ func BuildRoleBinding(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      GetRBACName(cluster.Name),
+			Labels:    BuildLabels(cluster),
 		},
 		Subjects: []rbacv1.Subject{
 			{

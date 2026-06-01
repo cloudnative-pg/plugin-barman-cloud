@@ -91,12 +91,11 @@ func addScheme(cl client.Client) error {
 	if err := certmanagerv1.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("failed to add cert-manager/v1 to scheme: %w", err)
 	}
-	if err := pluginBarmanCloudV1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed to add plugin-barman-cloud/v1 to scheme: %w", err)
-	}
 	if err := cloudnativepgv1.AddToScheme(scheme); err != nil {
 		return fmt.Errorf("failed to add cloudnativepg/v1 to scheme: %w", err)
 	}
+	
+	pluginBarmanCloudV1.AddKnownTypes(scheme)
 
 	return nil
 }

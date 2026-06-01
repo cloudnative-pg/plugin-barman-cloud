@@ -22,26 +22,15 @@ package restore
 import (
 	"context"
 
-	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
 )
-
-var scheme = runtime.NewScheme()
-
-func init() {
-	utilruntime.Must(barmancloudv1.AddToScheme(scheme))
-	utilruntime.Must(cnpgv1.AddToScheme(scheme))
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-}
 
 // Start starts the sidecar informers and CNPG-i server
 func Start(ctx context.Context) error {
@@ -49,7 +38,7 @@ func Start(ctx context.Context) error {
 	setupLog.Info("Starting barman cloud instance plugin")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
+		Scheme: common.GenerateScheme(ctx),
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{

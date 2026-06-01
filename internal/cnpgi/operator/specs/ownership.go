@@ -17,7 +17,7 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package operator
+package specs
 
 import (
 	"fmt"
@@ -27,26 +27,32 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// setOwnerReference explicitly set the owner reference between an
-// owner object and a controller one.
+// SetControllerReference sets an owner reference on controlled
+// pointing to owner, reading the GVK from the owner object's
+// metadata rather than from a scheme. This is necessary because
+// the operator does not know the CNPG API group at compile time
+// (it may be customized), while the Cluster object decoded from
+// the gRPC request carries the correct GVK in its TypeMeta.
 //
-// Important: this function won't use any registered scheme and will
-// fail unless the metadata has been correctly set into the owner
-// object.
-func setOwnerReference(owner, controlled metav1.Object) error {
+// This function replaces all existing owner references rather than
+// merging, so it assumes the controlled object has a single owner.
+// This holds for plugin-managed Roles and RoleBindings, which are
+// exclusively owned by one Cluster.
+func SetControllerReference(owner, controlled metav1.Object) error {
 	ro, ok := owner.(runtime.Object)
 	if !ok {
-		return fmt.Errorf("%T is not a runtime.Object, cannot call setOwnerReference", owner)
+		return fmt.Errorf("%T is not a runtime.Object, cannot call SetControllerReference", owner)
 	}
 
-	if len(ro.DeepCopyObject().GetObjectKind().GroupVersionKind().Group) == 0 {
-		return fmt.Errorf("%T metadata have not been set, cannot call setOwnerReference", owner)
+	gvk := ro.GetObjectKind().GroupVersionKind()
+	if gvk.Kind == "" {
+		return fmt.Errorf("%T has no GVK set in its metadata, cannot call SetControllerReference", owner)
 	}
 
 	controlled.SetOwnerReferences([]metav1.OwnerReference{
 		{
-			APIVersion:         ro.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-			Kind:               ro.GetObjectKind().GroupVersionKind().Kind,
+			APIVersion:         gvk.GroupVersion().String(),
+			Kind:               gvk.Kind,
 			Name:               owner.GetName(),
 			UID:                owner.GetUID(),
 			BlockOwnerDeletion: ptr.To(true),

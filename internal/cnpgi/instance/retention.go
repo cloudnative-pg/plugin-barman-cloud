@@ -81,6 +81,8 @@ func (c *CatalogMaintenanceRunnable) Start(ctx context.Context) error {
 // cycle enforces the retention policies. On success, it returns the amount
 // of time to wait to the next check.
 func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, error) {
+	contextLogger := log.FromContext(ctx)
+
 	var cluster cnpgv1.Cluster
 	var barmanObjectStore barmancloudv1.ObjectStore
 
@@ -88,7 +90,17 @@ func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, 
 		return 0, err
 	}
 
+	enabledPlugins := cnpgv1.GetPluginConfigurationEnabledPluginNames(cluster.Spec.Plugins)
+	if !slices.Contains(enabledPlugins, metadata.PluginName) {
+		contextLogger.Debug("Skipping maintenance cycle: plugin is not enabled for backups")
+		return 0, nil
+	}
+
 	configuration := config.NewFromCluster(&cluster)
+	if configuration == nil || len(configuration.BarmanObjectName) == 0 {
+		return 0, fmt.Errorf("invalid configuration, missing barman object store reference")
+	}
+
 	if err := c.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
 		return 0, err
 	}

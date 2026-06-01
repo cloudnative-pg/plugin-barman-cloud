@@ -27,14 +27,12 @@ import (
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/object"
 	"github.com/cloudnative-pg/cnpg-i/pkg/reconciler"
 	"github.com/cloudnative-pg/machinery/pkg/log"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/rbac"
 )
 
 // ReconcilerImplementation implements the Reconciler capability
@@ -113,11 +111,11 @@ func (r ReconcilerImplementation) Pre(
 		barmanObjects = append(barmanObjects, barmanObject)
 	}
 
-	if err := r.ensureRole(ctx, &cluster, barmanObjects); err != nil {
+	if err := rbac.EnsureRole(ctx, r.Client, &cluster, barmanObjects); err != nil {
 		return nil, err
 	}
 
-	if err := r.ensureRoleBinding(ctx, &cluster); err != nil {
+	if err := rbac.EnsureRoleBinding(ctx, r.Client, &cluster); err != nil {
 		return nil, err
 	}
 
@@ -135,86 +133,4 @@ func (r ReconcilerImplementation) Post(
 	return &reconciler.ReconcilerHooksResult{
 		Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_CONTINUE,
 	}, nil
-}
-
-func (r ReconcilerImplementation) ensureRole(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-	barmanObjects []barmancloudv1.ObjectStore,
-) error {
-	contextLogger := log.FromContext(ctx)
-	newRole := specs.BuildRole(cluster, barmanObjects)
-
-	var role rbacv1.Role
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: newRole.Namespace,
-		Name:      newRole.Name,
-	}, &role); err != nil {
-		if !apierrs.IsNotFound(err) {
-			return err
-		}
-
-		contextLogger.Info(
-			"Creating role",
-			"name", newRole.Name,
-			"namespace", newRole.Namespace,
-		)
-
-		if err := setOwnerReference(cluster, newRole); err != nil {
-			return err
-		}
-
-		return r.Client.Create(ctx, newRole)
-	}
-
-	if equality.Semantic.DeepEqual(newRole.Rules, role.Rules) {
-		// There's no need to hit the API server again
-		return nil
-	}
-
-	contextLogger.Info(
-		"Patching role",
-		"name", newRole.Name,
-		"namespace", newRole.Namespace,
-		"rules", newRole.Rules,
-	)
-
-	oldRole := role.DeepCopy()
-
-	// Apply to the role the new rules
-	role.Rules = newRole.Rules
-
-	// Push it back to the API server
-	return r.Client.Patch(ctx, &role, client.MergeFrom(oldRole))
-}
-
-func (r ReconcilerImplementation) ensureRoleBinding(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-) error {
-	var role rbacv1.RoleBinding
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      specs.GetRBACName(cluster.Name),
-	}, &role); err != nil {
-		if apierrs.IsNotFound(err) {
-			return r.createRoleBinding(ctx, cluster)
-		}
-		return err
-	}
-
-	// TODO: this assumes role bindings never change.
-	// Is that true? Should we relax this assumption?
-	return nil
-}
-
-func (r ReconcilerImplementation) createRoleBinding(
-	ctx context.Context,
-	cluster *cnpgv1.Cluster,
-) error {
-	roleBinding := specs.BuildRoleBinding(cluster)
-	if err := setOwnerReference(cluster, roleBinding); err != nil {
-		return err
-	}
-	return r.Client.Create(ctx, roleBinding)
 }
