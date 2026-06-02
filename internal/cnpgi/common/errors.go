@@ -34,7 +34,7 @@ func classifyWALRestoreError(walName string, walErr error) error {
 	switch {
 	case errors.Is(walErr, barmanRestorer.ErrWALNotFound):
 		return newWALNotFoundError(walName)
-	case errors.Is(walErr, barmanRestorer.ErrInvalidWalName):
+	case errors.Is(walErr, barmanRestorer.ErrInvalidWALName):
 		// A malformed WAL name will never become valid on retry.
 		return newInvalidWALNameError(walName, walErr)
 	case errors.Is(walErr, barmanRestorer.ErrConnectivity),
