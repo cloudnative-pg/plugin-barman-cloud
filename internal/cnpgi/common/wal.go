@@ -365,11 +365,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return newWALNotFoundError(walStatus[0].WalName)
-		}
-
-		return walStatus[0].Err
+		return classifyWALRestoreError(walStatus[0].WalName, walStatus[0].Err)
 	}
 
 	// We skip this step if streaming connection is not available
