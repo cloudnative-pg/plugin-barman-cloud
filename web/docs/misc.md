@@ -43,8 +43,9 @@ configuration.
 - `.spec.configuration.wal.archiveAdditionalCommandArgs`: for `barman-cloud-wal-archive`
 - `.spec.configuration.wal.restoreAdditionalCommandArgs`: for `barman-cloud-wal-restore`
 
-Each field accepts a list of string arguments. If an argument is already
-configured elsewhere in the plugin, the duplicate will be ignored.
+Each field accepts a list of string arguments. If an argument conflicts with
+one already set by the plugin, the user-provided value will be ignored. These
+fields are intended to pass options the plugin does not configure automatically.
 
 ### Example: Extra Backup Options
 
