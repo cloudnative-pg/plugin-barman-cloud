@@ -9,7 +9,7 @@ vars:
   GO_VERSION:
     sh: sed -n 's/^toolchain go//p' go.mod | grep . || sed -n 's/^go //p' go.mod
   # renovate: datasource=docker depName=kindest/node versioning=semver
-  E2E_KUBERNETES_VERSION: v1.35.1
+  E2E_KUBERNETES_VERSION: v1.36.1
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
