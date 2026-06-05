@@ -47,6 +47,22 @@ jobs:
           DAGGER_VERSION: 0.21.4
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+      - name: DEBUG commitlint git state
+        continue-on-error: true
+        run: |
+          echo "===== HOST ====="
+          git rev-parse origin/main HEAD || true
+          printf 'host merge-base: '; git merge-base origin/main HEAD || echo 'HOST: NONE'
+          echo "host rev-list count HEAD: $(git rev-list --count HEAD 2>&1)"
+          echo "host git config (fetch/commitgraph):"; git config --get-regexp 'fetch|commitgraph|commitGraph' || true
+          echo "host .git/objects/info:"; ls -la .git/objects/info/ 2>&1 || true
+          echo "host fsck:"; git fsck --connectivity-only 2>&1 | head -8 || true
+          echo "===== CONTAINER (dagger --source .) ====="
+          GITHUB_REF= dagger core container from --address=alpine/git \
+            with-mounted-directory --path=/src --source=. \
+            with-workdir --path=/src \
+            with-exec --use-entrypoint=false --args=sh,-c,'echo om=$(git rev-parse origin/main 2>&1); echo hd=$(git rev-parse HEAD 2>&1); printf mb= ; git merge-base origin/main HEAD 2>&1 || echo NONE; echo nlog:; git log --oneline -3 origin/main 2>&1; echo hlog:; git log --oneline -3 HEAD 2>&1; echo fsck:; git fsck --connectivity-only 2>&1 | head -8; echo cginfo:; ls -la .git/objects/info/ 2>&1; echo packedrefs:; head -30 .git/packed-refs 2>&1' \
+            stdout || true
       - name: Run CI task
         run: |
           task ci
