@@ -49,7 +49,24 @@ jobs:
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run CI task
         run: |
-          task ci
+          set +e
+          echo "########## BASELINE snapshot (pre-load) ##########"
+          echo "[host] $(df -h / | tail -1)"
+          echo "[host] gitdu=$(du -sh .git 2>/dev/null|cut -f1) cglayers=$(ls .git/objects/info/commit-graphs/ 2>/dev/null|wc -l)"
+          GITHUB_REF= timeout 220 dagger core container from --address=alpine/git \
+            with-mounted-directory --path=/src --source=. \
+            with-workdir --path=/src \
+            with-exec --use-entrypoint=false --args=sh,-c,'printf BASE_mb=; git merge-base origin/main HEAD 2>/dev/null || echo NONE; echo BASE_count=$(git rev-list --count HEAD 2>/dev/null); echo BASE_packls:; ls -la .git/objects/pack 2>/dev/null; echo BASE_cglayers=$(ls .git/objects/info/commit-graphs 2>/dev/null|wc -l)' \
+            stdout 2>/dev/null || echo "BASE_DAGGER_ERROR"
+          echo "########## LAUNCHING FULL task ci (parallel load) ##########"
+          ( task ci > /tmp/taskci.log 2>&1 ) & TASKCI=$!
+          ( for t in $(seq 1 90); do echo "[host t=$t $(date -u +%H:%M:%S)] $(df -h / | tail -1) | gitdu=$(du -sh .git 2>/dev/null|cut -f1) packb=$(du -cb .git/objects/pack/*.pack 2>/dev/null|tail -1|cut -f1)"; sleep 4; done ) & HOSTLOOP=$!
+          ( for t in $(seq 1 20); do echo "===CTRPROBE t=$t $(date -u +%H:%M:%S)==="; GITHUB_REF= timeout 90 dagger core container from --address=alpine/git with-mounted-directory --path=/src --source=. with-workdir --path=/src with-exec --use-entrypoint=false --args=sh,-c,'printf CTR_mb=; git merge-base origin/main HEAD 2>/dev/null || echo NONE; echo CTR_count=$(git rev-list --count HEAD 2>/dev/null); echo CTR_packls:; ls -la .git/objects/pack 2>/dev/null; echo CTR_cglayers=$(ls .git/objects/info/commit-graphs 2>/dev/null|wc -l)' stdout 2>/dev/null || echo CTR_DAGGER_ERROR; sleep 7; done ) & CTRLOOP=$!
+          sleep 290
+          kill $HOSTLOOP $CTRLOOP $TASKCI 2>/dev/null
+          echo "########## commitlint result from task ci ##########"
+          grep -iE "commitlint|merge-base|Failed to run task" /tmp/taskci.log 2>/dev/null | sed -E 's/\x1b\[[0-9;]*m//g' | tail -30
+          exit 1
       - name: Write manifest
         run: |
           task manifest
