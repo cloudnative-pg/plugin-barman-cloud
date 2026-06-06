@@ -48,8 +48,30 @@ jobs:
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run CI task
+        env:
+          GIT_TRACE: /tmp/gittrace.log
+          GIT_TRACE_SETUP: /tmp/gittrace.log
         run: |
-          task ci
+          set +e
+          : > /tmp/gittrace.log
+          echo "HOST initial: count=$(git rev-list --count HEAD 2>&1) shallow=$(test -f .git/shallow && echo YES || echo no)"
+          ( task ci > /tmp/taskci.log 2>&1 ) & TASKCI=$!
+          CHANGED=0
+          for t in $(seq 1 120); do
+            cnt=$(git rev-list --count HEAD 2>/dev/null)
+            if [ -f .git/shallow ] || { [ -n "$cnt" ] && [ "$cnt" != "644" ]; }; then
+              echo ">>> HOST .git CHANGED at t=$t ($((t*2))s) : count=$cnt shallow=$(test -f .git/shallow && echo YES||echo no)"
+              echo "=== git-trace: fetch/clone/depth/shallow + setup cwd/git_dir ==="
+              grep -inE "fetch|clone|--depth|shallow|setup: git_dir|setup: cwd|setup: worktree" /tmp/gittrace.log | tail -50
+              echo "=== task ci tail (what ran) ==="; sed -E 's/\x1b\[[0-9;]*m//g' /tmp/taskci.log | tail -30
+              CHANGED=1; break
+            fi
+            sleep 2
+          done
+          [ "$CHANGED" = 0 ] && echo ">>> HOST never changed"
+          echo "=== FULL git-trace (depth/shallow/fetch only) ==="; grep -inE "--depth|shallow|fetch .*file|clone" /tmp/gittrace.log | head -30
+          kill $TASKCI 2>/dev/null
+          exit 1
       - name: Write manifest
         run: |
           task manifest
