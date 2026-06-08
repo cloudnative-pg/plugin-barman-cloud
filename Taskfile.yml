@@ -122,7 +122,7 @@ tasks:
   docusaurus-version-is-aligned:
     desc: Verify that a documentation version exists for the current version of the plugin
     cmds:
-      - $(dagger -s call -m dagger/check-doc-version has-version-documentation --src .)
+      - $(GITHUB_REF= dagger -s call -m dagger/check-doc-version has-version-documentation --src .)
     src:
       - .release-please-manifest.json
       - ./web/versions.json
@@ -366,12 +366,12 @@ tasks:
       DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
     cmds:
       - >
-        dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
-        dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
@@ -456,13 +456,13 @@ tasks:
       DAGGER_KUSTOMIZE_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
     cmds:
       - >
-        dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        GITHUB_REF= dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         edit --source . --dir kubernetes
         set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         directory directory --path kubernetes export --path manifest-build
       - >
-        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         build --source . --dir manifest-build export --path manifest.yaml
     sources:
       - ./config/**/*.yaml
@@ -489,7 +489,7 @@ tasks:
         msg: not a tag, failing
     cmds:
         - >
-            dagger -s call -m github.com/sagikazarmark/daggerverse/gh@${DAGGER_GH_SHA}
+            GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/gh@${DAGGER_GH_SHA}
             with-source --source .
             run --repo {{.GITHUB_REPOSITORY}} --token env:GITHUB_TOKEN
             --cmd "release upload {{.GITHUB_REF_NAME}} manifest.yaml"
