@@ -25,6 +25,7 @@ import (
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/machinery/pkg/log"
 	"github.com/spf13/viper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -49,6 +50,7 @@ func AddCNPGToScheme(ctx context.Context, s *runtime.Scheme) {
 		&cnpgv1.Backup{}, &cnpgv1.BackupList{},
 		&cnpgv1.ScheduledBackup{}, &cnpgv1.ScheduledBackupList{},
 	)
+	metav1.AddToGroupVersion(s, schemeGroupVersion)
 
 	log.FromContext(ctx).Info("CNPG types registration", "schemeGroupVersion", schemeGroupVersion)
 }
