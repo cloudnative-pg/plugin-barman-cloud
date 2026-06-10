@@ -1041,8 +1041,6 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
-          runAsGroup: 10001
-          runAsUser: 10001
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
