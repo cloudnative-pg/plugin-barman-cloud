@@ -97,9 +97,8 @@ func WithIgnoreExistingResources(ignore bool) SetupOption {
 }
 
 func defaultSetupOptions() SetupOptions {
-	// TODO: renovate
 	return SetupOptions{
-		CertManagerVersion: "v1.15.1",
+		CertManagerVersion: certmanager.DefaultVersion,
 	}
 }
 
