@@ -242,20 +242,13 @@ func (w WALServiceImplementation) Restore(
 	var serverName string
 	var objectStoreKey types.NamespacedName
 
-	var promotionToken string
-	if configuration.Cluster.Spec.ReplicaCluster != nil {
-		promotionToken = configuration.Cluster.Spec.ReplicaCluster.PromotionToken
-	}
-
 	switch {
-	case promotionToken != "" && configuration.Cluster.Status.LastPromotionToken != promotionToken:
-		// This is a replica cluster that is being promoted to a primary cluster
-		// Recover from the replica source object store
-		serverName = configuration.ReplicaSourceServerName
-		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
-
-	case configuration.Cluster.IsReplica() && configuration.Cluster.Status.CurrentPrimary == w.InstanceName:
-		// Designated primary on replica cluster, using replica source object store
+	case configuration.Cluster.Status.CurrentPrimary == w.InstanceName &&
+		len(configuration.ReplicaSourceBarmanObjectName) > 0:
+		// restore_command is only called while PostgreSQL is in recovery, so if this
+		// instance is the current primary with a replica source configured, it must be
+		// a designated primary that hasn't completed promotion yet. This covers both
+		// switchover (promotion token) and failover (no promotion token) cases.
 		serverName = configuration.ReplicaSourceServerName
 		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
 
