@@ -263,7 +263,9 @@ func getReplicaSourcePlugin(cluster *cnpgv1.Cluster) *cnpgv1.PluginConfiguration
 func (config *PluginConfiguration) Validate() error {
 	err := NewConfigurationError()
 
-	if len(config.BarmanObjectName) == 0 && len(config.RecoveryBarmanObjectName) == 0 {
+	if len(config.BarmanObjectName) == 0 &&
+		len(config.RecoveryBarmanObjectName) == 0 &&
+		len(config.ReplicaSourceBarmanObjectName) == 0 {
 		return err.WithMessage("no reference to barmanObjectName have been included")
 	}
 
