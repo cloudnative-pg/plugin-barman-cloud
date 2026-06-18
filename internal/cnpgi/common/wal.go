@@ -224,7 +224,6 @@ func (w WALServiceImplementation) Archive(
 }
 
 // Restore implements the WALService interface
-// nolint: gocognit
 func (w WALServiceImplementation) Restore(
 	ctx context.Context,
 	request *wal.WALRestoreRequest,
@@ -239,36 +238,7 @@ func (w WALServiceImplementation) Restore(
 		return nil, err
 	}
 
-	var serverName string
-	var objectStoreKey types.NamespacedName
-
-	var promotionToken string
-	if configuration.Cluster.Spec.ReplicaCluster != nil {
-		promotionToken = configuration.Cluster.Spec.ReplicaCluster.PromotionToken
-	}
-
-	switch {
-	case promotionToken != "" && configuration.Cluster.Status.LastPromotionToken != promotionToken:
-		// This is a replica cluster that is being promoted to a primary cluster
-		// Recover from the replica source object store
-		serverName = configuration.ReplicaSourceServerName
-		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
-
-	case configuration.Cluster.IsReplica() && configuration.Cluster.Status.CurrentPrimary == w.InstanceName:
-		// Designated primary on replica cluster, using replica source object store
-		serverName = configuration.ReplicaSourceServerName
-		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
-
-	case configuration.Cluster.Status.CurrentPrimary == "":
-		// Recovery from object store, using recovery object store
-		serverName = configuration.RecoveryServerName
-		objectStoreKey = configuration.GetRecoveryBarmanObjectKey()
-
-	default:
-		// Using cluster object store
-		serverName = configuration.ServerName
-		objectStoreKey = configuration.GetBarmanObjectKey()
-	}
+	serverName, objectStoreKey := resolveRestoreObjectStore(configuration, w.InstanceName)
 
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, objectStoreKey, &objectStore); err != nil {
@@ -282,6 +252,33 @@ func (w WALServiceImplementation) Restore(
 		"walName", walName)
 	return &wal.WALRestoreResult{}, w.restoreFromBarmanObjectStore(
 		ctx, configuration.Cluster, &objectStore, serverName, walName, destinationPath)
+}
+
+// resolveRestoreObjectStore selects the object store and server name to use when
+// restoring a WAL file, based on the role this instance plays in the cluster.
+func resolveRestoreObjectStore(
+	configuration *config.PluginConfiguration,
+	instanceName string,
+) (serverName string, objectStoreKey types.NamespacedName) {
+	switch {
+	case configuration.Cluster.Status.CurrentPrimary == instanceName &&
+		len(configuration.ReplicaSourceBarmanObjectName) > 0:
+		// PostgreSQL never runs restore_command on a live primary; it runs only while
+		// the instance is in recovery (a genuine standby, restoring from a backup, or
+		// being rewound by pg_rewind). So a current primary that still has a replica
+		// source configured can only be a designated primary that has not finished
+		// promoting, and it must keep fetching WAL from the replica source.
+		// Token-agnostic: covers both switchover and failover.
+		return configuration.ReplicaSourceServerName, configuration.GetReplicaSourceBarmanObjectKey()
+
+	case configuration.Cluster.Status.CurrentPrimary == "":
+		// Recovery from object store, using recovery object store
+		return configuration.RecoveryServerName, configuration.GetRecoveryBarmanObjectKey()
+
+	default:
+		// Using cluster object store
+		return configuration.ServerName, configuration.GetBarmanObjectKey()
+	}
 }
 
 func (w WALServiceImplementation) restoreFromBarmanObjectStore(
