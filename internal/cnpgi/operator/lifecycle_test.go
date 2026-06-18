@@ -28,6 +28,7 @@ import (
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -293,6 +294,24 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(args).To(Equal(recoveryArgs))
 		})
 
+		It("falls back to replica source object store when primary and recovery not set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                       cluster,
+				ReplicaSourceBarmanObjectName: "replica-source-store",
+			}
+			replicaArgs := []string{"--replica-a", "--replica-b"}
+			cli := buildClientFunc(
+				makeStoreFunc(ns, pc.ReplicaSourceBarmanObjectName, replicaArgs),
+			).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal(replicaArgs))
+		})
+
 		It("returns nil when neither object name is configured", func(ctx SpecContext) {
 			ns := "test-ns"
 			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
@@ -385,6 +404,117 @@ var _ = Describe("LifecycleImplementation", func() {
 			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(args).To(Equal([]string{"--log-level=info"}))
+		})
+
+		It("includes --log-level from replica source object store when only replica source set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                       cluster,
+				ReplicaSourceBarmanObjectName: "replica-source-store",
+			}
+			store := &barmancloudv1.ObjectStore{
+				TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+				ObjectMeta: metav1.ObjectMeta{Name: pc.ReplicaSourceBarmanObjectName, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+						LogLevel: "warning",
+					},
+				},
+			}
+			s := runtime.NewScheme()
+			barmancloudv1.AddKnownTypes(s)
+			cli := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(store).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			args, err := impl.collectAdditionalInstanceArgs(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(args).To(Equal([]string{"--log-level=warning"}))
+		})
+	})
+
+	Describe("collectSidecarResourcesForPod", func() {
+		makeStoreWithResourcesFunc := func(ns, name string, res corev1.ResourceRequirements) *barmancloudv1.ObjectStore {
+			return &barmancloudv1.ObjectStore{
+				TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+						Resources: res,
+					},
+				},
+			}
+		}
+
+		It("uses the cluster object store resources when set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, BarmanObjectName: "primary-store"}
+			res := corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("64Mi")},
+			}
+			cli := buildClientFunc(makeStoreWithResourcesFunc(ns, pc.BarmanObjectName, res)).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			got, err := impl.collectSidecarResourcesForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			gotMem := got.Requests[corev1.ResourceMemory]
+			Expect(gotMem.String()).To(Equal("64Mi"))
+		})
+
+		It("uses the recovery object store resources when only recovery is set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, RecoveryBarmanObjectName: "recovery-store"}
+			res := corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("128Mi")},
+			}
+			cli := buildClientFunc(makeStoreWithResourcesFunc(ns, pc.RecoveryBarmanObjectName, res)).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			got, err := impl.collectSidecarResourcesForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			gotMem := got.Requests[corev1.ResourceMemory]
+			Expect(gotMem.String()).To(Equal("128Mi"))
+		})
+
+		It("uses the replica source object store resources when only replica source is set", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, ReplicaSourceBarmanObjectName: "replica-source-store"}
+			res := corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("256Mi")},
+			}
+			cli := buildClientFunc(makeStoreWithResourcesFunc(ns, pc.ReplicaSourceBarmanObjectName, res)).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			got, err := impl.collectSidecarResourcesForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			gotMem := got.Requests[corev1.ResourceMemory]
+			Expect(gotMem.String()).To(Equal("256Mi"))
+		})
+
+		It("returns empty resources when no object store is configured", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster}
+			cli := buildClientFunc().Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			got, err := impl.collectSidecarResourcesForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(Equal(corev1.ResourceRequirements{}))
+		})
+
+		It("returns an error if the replica source object store cannot be retrieved", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{Cluster: cluster, ReplicaSourceBarmanObjectName: "missing-store"}
+			cli := buildClientFunc().Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			_, err := impl.collectSidecarResourcesForPod(ctx, pc)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
