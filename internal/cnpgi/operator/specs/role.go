@@ -60,7 +60,7 @@ func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRu
 		}
 	}
 
-	return []rbacv1.PolicyRule{
+	rules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{
 				barmancloudv1.GroupVersion.Group,
@@ -87,7 +87,11 @@ func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRu
 			},
 			ResourceNames: barmanObjectsSet.ToSortedList(),
 		},
-		{
+	}
+
+	secrets := secretsSet.ToSortedList()
+	if len(secrets) > 0 {
+		rules = append(rules, rbacv1.PolicyRule{
 			APIGroups: []string{
 				"",
 			},
@@ -99,9 +103,11 @@ func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRu
 				"watch",
 				"list",
 			},
-			ResourceNames: secretsSet.ToSortedList(),
-		},
+			ResourceNames: secrets,
+		})
 	}
+
+	return rules
 }
 
 // ObjectStoreNamesFromRole extracts the ObjectStore names referenced
