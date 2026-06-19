@@ -48,6 +48,9 @@ func (impl LifecycleImplementation) collectSidecarResourcesForPod(
 	ctx context.Context,
 	configuration *config.PluginConfiguration,
 ) (corev1.ResourceRequirements, error) {
+	// Only one object store provides the sidecar resources, with precedence:
+	// BarmanObjectName (backup/archive) > RecoveryBarmanObjectName (recovery
+	// bootstrap) > ReplicaSourceBarmanObjectName (pg_basebackup replica).
 	if len(configuration.BarmanObjectName) > 0 {
 		// On a replica cluster that also archives, the designated primary
 		// will use both the replica source object store and the object store
@@ -64,12 +67,25 @@ func (impl LifecycleImplementation) collectSidecarResourcesForPod(
 	}
 
 	if len(configuration.RecoveryBarmanObjectName) > 0 {
-		// On a replica cluster that doesn't archive, the designated primary
-		// uses only the replica source object store.
+		// On a cluster recovering from an object store (including log-shipping
+		// replica clusters, where the recovery and replica source object stores
+		// coincide), we use the recovery object store for configuring the
+		// resources of the sidecar container.
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &barmanObjectStore); err != nil {
+			return corev1.ResourceRequirements{}, err
+		}
+
+		return barmanObjectStore.Spec.InstanceSidecarConfiguration.Resources, nil
+	}
+
+	if len(configuration.ReplicaSourceBarmanObjectName) > 0 {
+		// On a replica cluster bootstrapped via pg_basebackup, the designated
+		// primary uses only the replica source object store.
 		// In this case, we use the replica source object store for configuring
 		// the resources of the sidecar container.
 		var barmanObjectStore barmancloudv1.ObjectStore
-		if err := impl.Client.Get(ctx, configuration.GetRecoveryBarmanObjectKey(), &barmanObjectStore); err != nil {
+		if err := impl.Client.Get(ctx, configuration.GetReplicaSourceBarmanObjectKey(), &barmanObjectStore); err != nil {
 			return corev1.ResourceRequirements{}, err
 		}
 
