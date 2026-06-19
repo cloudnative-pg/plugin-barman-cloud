@@ -40,7 +40,7 @@ spec:
         - --client-cert=/client/tls.crt
         - --server-address=:9090
         - --leader-elect
-        - --log-level=debug
+        - --log-level=info
         readinessProbe:
           tcpSocket:
             port: 9090
