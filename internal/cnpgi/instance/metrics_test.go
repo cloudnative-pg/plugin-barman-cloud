@@ -22,10 +22,11 @@ package instance
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"k8s.io/utils/ptr"
-	"time"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/metrics"
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
@@ -117,7 +118,7 @@ var _ = Describe("Metrics Collect method", func() {
 		res, err := m.Collect(ctx, req)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(res).ToNot(BeNil())
-		Expect(res.Metrics).To(HaveLen(3))
+		Expect(res.Metrics).To(HaveLen(4))
 
 		// Verify the metrics
 		metricsMap := make(map[string]float64)
@@ -131,6 +132,13 @@ var _ = Describe("Metrics Collect method", func() {
 
 		expectedLastBackup, _ := metricsMap[lastAvailableBackupTimestampMetricName]
 		Expect(expectedLastBackup).To(BeNumerically("~", float64(objectStore.Status.ServerRecoveryWindow[clusterName].LastSuccessfulBackupTime.Unix()), 1))
+
+		// Check that unset timestamps are 0
+		expectedLastFailedBackup, _ := metricsMap[lastFailedBackupTimestampMetricName]
+		Expect(expectedLastFailedBackup).To(BeZero())
+
+		expectedLastArchivedWAL, _ := metricsMap[lastArchivedWALTimestampMetricName]
+		Expect(expectedLastArchivedWAL).To(BeZero())
 	})
 
 	It("should return an error if the object store is not found", func() {
