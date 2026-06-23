@@ -59,7 +59,7 @@ const (
 	managerExecutable = "/controller/manager"
 	// postgresContainer is the container we exec into on instance pods.
 	postgresContainer = "postgres"
-	// walLogDir is the wals sub-directory (timeline + log id) the forged segments
+	// walLogDir is the WALs subdirectory (timeline + log id) the forged segments
 	// live under; a freshly bootstrapped, idle cluster stays within it.
 	walLogDir = "0000000100000000"
 	// bucket is the destination bucket of the minio ObjectStore.
@@ -105,7 +105,7 @@ func execInPod(
 // This test drives the plugin's parallel WAL restore directly: it invokes the
 // instance-manager wal-restore command on the standby (which delegates to the
 // plugin) and asserts the prefetch/spool/end-of-wal-stream state machine with
-// maxParallel = 3. To control the archive deterministically it forges WAL
+// maxParallel = 3. To control the archive deterministically, it forges WAL
 // segments on the object store by copying a real archived segment under new
 // names.
 var _ = Describe("Parallel WAL restore", func() {
@@ -166,9 +166,6 @@ var _ = Describe("Parallel WAL restore", func() {
 			primary := cluster.Status.CurrentPrimary
 			Expect(primary).NotTo(BeEmpty())
 			standby := clusterName + "-2"
-			if primary == standby {
-				standby = clusterName + "-1"
-			}
 
 			var s3ClientPods corev1.PodList
 			Expect(cl.List(ctx, &s3ClientPods,
