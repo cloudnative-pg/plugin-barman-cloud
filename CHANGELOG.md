@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.13.0...v0.13.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#963](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/963)) ([f949241](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f94924105b51b7b015338d4ec2c71904ef8d095c))
+* **deps:** Update all non-major go dependencies ([#979](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/979)) ([bf52833](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/bf5283359478071f116464c14a7a3d3d0a358eea))
+* **deps:** Update all non-major go dependencies to 53ffbf0 ([#973](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/973)) ([7190349](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/719034947061f72ce8fcc919f5e209aa7fd7d874))
+* **deps:** Update all non-major go dependencies to 592f761 ([#972](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/972)) ([2fa63c4](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2fa63c4bc28c03fbb79e3751a001868e991b8917))
+* **deps:** Update all non-major go dependencies to 8d9302e ([#975](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/975)) ([0c687cb](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0c687cbbf13f4ce5ca1690d4dcf768d76cb4731a))
+* **deps:** Update all non-major go dependencies to v2.30.0 ([#957](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/957)) ([61b82ce](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/61b82ce250e95f04d49d0fb427e79364f2d900c0))
+* **deps:** Update k8s.io/utils digest to a95e086 ([#968](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/968)) ([f7f0136](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f7f0136520b1032698b26e33e6eff1caa01173f5))
+* **deps:** Update kubernetes monorepo to v0.36.2 ([#958](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/958)) ([030b28c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/030b28c4b9aee205f7a43f1fcc4da363b50839d9))
+* Inject barman sidecar in replica clusters bootstrapped with pg_basebackup ([#965](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/965)) ([eb5e860](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/eb5e8607752d60bf36b4a9ddcaa5bb447f323012))
+* Restore WAL from replica source during designated primary promotion ([#966](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/966)) ([c34b232](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c34b2329ea39f9a1030d9d1225aa4d0a276255eb))
+
 ## [0.13.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.12.0...v0.13.0) (2026-06-10)
 
 
