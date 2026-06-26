@@ -1,3 +1,2 @@
 barman[azure,cloud,google,snappy,zstandard,lz4]==3.19.1
-setuptools==82.0.1
 zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
