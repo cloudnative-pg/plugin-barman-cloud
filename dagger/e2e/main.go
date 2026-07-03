@@ -72,7 +72,7 @@ func (m *E2E) RunEphemeral(
 	source *dagger.Directory,
 	// registry is a private registry
 	// +optional
-	// +default="registry.barman-cloud-plugin:5000"
+	// +default="registry.dev:5000"
 	registry string,
 	// ca is the certificate authority for the registry
 	// +optional
