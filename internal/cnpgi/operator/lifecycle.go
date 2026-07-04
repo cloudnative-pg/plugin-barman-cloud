@@ -403,6 +403,7 @@ func reconcilePodSpec(
 	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
+		PeriodSeconds:    1,
 		FailureThreshold: 10,
 		TimeoutSeconds:   10,
 		ProbeHandler: corev1.ProbeHandler{
