@@ -21,6 +21,7 @@ package walrestore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	executil "k8s.io/client-go/util/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
@@ -67,9 +69,8 @@ const (
 )
 
 // walFile returns the name of the n-th forged WAL segment (segment 0xF0+n on
-// timeline 1, log 0). The high segment number keeps it out of the range an idle
-// PostgreSQL would archive on its own. Hex formatting keeps the name a valid
-// 24-character segment for any small n.
+// timeline 1, log 0, for n <= 15). The high segment number keeps it out of the
+// range an idle PostgreSQL would archive on its own.
 func walFile(n int) string {
 	return fmt.Sprintf("0000000100000000%08X", 0xF0+n)
 }
@@ -199,8 +200,8 @@ var _ = Describe("Parallel WAL restore", func() {
 					"sh", "-c", "rm -f "+spoolDirectory+"/* 2>/dev/null; true")
 			}
 			forge := func(src, dst string) {
-				// ExecuteInContainer folds a non-zero exit (and its output) into the
-				// returned error, so we surface that rather than the empty stderr.
+				// ExecuteInContainer drops stdout/stderr on a non-zero exit, so on
+				// failure this only reports the exit code, not the aws CLI's error text.
 				_, _, err := execInPod(ctx, clientSet, cfg, ns, s3Client, s3ClientName,
 					"aws", "s3", "cp", walObjectURI(src), walObjectURI(dst))
 				Expect(err).NotTo(HaveOccurred(), "forging %s -> %s", src, dst)
@@ -211,7 +212,6 @@ var _ = Describe("Parallel WAL restore", func() {
 				return err == nil && strings.TrimSpace(out) != ""
 			}
 
-			var latestWAL string
 			By("archiving a real WAL on the primary and learning its name")
 			_, _, err := execInPod(ctx, clientSet, cfg, ns, primary, postgresContainer,
 				"psql", "-tAc", "CHECKPOINT")
@@ -219,7 +219,7 @@ var _ = Describe("Parallel WAL restore", func() {
 			out, _, err := execInPod(ctx, clientSet, cfg, ns, primary, postgresContainer,
 				"psql", "-tAc", "SELECT pg_walfile_name(pg_switch_wal())")
 			Expect(err).NotTo(HaveOccurred(), "switching WAL on the primary failed")
-			latestWAL = strings.TrimSpace(out)
+			latestWAL := strings.TrimSpace(out)
 			Expect(latestWAL).To(HavePrefix(walLogDir),
 				"the freshly bootstrapped cluster should still be on the first WAL log")
 
@@ -288,7 +288,11 @@ var _ = Describe("Parallel WAL restore", func() {
 			// #6 (first): flag is set, so the request fails fast (exit 1) and the
 			// flag is consumed, leaving an empty spool.
 			By("requesting WAL #6: fails fast on the end-of-wal-stream flag, spool cleared")
-			Expect(restore(walFile(6))).To(HaveOccurred(), "exit code should be 1")
+			restoreErr := restore(walFile(6))
+			var exitErr executil.CodeExitError
+			Expect(errors.As(restoreErr, &exitErr)).To(BeTrue(),
+				"expected a CodeExitError, got %T: %v", restoreErr, restoreErr)
+			Expect(exitErr.ExitStatus()).To(Equal(1), "exit code should be 1")
 			Eventually(func(g Gomega) {
 				g.Expect(existsIn(pgWalPath, walFile(6))).To(BeFalse(), "#6 not restored")
 				g.Expect(spoolSegments()).To(Equal(0), "no WAL segments in spool")
