@@ -404,8 +404,8 @@ func reconcilePodSpec(
 
 	baseProbe := &corev1.Probe{
 		PeriodSeconds:    1,
-		FailureThreshold: 10,
-		TimeoutSeconds:   10,
+		FailureThreshold: 30,
+		TimeoutSeconds:   5,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},
