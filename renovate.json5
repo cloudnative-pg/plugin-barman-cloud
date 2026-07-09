@@ -12,14 +12,14 @@
   rebaseWhen: 'never',
   prConcurrentLimit: 5,
   // Override default ignorePaths to scan test/e2e for emulator image dependencies
-  // Removed: '**/test/**'
+  // Removed: '**/test/**', '**/tests/**' (this repo's e2e Ginkgo packages live
+  // under test/e2e/internal/tests/**, which the plural pattern was excluding)
   ignorePaths: [
     '**/node_modules/**',
     '**/bower_components/**',
     '**/vendor/**',
     '**/examples/**',
     '**/__tests__/**',
-    '**/tests/**',
     '**/__fixtures__/**',
   ],
   lockFileMaintenance: {
