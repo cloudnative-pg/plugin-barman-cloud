@@ -9,6 +9,19 @@ sidebar_position: 25
 You can upgrade the plugin simply by installing the new version. Unless
 explicitly stated below or in the release notes, no special steps are required.
 
+## PostgreSQL major version upgrades
+
+Upgrading the PostgreSQL major version of a Cluster that uses this plugin is
+handled by CloudNativePG. The plugin does **not** automatically separate backup
+and WAL archives across majors.
+
+Before you change `imageName` to a new major, update the Cluster plugin
+`serverName` so the upgraded cluster writes to a new archive path. See
+[Archive path separation for PostgreSQL major upgrades](usage.md#archive-path-separation-for-postgresql-major-upgrades)
+and the CloudNativePG
+[PostgreSQL major upgrades](https://cloudnative-pg.io/documentation/current/postgres_upgrades/)
+guide.
+
 ## Upgrading to version 0.8.x from previous versions
 
 Version **0.8.0** introduces breaking changes to resource naming.
