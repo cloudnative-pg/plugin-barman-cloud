@@ -41,6 +41,11 @@ linters:
     - wastedassign
     - whitespace
   settings:
+    gomoddirectives:
+      # Temporary, remove together with the barman-cloud replace in go.mod
+      # once cloudnative-pg/barman-cloud#277 is merged and released.
+      replace-allow-list:
+        - github.com/cloudnative-pg/barman-cloud
     lll:
       line-length: 120
   exclusions:
