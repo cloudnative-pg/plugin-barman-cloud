@@ -360,7 +360,9 @@ tasks:
       SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
-      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+      # Any remaining "/" (e.g. from namespaced branches like "dev/foo") is replaced with "-" since
+      # "/" is not a valid character in a Docker tag.
+      IMAGE_VERSION: '{{replace "/" "-" (regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}")}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
@@ -450,7 +452,9 @@ tasks:
       SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
-      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+      # Any remaining "/" (e.g. from namespaced branches like "dev/foo") is replaced with "-" since
+      # "/" is not a valid character in a Docker tag.
+      IMAGE_VERSION: '{{replace "/" "-" (regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}")}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_KUSTOMIZE_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
