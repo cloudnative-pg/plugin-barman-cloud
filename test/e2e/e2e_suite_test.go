@@ -33,6 +33,7 @@ import (
 
 	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/deployment"
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/diagnostics"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/e2etestenv"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/kustomize"
 
@@ -129,6 +130,28 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 }, func(_ []byte) {
 	logFlags := &log.Flags{}
 	logFlags.ConfigureLogging()
+})
+
+// The ephemeral cluster the suite runs against is torn down right after this
+// process exits, so this is the only chance to capture the CloudNativePG
+// operator and barman-cloud plugin logs for a failed run.
+var _ = ReportAfterSuite("dump cnpg-system diagnostics on failure", func(report Report) {
+	if report.SuiteSucceeded {
+		return
+	}
+
+	cl, _, err := internalClient.NewClient()
+	if err != nil {
+		_, _ = fmt.Fprintf(GinkgoWriter, "failed to create Kubernetes client for diagnostics: %v\n", err)
+		return
+	}
+	clientSet, _, err := internalClient.NewClientSet()
+	if err != nil {
+		_, _ = fmt.Fprintf(GinkgoWriter, "failed to create Kubernetes clientset for diagnostics: %v\n", err)
+		return
+	}
+
+	diagnostics.DumpOperatorNamespace(context.Background(), cl, clientSet, "cnpg-system")
 })
 
 // Run e2e tests using the Ginkgo runner.

@@ -38,6 +38,7 @@ import (
 	internalCluster "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/command"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/deployment"
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/diagnostics"
 	nmsp "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/namespace"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -128,6 +129,7 @@ var _ = Describe("Parallel WAL restore", func() {
 	})
 
 	AfterEach(func(ctx SpecContext) {
+		diagnostics.DumpNamespace(ctx, cl, clientSet, namespace.Name)
 		Expect(cl.Delete(ctx, namespace)).To(Succeed())
 	})
 

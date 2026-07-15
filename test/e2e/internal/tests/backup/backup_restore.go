@@ -26,11 +26,13 @@ import (
 	v1 "github.com/cloudnative-pg/api/pkg/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	internalCluster "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/command"
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/diagnostics"
 	nmsp "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/namespace"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -40,14 +42,18 @@ import (
 var _ = Describe("Backup and restore", func() {
 	var namespace *corev1.Namespace
 	var cl client.Client
+	var diagClientSet *kubernetes.Clientset
 	BeforeEach(func(ctx SpecContext) {
 		var err error
 		cl, _, err = internalClient.NewClient()
+		Expect(err).NotTo(HaveOccurred())
+		diagClientSet, _, err = internalClient.NewClientSet()
 		Expect(err).NotTo(HaveOccurred())
 		namespace, err = nmsp.CreateUniqueNamespace(ctx, cl, "backup-restore")
 		Expect(err).NotTo(HaveOccurred())
 	})
 	AfterEach(func(ctx SpecContext) {
+		diagnostics.DumpNamespace(ctx, cl, diagClientSet, namespace.Name)
 		Expect(cl.Delete(ctx, namespace)).To(Succeed())
 	})
 

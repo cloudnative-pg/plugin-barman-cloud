@@ -27,6 +27,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,6 +35,7 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/specs"
 	internalClient "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/client"
 	internalCluster "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/diagnostics"
 	nmsp "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/namespace"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/objectstore"
 
@@ -51,16 +53,20 @@ const (
 var _ = Describe("Credential rotation", func() {
 	var namespace *corev1.Namespace
 	var cl client.Client
+	var diagClientSet *kubernetes.Clientset
 
 	BeforeEach(func(ctx SpecContext) {
 		var err error
 		cl, _, err = internalClient.NewClient()
+		Expect(err).NotTo(HaveOccurred())
+		diagClientSet, _, err = internalClient.NewClientSet()
 		Expect(err).NotTo(HaveOccurred())
 		namespace, err = nmsp.CreateUniqueNamespace(ctx, cl, "cred-rotation")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func(ctx SpecContext) {
+		diagnostics.DumpNamespace(ctx, cl, diagClientSet, namespace.Name)
 		Expect(cl.Delete(ctx, namespace)).To(Succeed())
 	})
 
