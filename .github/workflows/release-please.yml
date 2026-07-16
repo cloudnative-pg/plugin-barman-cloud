@@ -27,7 +27,7 @@ jobs:
       - name: Install QEMU static binaries
         uses: docker/setup-qemu-action@v4
       - name: Install Task
-        uses: arduino/setup-task@v2
+        uses: arduino/setup-task@v3.0.0
       - name: Install Dagger
         env:
           # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
