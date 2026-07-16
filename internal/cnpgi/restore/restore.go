@@ -113,6 +113,7 @@ func (impl JobHookImpl) Restore(
 			configuration.Cluster,
 			&targetObjectStore.Spec.Configuration,
 			targetObjectStore.Name,
+			req.CheckEmptyWalArchive,
 		); err != nil {
 			return nil, err
 		}
@@ -250,6 +251,7 @@ func (impl *JobHookImpl) checkBackupDestination(
 	cluster *cnpgv1.Cluster,
 	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
 	objectStoreName string,
+	operatorCheckEmptyWalArchive *bool,
 ) error {
 	// Get environment from cache
 	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(ctx,
@@ -288,8 +290,18 @@ func (impl *JobHookImpl) checkBackupDestination(
 		}
 	}
 
-	// Check if we're ok to archive in the desired destination
-	if utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) {
+	// Check if we're ok to restore from the desired destination. Unlike
+	// archiving, restore is a one-shot operation that has never been gated
+	// on the first-archive marker file, so the only fallback needed here
+	// (for an operator that predates this field) is the Cluster annotation.
+	var checkEmptyWalArchive bool
+	if operatorCheckEmptyWalArchive != nil {
+		checkEmptyWalArchive = *operatorCheckEmptyWalArchive
+	} else {
+		checkEmptyWalArchive = utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta)
+	}
+
+	if checkEmptyWalArchive {
 		return common.CheckBackupDestination(ctx, barmanConfiguration, walArchiver, serverName)
 	}
 

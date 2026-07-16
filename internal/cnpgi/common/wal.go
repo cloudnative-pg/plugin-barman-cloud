@@ -156,13 +156,23 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	// Step 2: Check if the archive location is safe to perform archiving
-	checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
-	if err != nil {
-		return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
+	// Step 2: Check if the archive location is safe to perform archiving.
+	// The operator owns the marker file's lifecycle, so a non-nil decision
+	// already accounts for it and is obeyed as-is. A nil value means an
+	// operator that predates this field; fall back to checking the marker
+	// file and Cluster annotation directly.
+	var checkEmptyWalArchive bool
+	if request.CheckEmptyWalArchive != nil {
+		checkEmptyWalArchive = *request.CheckEmptyWalArchive
+	} else {
+		checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
+		if err != nil {
+			return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
+		}
+		checkEmptyWalArchive = utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting
 	}
 
-	if utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting {
+	if checkEmptyWalArchive {
 		if err := CheckBackupDestination(
 			ctx,
 			&objectStore.Spec.Configuration,
