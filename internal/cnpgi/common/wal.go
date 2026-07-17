@@ -323,6 +323,20 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		return fmt.Errorf("while creating the restorer: %w", err)
 	}
 
+	// A flag left over from a normal-recovery invocation that ran before this pod
+	// was demoted must not survive into a pg_rewind restore: the flag machinery
+	// does not apply while restoring on behalf of pg_rewind (see
+	// shouldUseEndOfWALStreamFlag below), so it is never checked here, but left
+	// untouched it would resurface and wrongly abort the first normal-recovery
+	// invocation that runs once the rewind is done. This runs unconditionally,
+	// before the spool short-circuit in Step 1, so a request for a WAL file that
+	// happens to already be staged in the spool cannot skip the clear.
+	if rewindMode {
+		if err := clearEndOfWALStreamFlag(walRestorer); err != nil {
+			return err
+		}
+	}
+
 	// Step 1: check if this WAL file is not already in the spool
 	var wasInSpool bool
 	if wasInSpool, err = walRestorer.RestoreFromSpool(walName, destinationPath); err != nil {
@@ -522,6 +536,22 @@ func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
 		}
 
 		return ErrEndOfWALStreamReached
+	}
+	return nil
+}
+
+// clearEndOfWALStreamFlag removes the end-of-wal-stream flag, if present, without
+// treating it as an error. It is used instead of checkEndOfWALStreamFlag when
+// restoring on behalf of pg_rewind, which must not abort on a flag it did not
+// set itself.
+func clearEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
+	contain, err := walRestorer.IsEndOfWALStream()
+	if err != nil {
+		return err
+	}
+
+	if contain {
+		return walRestorer.ResetEndOfWalStream()
 	}
 	return nil
 }

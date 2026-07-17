@@ -20,7 +20,10 @@ SPDX-License-Identifier: Apache-2.0
 package common
 
 import (
+	"context"
+
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -140,4 +143,37 @@ var _ = Describe("shouldUseEndOfWALStreamFlag", func() {
 		// must stay off even where a standby would use it
 		Entry("rewind mode wins over streaming availability", clusterWithPrimary("cluster-1"), "cluster-2", true, false),
 	)
+})
+
+var _ = Describe("clearEndOfWALStreamFlag", func() {
+	newRestorer := func() *barmanRestorer.WALRestorer {
+		restorer, err := barmanRestorer.New(context.Background(), nil, GinkgoT().TempDir())
+		Expect(err).ToNot(HaveOccurred())
+		return restorer
+	}
+
+	It("is a no-op when the flag is not set", func() {
+		restorer := newRestorer()
+
+		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
+
+		isEOS, err := restorer.IsEndOfWALStream()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isEOS).To(BeFalse())
+	})
+
+	// Regression guard: a flag left over from a normal-recovery invocation that
+	// ran before this pod was demoted must not survive a pg_rewind restore, or
+	// it would resurface and wrongly abort the first normal-recovery invocation
+	// that runs once the rewind is done.
+	It("removes a pre-existing flag without returning an error", func() {
+		restorer := newRestorer()
+		Expect(restorer.SetEndOfWALStream()).To(Succeed())
+
+		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
+
+		isEOS, err := restorer.IsEndOfWALStream()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isEOS).To(BeFalse())
+	})
 })
