@@ -21,15 +21,20 @@ package common
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
+	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
 var _ = Describe("resolveRestoreObjectStore", func() {
@@ -175,5 +180,67 @@ var _ = Describe("clearEndOfWALStreamFlag", func() {
 		isEOS, err := restorer.IsEndOfWALStream()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(isEOS).To(BeFalse())
+	})
+})
+
+var _ = Describe("resolveArchiveEmptyWalArchiveCheck", func() {
+	// skipAnnotation mirrors the unexported constant in cloudnative-pg's
+	// pkg/utils; hard-coding the literal makes a divergence surface as a
+	// failing test rather than silently disabling the check.
+	const skipAnnotation = "cnpg.io/skipEmptyWalArchiveCheck"
+
+	clusterWith := func(annotationValue *string) *cnpgv1.Cluster {
+		cluster := &cnpgv1.Cluster{}
+		if annotationValue != nil {
+			cluster.Annotations = map[string]string{skipAnnotation: *annotationValue}
+		}
+		return cluster
+	}
+
+	// markerPath returns the marker file path inside a fresh temp dir,
+	// creating the file there when present is true.
+	markerPath := func(present bool) string {
+		filePath := filepath.Join(GinkgoT().TempDir(), metadata.CheckEmptyWalArchiveFile)
+		if present {
+			Expect(os.WriteFile(filePath, []byte{}, 0o600)).To(Succeed())
+		}
+		return filePath
+	}
+
+	When("the operator sets the decision", func() {
+		It("obeys true, ignoring the annotation and the marker file", func() {
+			// annotation would skip the check and the marker is absent, yet the
+			// operator's explicit true must still win.
+			got, err := resolveArchiveEmptyWalArchiveCheck(
+				ptr.To(true), clusterWith(ptr.To("enabled")), markerPath(false))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(BeTrue())
+		})
+
+		It("obeys false, ignoring the annotation and the marker file", func() {
+			// annotation would keep the check on and the marker is present, yet the
+			// operator's explicit false must still win.
+			got, err := resolveArchiveEmptyWalArchiveCheck(
+				ptr.To(false), clusterWith(nil), markerPath(true))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).To(BeFalse())
+		})
+	})
+
+	When("the operator predates the field (nil decision)", func() {
+		DescribeTable(
+			"falls back to the annotation combined with the marker file",
+			func(annotationValue *string, markerPresent bool, expected bool) {
+				got, err := resolveArchiveEmptyWalArchiveCheck(
+					nil, clusterWith(annotationValue), markerPath(markerPresent))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(got).To(Equal(expected))
+			},
+			Entry("no annotation and marker present: check runs", nil, true, true),
+			Entry("no annotation and marker absent: check skipped", nil, false, false),
+			Entry("opt-out annotation and marker present: check skipped", ptr.To("enabled"), true, false),
+			Entry("unrelated annotation value and marker present: check runs", ptr.To("something-else"), true, true),
+			Entry("empty annotation value and marker present: check runs", ptr.To(""), true, true),
+		)
 	})
 })
