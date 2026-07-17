@@ -157,19 +157,13 @@ func (w WALServiceImplementation) Archive(
 	}
 
 	// Step 2: Check if the archive location is safe to perform archiving.
-	// The operator owns the marker file's lifecycle, so a non-nil decision
-	// already accounts for it and is obeyed as-is. A nil value means an
-	// operator that predates this field; fall back to checking the marker
-	// file and Cluster annotation directly.
-	var checkEmptyWalArchive bool
-	if request.CheckEmptyWalArchive != nil {
-		checkEmptyWalArchive = *request.CheckEmptyWalArchive
-	} else {
-		checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
-		if err != nil {
-			return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
-		}
-		checkEmptyWalArchive = utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting
+	checkEmptyWalArchive, err := resolveArchiveEmptyWalArchiveCheck(
+		request.CheckEmptyWalArchive,
+		configuration.Cluster,
+		emptyWalArchiveFile,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	if checkEmptyWalArchive {
@@ -232,6 +226,31 @@ func (w WALServiceImplementation) Archive(
 	}
 
 	return &wal.WALArchiveResult{}, nil
+}
+
+// resolveArchiveEmptyWalArchiveCheck reports whether the WAL archive
+// destination must be verified before archiving this segment.
+//
+// The operator owns the marker file's lifecycle, so when it sets the decision
+// (non-nil) that value already accounts for the marker and is obeyed as-is. A
+// nil value comes from an operator that predates this field, so we fall back to
+// the previous logic: the Cluster annotation combined with the on-disk marker
+// file.
+func resolveArchiveEmptyWalArchiveCheck(
+	operatorDecision *bool,
+	cluster *cnpgv1.Cluster,
+	markerFilePath string,
+) (bool, error) {
+	if operatorDecision != nil {
+		return *operatorDecision, nil
+	}
+
+	markerFilePresent, err := fileutils.FileExists(markerFilePath)
+	if err != nil {
+		return false, fmt.Errorf("while checking for empty wal archive check file %q: %w", markerFilePath, err)
+	}
+
+	return utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) && markerFilePresent, nil
 }
 
 // Restore implements the WALService interface
