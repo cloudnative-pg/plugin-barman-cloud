@@ -194,6 +194,70 @@ spec:
   [...]
 ```
 
+### Server-Side Encryption with Customer Keys (SSE-C)
+
+Some S3-compatible providers — most notably **Hetzner Object Storage** — do
+not offer bucket-managed server-side encryption (SSE-S3 / SSE-KMS) and instead
+only support **Server-Side Encryption with Customer-provided keys (SSE-C)**.
+With SSE-C the encryption key never leaves your control: it is supplied with
+every request, and the provider uses it to encrypt and decrypt objects without
+storing it.
+
+To enable SSE-C, set the `sseCustomerKey` field in the `s3Credentials` block to
+a secret reference holding a **base64-encoded 256-bit (32-byte) AES key**.
+
+Generate the key and store it in a Kubernetes secret:
+
+```sh
+# Generate a random 256-bit key, base64-encoded
+openssl rand 32 | base64 > sse-c.key
+
+kubectl create secret generic aws-sse-c \
+  --from-file=key=sse-c.key
+```
+
+:::warning
+Keep this key safe and backed up **outside** the object store. If you lose
+it, your backups and WAL files become permanently unrecoverable — the
+provider cannot decrypt them for you.
+:::
+
+Reference it in your `ObjectStore` definition:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hetzner-store
+spec:
+  configuration:
+    destinationPath: "s3://BUCKET_NAME/path/to/folder"
+    endpointURL: "https://fsn1.your-objectstorage.com"
+    s3Credentials:
+      accessKeyId:
+        name: aws-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: aws-creds
+        key: ACCESS_SECRET_KEY
+      sseCustomerKey:
+        name: aws-sse-c
+        key: key
+  [...]
+```
+
+The same key is applied to **every** operation — base backups, WAL archiving,
+WAL restore, and data restore — so it must remain unchanged and available for
+the whole lifetime of the backups it protects. `sseCustomerKey` is independent
+of the bucket-managed `encryption` field (SSE-S3 / SSE-KMS) and can be combined
+with any authentication method, including `inheritFromIAMRole`.
+
+:::note
+SSE-C support requires a sidecar image whose `barman-cloud` build includes
+the `--sse-customer-key` option
+(see [barman#973](https://github.com/EnterpriseDB/barman/issues/973)).
+:::
+
 ### Using Object Storage with a Private CA
 
 For object storage services (e.g., MinIO) that use HTTPS with certificates
