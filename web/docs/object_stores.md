@@ -194,6 +194,72 @@ spec:
   [...]
 ```
 
+### Server-Side Encryption with Customer Keys (SSE-C)
+
+Some S3-compatible providers — most notably **Hetzner Object Storage** — do
+not offer bucket-managed server-side encryption (SSE-S3 / SSE-KMS) and instead
+only support **Server-Side Encryption with Customer-provided keys (SSE-C)**.
+With SSE-C the encryption key never leaves your control: it is supplied with
+every request, and the provider uses it to encrypt and decrypt objects without
+storing it.
+
+To enable SSE-C, set the `sseCustomerKey` field in the `s3Credentials` block to
+a secret reference holding a **base64-encoded 256-bit (32-byte) AES key**.
+
+Generate the key and store it in a Kubernetes secret:
+
+```sh
+# Generate a random 256-bit key, base64-encoded
+openssl rand 32 | base64 > encryption.key
+
+kubectl create secret generic aws-sse-c \
+  --from-file=key=encryption.key
+```
+
+:::warning
+Keep this key safe and backed up **outside** the object store. If you lose
+it, your backups and WAL files become permanently unrecoverable — the
+provider cannot decrypt them for you.
+:::
+
+Reference it in your `ObjectStore` definition:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hetzner-store
+spec:
+  configuration:
+    destinationPath: "s3://BUCKET_NAME/path/to/folder"
+    endpointURL: "https://fsn1.your-objectstorage.com"
+    s3Credentials:
+      accessKeyId:
+        name: aws-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: aws-creds
+        key: ACCESS_SECRET_KEY
+      sseCustomerKey:
+        name: aws-sse-c
+        key: key
+  [...]
+```
+
+The same key is applied to **every** operation — base backups, WAL archiving,
+WAL restore, and data restore — so it must remain unchanged and available for
+the whole lifetime of the backups it protects. `sseCustomerKey` can be combined
+with any authentication method, including `inheritFromIAMRole`, but not with
+the bucket-managed `encryption` setting (SSE-S3 / SSE-KMS) of the `data` and
+`wal` sections: `barman-cloud` rejects `--sse-customer-key` together with
+`--encryption`, so an object store that sets both fails at the first backup or
+WAL archive.
+
+:::note
+SSE-C relies on the `--sse-customer-key` option introduced in Barman 3.20.0,
+which the plugin sidecar image ships starting from version 0.15.0.
+:::
+
 ### Using Object Storage with a Private CA
 
 For object storage services (e.g., MinIO) that use HTTPS with certificates

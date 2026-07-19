@@ -1,3 +1,4 @@
+AES
 AKS
 AccessDenied
 AdditionalContainerArgs
@@ -21,11 +22,13 @@ EnvVar
 GCP
 GKE
 Gi
+Hetzner
 IAM
 IRSA
 IfNotPresent
 InstanceSidecarConfiguration
 JSON
+KMS
 Kustomize
 Lifecycle
 Linode
@@ -94,6 +97,7 @@ creds
 csi
 customresourcedefinition
 declaratively
+decrypt
 deps
 desc
 devel
@@ -130,6 +134,7 @@ namespaces
 nonResourceURLs
 objectstore
 objectstores
+openssl
 pluginConfiguration
 podName
 postgres
@@ -154,6 +159,7 @@ serverName
 serviceaccount
 sha
 sig
+sse
 storageClass
 subcommand
 tfddg
