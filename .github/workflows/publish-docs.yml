@@ -20,7 +20,7 @@ permissions: read-all
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
     permissions:
       contents: read
     steps:
@@ -60,7 +60,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

@@ -9,7 +9,7 @@ permissions: read-all
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
     permissions:
       contents: write
       pull-requests: write
