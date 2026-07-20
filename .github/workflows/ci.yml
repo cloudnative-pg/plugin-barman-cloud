@@ -10,8 +10,7 @@ jobs:
   ci:
     runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
     permissions:
-      packages: write
-      contents: write
+      contents: read
     steps:
       - name: Cleanup Disk
         if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
@@ -39,8 +38,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Install QEMU static binaries
-        uses: docker/setup-qemu-action@v4
       - name: Install Task
         uses: arduino/setup-task@v3.0.0
       - name: Install Dagger
@@ -52,6 +49,27 @@ jobs:
       - name: Run CI task
         run: |
           task ci
+
+  publish:
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install QEMU static binaries
+        uses: docker/setup-qemu-action@v4
+      - name: Install Task
+        uses: arduino/setup-task@v3.0.0
+      - name: Install Dagger
+        env:
+          # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+          DAGGER_VERSION: 0.21.7
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Write manifest
         run: |
           task manifest
