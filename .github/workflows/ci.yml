@@ -14,6 +14,7 @@ jobs:
       contents: write
     steps:
       - name: Cleanup Disk
+        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
           android: true
@@ -23,6 +24,7 @@ jobs:
           large-packages: false
           swap-storage: false
       - name: Cleanup docker cache
+        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
         run: |
           echo "-------------Disk info before cleanup----------------"
           df -h
