@@ -7,7 +7,7 @@ require (
 	github.com/cloudnative-pg/api v1.30.0
 	github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260709152604-43158c204df1
 	github.com/cloudnative-pg/cloudnative-pg v1.30.0
-	github.com/cloudnative-pg/cnpg-i v0.5.0
+	github.com/cloudnative-pg/cnpg-i v0.6.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
 	github.com/cloudnative-pg/machinery v0.5.0
 	github.com/onsi/ginkgo/v2 v2.32.0
