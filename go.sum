@@ -20,8 +20,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cloudnative-pg/api v1.30.0 h1:L8hnvV/tPEQA1xYEi41FUBFA7FUNVGju8+SlgFlDDjI=
 github.com/cloudnative-pg/api v1.30.0/go.mod h1:XrKBbOWObL33si0FNuwX4uHNf5JShiZyOUqd6LxbJQo=
-github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260709152604-43158c204df1 h1:+AV67yFPqnwmHQ5PIYkAaJUDsOrrwJCvH+J1JzHXyQc=
-github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260709152604-43158c204df1/go.mod h1:ZQLkdpk44FW5/BGWzABTOEcV9qPbwC+rbdscg2I8mBI=
+github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260720143032-950b0f57e122 h1:NuOztBdp+bUr/xYtaAw8o/x880hvWDRhJGl+R1YsZNw=
+github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260720143032-950b0f57e122/go.mod h1:ZQLkdpk44FW5/BGWzABTOEcV9qPbwC+rbdscg2I8mBI=
 github.com/cloudnative-pg/cloudnative-pg v1.30.0 h1:fnhVq44xXx97MNiuvJsPrX1vSjYbgdyBK5MSGfdHdp0=
 github.com/cloudnative-pg/cloudnative-pg v1.30.0/go.mod h1:QkolwBOWZ+GvAiJt6KpDSymwkpf0K19/p4Q6MQlTM8U=
 github.com/cloudnative-pg/cnpg-i v0.6.0 h1:LA//DLkFOLIjU0ASOpFkydZhGir9IAIDfgSsTTX9IpU=
