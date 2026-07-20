@@ -24,8 +24,8 @@ github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260709152604-43158c204df1 h1:+
 github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260709152604-43158c204df1/go.mod h1:ZQLkdpk44FW5/BGWzABTOEcV9qPbwC+rbdscg2I8mBI=
 github.com/cloudnative-pg/cloudnative-pg v1.30.0 h1:fnhVq44xXx97MNiuvJsPrX1vSjYbgdyBK5MSGfdHdp0=
 github.com/cloudnative-pg/cloudnative-pg v1.30.0/go.mod h1:QkolwBOWZ+GvAiJt6KpDSymwkpf0K19/p4Q6MQlTM8U=
-github.com/cloudnative-pg/cnpg-i v0.5.0 h1:/TOzpNT6cwNgrpftTtrnLKdoHgMwd+88vZgXjlVgXeE=
-github.com/cloudnative-pg/cnpg-i v0.5.0/go.mod h1:7Gh4+UzhBpGhr4DreB1GN9wGYfvxwXCXZUyVt3zE/3I=
+github.com/cloudnative-pg/cnpg-i v0.6.0 h1:LA//DLkFOLIjU0ASOpFkydZhGir9IAIDfgSsTTX9IpU=
+github.com/cloudnative-pg/cnpg-i v0.6.0/go.mod h1:4kcpLAj+feMTnh0TVadXRASdVnEhBytNSm/BvktLgmI=
 github.com/cloudnative-pg/cnpg-i-machinery v0.4.2 h1:0reS9MtyLYINHXQ/MfxJ9jp39hhBf8e3Qdj+T5Nsq6I=
 github.com/cloudnative-pg/cnpg-i-machinery v0.4.2/go.mod h1:gvrKabgxXq0zGthXGucemDdsxakLEQDMxn43M4HLW30=
 github.com/cloudnative-pg/machinery v0.5.0 h1:hhTnkzn+AiN3NmbjCQ6RXj5rfqV3K6arzq6kdXAzcnQ=
