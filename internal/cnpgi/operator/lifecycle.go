@@ -339,7 +339,12 @@ func reconcileInstancePod(
 
 	mutatedPod := pod.DeepCopy()
 
+	// A recovery-only cluster (only RecoveryBarmanObjectName set) still needs the
+	// sidecar in its instance pods: the phase-0 bootstrap restore and the WAL
+	// replay that follows both run inside the instance and rely on it. This
+	// condition therefore mirrors what pluginConfiguration.Validate() accepts.
 	if len(pluginConfiguration.BarmanObjectName) != 0 ||
+		len(pluginConfiguration.RecoveryBarmanObjectName) != 0 ||
 		len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
 		if err := reconcilePodSpec(
 			cluster,
@@ -353,7 +358,7 @@ func reconcileInstancePod(
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
 	} else {
-		contextLogger.Debug("No need to mutate instance with no backup & archiving configuration")
+		contextLogger.Debug("No need to mutate instance with no barman object store configuration")
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)
