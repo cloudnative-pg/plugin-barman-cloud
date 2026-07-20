@@ -103,5 +103,12 @@ func NewCmd() *cobra.Command {
 
 	_ = viper.BindEnv("sidecar-image", "SIDECAR_IMAGE")
 
+	cmd.Flags().String(
+		"watch-namespace",
+		"",
+		"The namespace to watch for CloudNativePG clusters. If empty, all namespaces will be watched.",
+	)
+	_ = viper.BindPFlag("watch-namespace", cmd.Flags().Lookup("watch-namespace"))
+
 	return cmd
 }
