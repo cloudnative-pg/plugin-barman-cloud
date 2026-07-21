@@ -20,6 +20,10 @@ SPDX-License-Identifier: Apache-2.0
 package common
 
 import (
+	"context"
+
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -95,4 +99,81 @@ var _ = Describe("resolveRestoreObjectStore", func() {
 			newConfig("cluster-2", "replica-store"),
 			"cluster-server", "cluster-store"),
 	)
+})
+
+var _ = Describe("maxWALFilesPerInvocation", func() {
+	configWithMaxParallel := func(maxParallel int) *barmanapi.BarmanObjectStoreConfiguration {
+		return &barmanapi.BarmanObjectStoreConfiguration{
+			Wal: &barmanapi.WalBackupConfiguration{MaxParallel: maxParallel},
+		}
+	}
+
+	DescribeTable(
+		"computes how many WAL files a single invocation may fetch",
+		func(cfg *barmanapi.BarmanObjectStoreConfiguration, rewindMode bool, want int) {
+			Expect(maxWALFilesPerInvocation(cfg, rewindMode)).To(Equal(want))
+		},
+
+		Entry("no WAL configuration", &barmanapi.BarmanObjectStoreConfiguration{}, false, 1),
+		Entry("parallel restore configured", configWithMaxParallel(8), false, 8),
+
+		// pg_rewind walks the timeline backwards: prefetching must stay off no
+		// matter what the object store configuration asks for
+		Entry("rewind mode overrides the configured parallelism", configWithMaxParallel(8), true, 1),
+	)
+})
+
+var _ = Describe("shouldUseEndOfWALStreamFlag", func() {
+	clusterWithPrimary := func(currentPrimary string) *cnpgv1.Cluster {
+		return &cnpgv1.Cluster{
+			Status: cnpgv1.ClusterStatus{CurrentPrimary: currentPrimary},
+		}
+	}
+
+	DescribeTable(
+		"decides whether the end-of-wal-stream flag machinery applies",
+		func(cluster *cnpgv1.Cluster, podName string, rewindMode bool, want bool) {
+			Expect(shouldUseEndOfWALStreamFlag(cluster, podName, rewindMode)).To(Equal(want))
+		},
+
+		Entry("replica with streaming available", clusterWithPrimary("cluster-1"), "cluster-2", false, true),
+		Entry("primary cannot stream from anyone", clusterWithPrimary("cluster-1"), "cluster-1", false, false),
+
+		// pg_rewind cannot fall back to streaming replication: the flag machinery
+		// must stay off even where a standby would use it
+		Entry("rewind mode wins over streaming availability", clusterWithPrimary("cluster-1"), "cluster-2", true, false),
+	)
+})
+
+var _ = Describe("clearEndOfWALStreamFlag", func() {
+	newRestorer := func() *barmanRestorer.WALRestorer {
+		restorer, err := barmanRestorer.New(context.Background(), nil, GinkgoT().TempDir())
+		Expect(err).ToNot(HaveOccurred())
+		return restorer
+	}
+
+	It("is a no-op when the flag is not set", func() {
+		restorer := newRestorer()
+
+		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
+
+		isEOS, err := restorer.IsEndOfWALStream()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isEOS).To(BeFalse())
+	})
+
+	// Regression guard: a flag left over from a normal-recovery invocation that
+	// ran before this pod was demoted must not survive a pg_rewind restore, or
+	// it would resurface and wrongly abort the first normal-recovery invocation
+	// that runs once the rewind is done.
+	It("removes a pre-existing flag without returning an error", func() {
+		restorer := newRestorer()
+		Expect(restorer.SetEndOfWALStream()).To(Succeed())
+
+		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
+
+		isEOS, err := restorer.IsEndOfWALStream()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(isEOS).To(BeFalse())
+	})
 })
