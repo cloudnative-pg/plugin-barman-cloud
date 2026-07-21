@@ -113,6 +113,7 @@ func (impl JobHookImpl) Restore(
 			configuration.Cluster,
 			&targetObjectStore.Spec.Configuration,
 			targetObjectStore.Name,
+			req.CheckEmptyWalArchive,
 		); err != nil {
 			return nil, err
 		}
@@ -250,6 +251,7 @@ func (impl *JobHookImpl) checkBackupDestination(
 	cluster *cnpgv1.Cluster,
 	barmanConfiguration *cnpgv1.BarmanObjectStoreConfiguration,
 	objectStoreName string,
+	operatorCheckEmptyWalArchive *bool,
 ) error {
 	// Get environment from cache
 	env, err := barmanCredentials.EnvSetCloudCredentialsAndCertificates(ctx,
@@ -288,12 +290,24 @@ func (impl *JobHookImpl) checkBackupDestination(
 		}
 	}
 
-	// Check if we're ok to archive in the desired destination
-	if utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) {
+	if resolveRestoreEmptyWalArchiveCheck(operatorCheckEmptyWalArchive, cluster) {
 		return common.CheckBackupDestination(ctx, barmanConfiguration, walArchiver, serverName)
 	}
 
 	return nil
+}
+
+// resolveRestoreEmptyWalArchiveCheck reports whether the destination must be
+// verified before restoring. When the operator sets the decision (non-nil) it
+// is obeyed as-is; a nil value comes from an operator that predates this field,
+// so we fall back to the Cluster annotation. Unlike archiving, restore is a
+// one-shot operation that has never been gated on the first-archive marker
+// file, so the annotation is the only fallback needed.
+func resolveRestoreEmptyWalArchiveCheck(operatorDecision *bool, cluster *cnpgv1.Cluster) bool {
+	if operatorDecision != nil {
+		return *operatorDecision
+	}
+	return utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta)
 }
 
 // restoreCustomWalDir moves the current pg_wal data to the specified custom wal dir and applies the symlink

@@ -156,13 +156,17 @@ func (w WALServiceImplementation) Archive(
 		return nil, err
 	}
 
-	// Step 2: Check if the archive location is safe to perform archiving
-	checkFileExisting, err := fileutils.FileExists(emptyWalArchiveFile)
+	// Step 2: Check if the archive location is safe to perform archiving.
+	checkEmptyWalArchive, err := resolveArchiveEmptyWalArchiveCheck(
+		request.CheckEmptyWalArchive,
+		configuration.Cluster,
+		emptyWalArchiveFile,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("while checking for empty wal archive check file %q: %w", emptyWalArchiveFile, err)
+		return nil, err
 	}
 
-	if utils.IsEmptyWalArchiveCheckEnabled(&configuration.Cluster.ObjectMeta) && checkFileExisting {
+	if checkEmptyWalArchive {
 		if err := CheckBackupDestination(
 			ctx,
 			&objectStore.Spec.Configuration,
@@ -222,6 +226,31 @@ func (w WALServiceImplementation) Archive(
 	}
 
 	return &wal.WALArchiveResult{}, nil
+}
+
+// resolveArchiveEmptyWalArchiveCheck reports whether the WAL archive
+// destination must be verified before archiving this segment.
+//
+// The operator owns the marker file's lifecycle, so when it sets the decision
+// (non-nil) that value already accounts for the marker and is obeyed as-is. A
+// nil value comes from an operator that predates this field, so we fall back to
+// the previous logic: the Cluster annotation combined with the on-disk marker
+// file.
+func resolveArchiveEmptyWalArchiveCheck(
+	operatorDecision *bool,
+	cluster *cnpgv1.Cluster,
+	markerFilePath string,
+) (bool, error) {
+	if operatorDecision != nil {
+		return *operatorDecision, nil
+	}
+
+	markerFilePresent, err := fileutils.FileExists(markerFilePath)
+	if err != nil {
+		return false, fmt.Errorf("while checking for empty wal archive check file %q: %w", markerFilePath, err)
+	}
+
+	return utils.IsEmptyWalArchiveCheckEnabled(&cluster.ObjectMeta) && markerFilePresent, nil
 }
 
 // Restore implements the WALService interface
