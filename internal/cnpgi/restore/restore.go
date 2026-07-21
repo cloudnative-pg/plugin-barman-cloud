@@ -181,6 +181,9 @@ func (impl JobHookImpl) restoreDataDir(
 	if backup.Status.EndpointURL != "" {
 		options = append(options, "--endpoint-url", backup.Status.EndpointURL)
 	}
+
+	options = barmanConfiguration.Data.AppendRestoreAdditionalCommandArgs(options)
+
 	options = append(options, backup.Status.DestinationPath)
 	options = append(options, backup.Status.ServerName)
 	options = append(options, backup.Status.BackupID)

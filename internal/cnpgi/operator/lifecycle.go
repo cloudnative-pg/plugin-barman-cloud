@@ -41,6 +41,9 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 )
 
+// fullRecoveryJobName is the name of the restore job.
+const fullRecoveryJobName = "full-recovery"
+
 // LifecycleImplementation is the implementation of the lifecycle handler
 type LifecycleImplementation struct {
 	lifecycle.UnimplementedOperatorLifecycleServer
@@ -48,6 +51,8 @@ type LifecycleImplementation struct {
 }
 
 // GetCapabilities exposes the lifecycle capabilities
+//
+//nolint:goconst
 func (impl LifecycleImplementation) GetCapabilities(
 	_ context.Context,
 	_ *lifecycle.OperatorLifecycleCapabilitiesRequest,
@@ -193,7 +198,7 @@ func reconcileJob(
 	contextLogger.Debug("starting job reconciliation")
 
 	jobRole := getCNPGJobRole(&job)
-	if jobRole != "full-recovery" &&
+	if jobRole != fullRecoveryJobName &&
 		jobRole != "snapshot-recovery" {
 		contextLogger.Debug("job is not a recovery job, skipping")
 		return nil, nil
@@ -281,8 +286,10 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 		return args
 	}
 
-	// Prefer the cluster object store (backup/archive). If not set, fallback to the recovery object store.
-	// If neither is configured, no additional args are provided.
+	// Only one object store provides the sidecar arguments, with precedence:
+	// BarmanObjectName (backup/archive) > RecoveryBarmanObjectName (recovery
+	// bootstrap) > ReplicaSourceBarmanObjectName (pg_basebackup replica).
+	// If none is configured, no additional args are provided.
 	if len(pluginConfiguration.BarmanObjectName) > 0 {
 		var barmanObjectStore barmancloudv1.ObjectStore
 		if err := impl.Client.Get(ctx, pluginConfiguration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
@@ -302,6 +309,20 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 		if err := impl.Client.Get(ctx, pluginConfiguration.GetRecoveryBarmanObjectKey(), &barmanObjectStore); err != nil {
 			return nil, fmt.Errorf("while getting recovery barman object store %s: %w",
 				pluginConfiguration.GetRecoveryBarmanObjectKey().String(), err)
+		}
+		args := barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs
+		args = append(
+			args,
+			collectTypedAdditionalArgs(&barmanObjectStore)...,
+		)
+		return args, nil
+	}
+
+	if len(pluginConfiguration.ReplicaSourceBarmanObjectName) > 0 {
+		key := pluginConfiguration.GetReplicaSourceBarmanObjectKey()
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, key, &barmanObjectStore); err != nil {
+			return nil, fmt.Errorf("while getting replica source barman object store %s: %w", key.String(), err)
 		}
 		args := barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs
 		args = append(
@@ -421,8 +442,9 @@ func reconcilePodSpec(
 	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
-		FailureThreshold: 10,
-		TimeoutSeconds:   10,
+		PeriodSeconds:    1,
+		FailureThreshold: 30,
+		TimeoutSeconds:   5,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},

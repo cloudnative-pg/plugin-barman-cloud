@@ -27,6 +27,7 @@ import (
 	"path"
 	"time"
 
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	"github.com/cloudnative-pg/barman-cloud/pkg/archiver"
 	barmanCommand "github.com/cloudnative-pg/barman-cloud/pkg/command"
 	barmanCredentials "github.com/cloudnative-pg/barman-cloud/pkg/credentials"
@@ -224,7 +225,6 @@ func (w WALServiceImplementation) Archive(
 }
 
 // Restore implements the WALService interface
-// nolint: gocognit
 func (w WALServiceImplementation) Restore(
 	ctx context.Context,
 	request *wal.WALRestoreRequest,
@@ -239,36 +239,7 @@ func (w WALServiceImplementation) Restore(
 		return nil, err
 	}
 
-	var serverName string
-	var objectStoreKey types.NamespacedName
-
-	var promotionToken string
-	if configuration.Cluster.Spec.ReplicaCluster != nil {
-		promotionToken = configuration.Cluster.Spec.ReplicaCluster.PromotionToken
-	}
-
-	switch {
-	case promotionToken != "" && configuration.Cluster.Status.LastPromotionToken != promotionToken:
-		// This is a replica cluster that is being promoted to a primary cluster
-		// Recover from the replica source object store
-		serverName = configuration.ReplicaSourceServerName
-		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
-
-	case configuration.Cluster.IsReplica() && configuration.Cluster.Status.CurrentPrimary == w.InstanceName:
-		// Designated primary on replica cluster, using replica source object store
-		serverName = configuration.ReplicaSourceServerName
-		objectStoreKey = configuration.GetReplicaSourceBarmanObjectKey()
-
-	case configuration.Cluster.Status.CurrentPrimary == "":
-		// Recovery from object store, using recovery object store
-		serverName = configuration.RecoveryServerName
-		objectStoreKey = configuration.GetRecoveryBarmanObjectKey()
-
-	default:
-		// Using cluster object store
-		serverName = configuration.ServerName
-		objectStoreKey = configuration.GetBarmanObjectKey()
-	}
+	serverName, objectStoreKey := resolveRestoreObjectStore(configuration, w.InstanceName)
 
 	var objectStore barmancloudv1.ObjectStore
 	if err := w.Client.Get(ctx, objectStoreKey, &objectStore); err != nil {
@@ -279,9 +250,38 @@ func (w WALServiceImplementation) Restore(
 		"Restoring WAL file",
 		"objectStore", objectStore.Name,
 		"serverName", serverName,
-		"walName", walName)
+		"walName", walName,
+		"mode", request.GetMode())
 	return &wal.WALRestoreResult{}, w.restoreFromBarmanObjectStore(
-		ctx, configuration.Cluster, &objectStore, serverName, walName, destinationPath)
+		ctx, configuration.Cluster, &objectStore, serverName, walName, destinationPath,
+		request.GetMode() == wal.WALRestoreRequest_MODE_REWIND)
+}
+
+// resolveRestoreObjectStore selects the object store and server name to use when
+// restoring a WAL file, based on the role this instance plays in the cluster.
+func resolveRestoreObjectStore(
+	configuration *config.PluginConfiguration,
+	instanceName string,
+) (serverName string, objectStoreKey types.NamespacedName) {
+	switch {
+	case configuration.Cluster.Status.CurrentPrimary == instanceName &&
+		len(configuration.ReplicaSourceBarmanObjectName) > 0:
+		// PostgreSQL never runs restore_command on a live primary; it runs only while
+		// the instance is in recovery (a genuine standby, restoring from a backup, or
+		// being rewound by pg_rewind). So a current primary that still has a replica
+		// source configured can only be a designated primary that has not finished
+		// promoting, and it must keep fetching WAL from the replica source.
+		// Token-agnostic: covers both switchover and failover.
+		return configuration.ReplicaSourceServerName, configuration.GetReplicaSourceBarmanObjectKey()
+
+	case configuration.Cluster.Status.CurrentPrimary == "":
+		// Recovery from object store, using recovery object store
+		return configuration.RecoveryServerName, configuration.GetRecoveryBarmanObjectKey()
+
+	default:
+		// Using cluster object store
+		return configuration.ServerName, configuration.GetBarmanObjectKey()
+	}
 }
 
 func (w WALServiceImplementation) restoreFromBarmanObjectStore(
@@ -291,6 +291,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	serverName string,
 	walName string,
 	destinationPath string,
+	rewindMode bool,
 ) error {
 	contextLogger := log.FromContext(ctx)
 	startTime := time.Now()
@@ -322,6 +323,20 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		return fmt.Errorf("while creating the restorer: %w", err)
 	}
 
+	// A flag left over from a normal-recovery invocation that ran before this pod
+	// was demoted must not survive into a pg_rewind restore: the flag machinery
+	// does not apply while restoring on behalf of pg_rewind (see
+	// shouldUseEndOfWALStreamFlag below), so it is never checked here, but left
+	// untouched it would resurface and wrongly abort the first normal-recovery
+	// invocation that runs once the rewind is done. This runs unconditionally,
+	// before the spool short-circuit in Step 1, so a request for a WAL file that
+	// happens to already be staged in the spool cannot skip the clear.
+	if rewindMode {
+		if err := clearEndOfWALStreamFlag(walRestorer); err != nil {
+			return err
+		}
+	}
+
 	// Step 1: check if this WAL file is not already in the spool
 	var wasInSpool bool
 	if wasInSpool, err = walRestorer.RestoreFromSpool(walName, destinationPath); err != nil {
@@ -334,8 +349,10 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		return nil
 	}
 
-	// We skip this step if streaming connection is not available
-	if isStreamingAvailable(cluster, w.InstanceName) {
+	// Step 2: return error if the end-of-wal-stream flag is set.
+	// We skip this step if the flag machinery does not apply to this invocation
+	useEndOfWALStreamFlag := shouldUseEndOfWALStreamFlag(cluster, w.InstanceName, rewindMode)
+	if useEndOfWALStreamFlag {
 		if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
 			return err
 		}
@@ -343,10 +360,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 
 	// Step 3: gather the WAL files names to restore. If the required file isn't a regular WAL, we download it directly.
 	var walFilesList []string
-	maxParallel := 1
-	if barmanConfiguration.Wal != nil && barmanConfiguration.Wal.MaxParallel > 1 {
-		maxParallel = barmanConfiguration.Wal.MaxParallel
-	}
+	maxParallel := maxWALFilesPerInvocation(barmanConfiguration, rewindMode)
 	if IsWALFile(walName) {
 		// If this is a regular WAL file, we try to prefetch
 		if walFilesList, err = gatherWALFilesToRestore(walName, maxParallel); err != nil {
@@ -365,16 +379,12 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
-		if errors.Is(walStatus[0].Err, barmanRestorer.ErrWALNotFound) {
-			return newWALNotFoundError(walStatus[0].WalName)
-		}
-
-		return walStatus[0].Err
+		return classifyWALRestoreError(walStatus[0].WalName, walStatus[0].Err)
 	}
 
-	// We skip this step if streaming connection is not available
+	// We skip this step if the flag machinery does not apply to this invocation
 	endOfWALStream := isEndOfWALStream(walStatus)
-	if isStreamingAvailable(cluster, w.InstanceName) && endOfWALStream {
+	if useEndOfWALStreamFlag && endOfWALStream {
 		contextLogger.Info(
 			"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
 
@@ -420,6 +430,38 @@ func (w WALServiceImplementation) SetFirstRequired(
 ) (*wal.SetFirstRequiredResult, error) {
 	// TODO implement me
 	panic("implement me")
+}
+
+// maxWALFilesPerInvocation returns how many WAL files a single restore
+// invocation is allowed to fetch, the requested one included. Prefetching is
+// disabled when restoring on behalf of pg_rewind, which walks the WAL
+// backward: the following segments would never be requested, and past the end
+// of the timeline they do not even exist
+func maxWALFilesPerInvocation(barmanConfiguration *barmanapi.BarmanObjectStoreConfiguration, rewindMode bool) int {
+	if rewindMode {
+		return 1
+	}
+
+	if barmanConfiguration.Wal != nil && barmanConfiguration.Wal.MaxParallel > 1 {
+		return barmanConfiguration.Wal.MaxParallel
+	}
+
+	return 1
+}
+
+// shouldUseEndOfWALStreamFlag returns true when the end-of-wal-stream flag
+// machinery applies to the current invocation. The flag makes the following
+// invocation fail, so that PostgreSQL stops polling the WAL archive and
+// switches to streaming replication. It does not apply when no streaming
+// connection is available, nor when restoring on behalf of pg_rewind:
+// pg_rewind cannot fall back to streaming replication, and a stale flag would
+// make it abort on a segment that is available in the archive
+func shouldUseEndOfWALStreamFlag(cluster *cnpgv1.Cluster, podName string, rewindMode bool) bool {
+	if rewindMode {
+		return false
+	}
+
+	return isStreamingAvailable(cluster, podName)
 }
 
 // isStreamingAvailable checks if this pod can replicate via streaming connection.
@@ -494,6 +536,22 @@ func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
 		}
 
 		return ErrEndOfWALStreamReached
+	}
+	return nil
+}
+
+// clearEndOfWALStreamFlag removes the end-of-wal-stream flag, if present, without
+// treating it as an error. It is used instead of checkEndOfWALStreamFlag when
+// restoring on behalf of pg_rewind, which must not abort on a flag it did not
+// set itself.
+func clearEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
+	contain, err := walRestorer.IsEndOfWALStream()
+	if err != nil {
+		return err
+	}
+
+	if contain {
+		return walRestorer.ResetEndOfWalStream()
 	}
 	return nil
 }

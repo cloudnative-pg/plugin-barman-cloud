@@ -46,7 +46,7 @@ import (
 func newFakeScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	utilruntime.Must(rbacv1.AddToScheme(s))
-	utilruntime.Must(barmancloudv1.AddToScheme(s))
+	barmancloudv1.AddKnownTypes(s)
 	return s
 }
 

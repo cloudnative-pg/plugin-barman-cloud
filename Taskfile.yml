@@ -7,9 +7,9 @@ output: prefixed
 # Variables that are shared across tasks.
 vars:
   GO_VERSION:
-    sh: sed -n 's/^toolchain go//p' go.mod
+    sh: sed -n 's/^toolchain go//p' go.mod | grep . || sed -n 's/^go //p' go.mod
   # renovate: datasource=docker depName=kindest/node versioning=semver
-  E2E_KUBERNETES_VERSION: v1.35.1
+  E2E_KUBERNETES_VERSION: v1.36.1
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
@@ -21,9 +21,9 @@ tasks:
     desc: Run golangci-lint
     env:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_GOLANGCI_LINT_SHA: 5dcc7e4c4cd5ed230046955f42e27f2166545155
+      DAGGER_GOLANGCI_LINT_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
       # renovate: datasource=docker depName=golangci/golangci-lint versioning=semver
-      GOLANGCI_LINT_VERSION: v2.11.4
+      GOLANGCI_LINT_VERSION: v2.12.2
     cmds:
       - >
         GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
@@ -46,7 +46,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: f84ac0c681fcfff4d6f138bf53d44d023f615b48
+      DAGGER_SPELLCHECK_SHA: f7187c307f2ba79290efbfff5ce436b956162c53
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -60,7 +60,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: f84ac0c681fcfff4d6f138bf53d44d023f615b48
+      DAGGER_COMMITLINT_SHA: f7187c307f2ba79290efbfff5ce436b956162c53
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -74,7 +74,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: f84ac0c681fcfff4d6f138bf53d44d023f615b48
+      DAGGER_UNCOMMITTED_SHA: f7187c307f2ba79290efbfff5ce436b956162c53
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
@@ -86,7 +86,7 @@ tasks:
       - controller-gen
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CRDGENREF_SHA: f84ac0c681fcfff4d6f138bf53d44d023f615b48
+      DAGGER_CRDGENREF_SHA: f7187c307f2ba79290efbfff5ce436b956162c53
       # renovate: datasource=go depName=github.com/elastic/crd-ref-docs
       CRDREFDOCS_VERSION: v0.3.0
     cmds:
@@ -122,7 +122,7 @@ tasks:
   docusaurus-version-is-aligned:
     desc: Verify that a documentation version exists for the current version of the plugin
     cmds:
-      - $(dagger -s call -m dagger/check-doc-version has-version-documentation --src .)
+      - $(GITHUB_REF= dagger -s call -m dagger/check-doc-version has-version-documentation --src .)
     src:
       - .release-please-manifest.json
       - ./web/versions.json
@@ -133,7 +133,7 @@ tasks:
       # renovate: datasource=git-refs depname=kubernetes packageName=https://github.com/kubernetes/kubernetes versioning=semver
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
-      SETUP_ENVTEST_VERSION: 0.23.3
+      SETUP_ENVTEST_VERSION: 0.24.1
     cmds:
       - >
         GITHUB_REF= dagger -s call -m ./dagger/gotest
@@ -206,7 +206,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.20.6
+      DAGGER_VERSION: 0.21.7
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
@@ -263,7 +263,7 @@ tasks:
     run: once
     vars:
       # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
-      KIND_VERSION: v0.31.0
+      KIND_VERSION: v0.32.0
     cmds:
       - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
       - kind version | grep -q {{.KIND_VERSION}}
@@ -360,18 +360,20 @@ tasks:
       SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
-      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+      # Any remaining "/" (e.g. from namespaced branches like "dev/foo") is replaced with "-" since
+      # "/" is not a valid character in a Docker tag.
+      IMAGE_VERSION: '{{replace "/" "-" (regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}")}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
     cmds:
       - >
-        dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
-        dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
@@ -381,7 +383,7 @@ tasks:
     run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: f84ac0c681fcfff4d6f138bf53d44d023f615b48
+      DAGGER_CONTROLLER_GEN_SHA: f7187c307f2ba79290efbfff5ce436b956162c53
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
@@ -450,19 +452,21 @@ tasks:
       SIDECAR_IMAGE_NAME: ghcr.io/{{.GITHUB_REPOSITORY}}-sidecar{{if not (hasPrefix "refs/tags/v" .GITHUB_REF)}}-testing{{end}}
       # remove /merge suffix from the branch name. This is a workaround for the GitHub workflow on PRs,
       # where the branch name is suffixed with /merge. Prepend pr- to the branch name on PRs.
-      IMAGE_VERSION: '{{regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}"}}'
+      # Any remaining "/" (e.g. from namespaced branches like "dev/foo") is replaced with "-" since
+      # "/" is not a valid character in a Docker tag.
+      IMAGE_VERSION: '{{replace "/" "-" (regexReplaceAll "(\\d+)/merge" .GITHUB_REF_NAME "pr-${1}")}}'
     env:
       # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
-      DAGGER_KUSTOMIZE_SHA: 5dcc7e4c4cd5ed230046955f42e27f2166545155
+      DAGGER_KUSTOMIZE_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
     cmds:
       - >
-        dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        GITHUB_REF= dagger -s call -m https://github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         edit --source . --dir kubernetes
         set image --image plugin-barman-cloud={{.PLUGIN_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         set secret --secret plugin-barman-cloud --from-literal SIDECAR_IMAGE={{.SIDECAR_IMAGE_NAME}}:{{.IMAGE_VERSION}}
         directory directory --path kubernetes export --path manifest-build
       - >
-        dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
         build --source . --dir manifest-build export --path manifest.yaml
     sources:
       - ./config/**/*.yaml
@@ -483,13 +487,13 @@ tasks:
         - GITHUB_TOKEN
     env:
       # renovate: datasource=git-refs depName=gh lookupName=https://github.com/sagikazarmark/daggerverse
-      DAGGER_GH_SHA: 5dcc7e4c4cd5ed230046955f42e27f2166545155
+      DAGGER_GH_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
     preconditions:
       - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
         msg: not a tag, failing
     cmds:
         - >
-            dagger -s call -m github.com/sagikazarmark/daggerverse/gh@${DAGGER_GH_SHA}
+            GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/gh@${DAGGER_GH_SHA}
             with-source --source .
             run --repo {{.GITHUB_REPOSITORY}} --token env:GITHUB_TOKEN
             --cmd "release upload {{.GITHUB_REF_NAME}} manifest.yaml"

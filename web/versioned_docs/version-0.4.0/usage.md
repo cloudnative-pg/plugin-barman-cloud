@@ -46,7 +46,7 @@ spec:
 
 The `.spec.configuration` schema follows the same format as the
 [in-tree barman-cloud support](https://pkg.go.dev/github.com/cloudnative-pg/barman-cloud/pkg/api#BarmanObjectStoreConfiguration).
-Refer to [the CloudNativePG documentation](https://cloudnative-pg.io/documentation/preview/backup_barmanobjectstore/)
+Refer to [the CloudNativePG documentation](https://cloudnative-pg.io/documentation/current/appendixes/backup_barmanobjectstore/)
 for additional details.
 
 :::important

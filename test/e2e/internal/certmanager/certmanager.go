@@ -55,10 +55,10 @@ func WithIgnoreExistingResources(ignore bool) InstallOption {
 	}
 }
 
-// TODO: renovate
-
 // DefaultVersion is the default version of cert-manager to install.
-const DefaultVersion = "v1.15.1"
+//
+// renovate: datasource=github-releases depName=cert-manager/cert-manager
+const DefaultVersion = "v1.21.0"
 
 // Install installs cert-manager using kubectl.
 func Install(ctx context.Context, cl client.Client, opts ...InstallOption) error {

@@ -55,7 +55,7 @@ var _ = Describe("Metrics Collect method", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		scheme := runtime.NewScheme()
-		Expect(barmancloudv1.AddToScheme(scheme)).To(Succeed())
+		barmancloudv1.AddKnownTypes(scheme)
 
 		// Timestamps for the test
 		firstRecoverabilityPoint := metav1.NewTime(time.Now().Add(-24 * time.Hour))
