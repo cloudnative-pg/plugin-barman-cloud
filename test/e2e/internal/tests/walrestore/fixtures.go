@@ -121,8 +121,8 @@ func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 						{
 							Name: s3ClientName,
 							// renovate: datasource=docker depName=amazon/aws-cli versioning=docker
-							// Version: 2.36.3
-							Image:   "docker.io/amazon/aws-cli@sha256:bdd02067a00c354684086071b475955c54caa7bd88b851aac99a51326fe19652",
+							// Version: 2.36.6
+							Image:   "docker.io/amazon/aws-cli@sha256:a9d9b72a496fd434172bef0a1cac0bf3812986184f9d3b3cbff65d6999e7c4f8",
 							Command: []string{"sleep", "infinity"},
 							Env: []corev1.EnvVar{
 								{
