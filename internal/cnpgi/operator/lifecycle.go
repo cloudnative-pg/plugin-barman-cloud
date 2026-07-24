@@ -343,9 +343,7 @@ func reconcileInstancePod(
 	// sidecar in its instance pods: the phase-0 bootstrap restore and the WAL
 	// replay that follows both run inside the instance and rely on it. This
 	// condition therefore mirrors what pluginConfiguration.Validate() accepts.
-	if len(pluginConfiguration.BarmanObjectName) != 0 ||
-		len(pluginConfiguration.RecoveryBarmanObjectName) != 0 ||
-		len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
+	if pluginConfiguration.HasAnyBarmanObjectStore() {
 		if err := reconcilePodSpec(
 			cluster,
 			&mutatedPod.Spec,
