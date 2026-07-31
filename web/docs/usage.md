@@ -79,6 +79,85 @@ spec:
 
 This configuration enables both WAL archiving and data directory backups.
 
+By default, the plugin uses the Cluster name as the `serverName` archive
+namespace under the ObjectStore `destinationPath`. You can override it with the
+`serverName` plugin parameter. See
+[Parameters](parameters.md) for details.
+
+## Archive path separation for PostgreSQL major upgrades
+
+The Barman Cloud Plugin does **not** automatically separate archives when you
+perform a PostgreSQL major version upgrade. If you keep the same `serverName`,
+the upgraded cluster continues to write backups and WAL files into the same
+object-store path used before the upgrade.
+
+That is unsafe because `pg_upgrade` creates a new database system with a new
+*System ID* and resets the PostgreSQL timeline to 1. Reusing the same archive
+path can:
+
+- overwrite or collide with previous timeline 1 history files
+- mix backups and WAL files from different PostgreSQL majors in one archive
+- cause timeline/history conflicts for replicas restoring from that archive
+
+:::warning
+Point-in-time recovery (PITR) is not supported across major PostgreSQL version
+boundaries. Pre-upgrade backups cannot recover to a point in time after the
+upgrade. Take a new base backup as soon as possible after upgrading.
+:::
+
+### Recommended practice
+
+Change the Cluster plugin `serverName` when you change `imageName` for the
+major upgrade. Existing backups and WAL files remain available under the old
+`serverName` path. New backups and WAL archives go to the new path.
+
+Before upgrade (PostgreSQL 16):
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-example
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: prod-store
+        serverName: cluster-pg16
+```
+
+After upgrade (PostgreSQL 18) — update both `imageName` and `serverName`
+together:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-example
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: prod-store
+        serverName: cluster-pg18
+```
+
+With this configuration:
+
+- pre-upgrade backups remain under `serverName: cluster-pg16`
+- the upgraded cluster archives to `serverName: cluster-pg18`
+- you can still recover the pre-upgrade cluster by pointing recovery
+  `externalClusters` plugin parameters at the old `serverName`
+
+For the full CloudNativePG major-upgrade procedure, including backup and WAL
+archive considerations, see the
+[PostgreSQL major upgrades](https://cloudnative-pg.io/documentation/current/postgres_upgrades/)
+documentation.
+
 ## Performing a Base Backup
 
 Once WAL archiving is enabled, the cluster is ready for backups. Backups can be
