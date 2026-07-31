@@ -1080,6 +1080,8 @@ spec:
   secretName: barman-cloud-client-tls
   usages:
   - client auth
+  privateKey:
+    rotationPolicy: Always
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -1100,6 +1102,8 @@ spec:
   secretName: barman-cloud-server-tls
   usages:
   - server auth
+  privateKey:
+    rotationPolicy: Always
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
