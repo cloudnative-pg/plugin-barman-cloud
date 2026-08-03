@@ -150,10 +150,16 @@ func (impl LifecycleImplementation) reconcileJob(
 		return nil, err
 	}
 
+	image, err := impl.collectSidecarImageForRecoveryJob(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
+		image:        image,
 	})
 }
 
@@ -162,6 +168,7 @@ type sidecarConfiguration struct {
 	certificates   []corev1.VolumeProjection
 	resources      corev1.ResourceRequirements
 	additionalArgs []string
+	image          string
 }
 
 func reconcileJob(
@@ -248,11 +255,17 @@ func (impl LifecycleImplementation) reconcilePod(
 		return nil, err
 	}
 
+	image, err := impl.collectSidecarImageForPod(ctx, pluginConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
 	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
 		env:            env,
 		certificates:   certificates,
 		resources:      resources,
 		additionalArgs: additionalArgs,
+		image:          image,
 	})
 }
 
@@ -415,7 +428,10 @@ func reconcilePodSpec(
 
 	// fixed values
 	sidecarTemplate.Name = "plugin-barman-cloud"
-	sidecarTemplate.Image = viper.GetString("sidecar-image")
+	sidecarTemplate.Image = config.image
+	if sidecarTemplate.Image == "" {
+		sidecarTemplate.Image = viper.GetString("sidecar-image")
+	}
 	sidecarTemplate.ImagePullPolicy = cluster.Spec.ImagePullPolicy
 	sidecarTemplate.StartupProbe = baseProbe.DeepCopy()
 	sidecarTemplate.SecurityContext = &corev1.SecurityContext{

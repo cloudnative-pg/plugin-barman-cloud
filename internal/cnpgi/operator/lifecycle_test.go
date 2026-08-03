@@ -26,6 +26,7 @@ import (
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/utils"
 	"github.com/cloudnative-pg/cnpg-i/pkg/lifecycle"
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
+	"github.com/spf13/viper"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -515,6 +516,101 @@ var _ = Describe("LifecycleImplementation", func() {
 			impl := LifecycleImplementation{Client: cli}
 			_, err := impl.collectSidecarResourcesForPod(ctx, pc)
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("collectSidecarImage", func() {
+		makeStoreWithImageFunc := func(ns, name, image string) *barmancloudv1.ObjectStore {
+			return &barmancloudv1.ObjectStore{
+				TypeMeta:   metav1.TypeMeta{Kind: "ObjectStore", APIVersion: barmancloudv1.GroupVersion.String()},
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+				Spec: barmancloudv1.ObjectStoreSpec{
+					InstanceSidecarConfiguration: barmancloudv1.InstanceSidecarConfiguration{
+						SidecarImage: image,
+					},
+				},
+			}
+		}
+
+		It("uses the cluster object store image when multiple stores are configured", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                       cluster,
+				BarmanObjectName:              "primary-store",
+				RecoveryBarmanObjectName:      "recovery-store",
+				ReplicaSourceBarmanObjectName: "replica-store",
+			}
+			cli := buildClientFunc(
+				makeStoreWithImageFunc(ns, pc.BarmanObjectName, "example.com/primary:v1"),
+				makeStoreWithImageFunc(ns, pc.RecoveryBarmanObjectName, "example.com/recovery:v1"),
+				makeStoreWithImageFunc(ns, pc.ReplicaSourceBarmanObjectName, "example.com/replica:v1"),
+			).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			image, err := impl.collectSidecarImageForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(image).To(Equal("example.com/primary:v1"))
+		})
+
+		It("uses the recovery object store image for recovery jobs", func(ctx SpecContext) {
+			ns := "test-ns"
+			cluster := &cnpgv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: ns}}
+			pc := &config.PluginConfiguration{
+				Cluster:                  cluster,
+				RecoveryBarmanObjectName: "recovery-store",
+			}
+			cli := buildClientFunc(
+				makeStoreWithImageFunc(ns, pc.RecoveryBarmanObjectName, "example.com/recovery:v1"),
+			).Build()
+
+			impl := LifecycleImplementation{Client: cli}
+			image, err := impl.collectSidecarImageForRecoveryJob(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(image).To(Equal("example.com/recovery:v1"))
+		})
+
+		It("returns an empty override when no object store is configured", func(ctx SpecContext) {
+			pc := &config.PluginConfiguration{Cluster: &cnpgv1.Cluster{}}
+			impl := LifecycleImplementation{Client: buildClientFunc().Build()}
+
+			image, err := impl.collectSidecarImageForPod(ctx, pc)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(image).To(BeEmpty())
+		})
+	})
+
+	Describe("sidecar image selection", func() {
+		It("prefers the ObjectStore image override", func() {
+			spec := corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}}
+			err := reconcilePodSpec(
+				cluster,
+				&spec,
+				"postgres",
+				corev1.Container{Args: []string{"instance"}},
+				sidecarConfiguration{image: "example.com/override:v1"},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(spec.InitContainers).To(HaveLen(1))
+			Expect(spec.InitContainers[0].Image).To(Equal("example.com/override:v1"))
+		})
+
+		It("falls back to the deployment sidecar image", func() {
+			previousImage := viper.GetString("sidecar-image")
+			viper.Set("sidecar-image", "example.com/global:v1")
+			DeferCleanup(viper.Set, "sidecar-image", previousImage)
+
+			spec := corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}}
+			err := reconcilePodSpec(
+				cluster,
+				&spec,
+				"postgres",
+				corev1.Container{Args: []string{"instance"}},
+				sidecarConfiguration{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(spec.InitContainers).To(HaveLen(1))
+			Expect(spec.InitContainers[0].Image).To(Equal("example.com/global:v1"))
 		})
 	})
 })
