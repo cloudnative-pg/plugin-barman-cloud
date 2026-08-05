@@ -430,7 +430,7 @@ func reconcilePodSpec(
 			Drop: []corev1.Capability{"ALL"},
 		},
 	}
-	sidecarTemplate.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
+
 	sidecarTemplate.Resources = config.resources
 	sidecarTemplate.Args = append(sidecarTemplate.Args, config.additionalArgs...)
 
@@ -491,6 +491,8 @@ func reconcilePodSpec(
 	if err := injectPluginSidecarPodSpec(spec, &sidecarTemplate, mainContainerName); err != nil {
 		return err
 	}
+
+	wrapMainContainerCommandWithSocketWait(spec, mainContainerName, sidecarTemplate.Name)
 
 	return nil
 }
@@ -557,15 +559,15 @@ func injectPluginSidecarPodSpec(
 		return errors.New("main container not found")
 	}
 
-	for i := range spec.InitContainers {
-		if spec.InitContainers[i].Name == sidecar.Name {
+	for i := range spec.Containers {
+		if spec.Containers[i].Name == sidecar.Name {
 			sidecarContainerFound = true
-			spec.InitContainers[i] = *sidecar
+			spec.Containers[i] = *sidecar
 		}
 	}
 
 	if !sidecarContainerFound {
-		spec.InitContainers = append(spec.InitContainers, *sidecar)
+		spec.Containers = append(spec.Containers, *sidecar)
 	}
 
 	return nil
@@ -641,4 +643,22 @@ func getCNPGJobRole(job *batchv1.Job) string {
 	}
 
 	return ""
+}
+
+func wrapMainContainerCommandWithSocketWait(spec *corev1.PodSpec, mainContainerName, sidecarName string) {
+	socketPath := fmt.Sprintf("/plugins/%s.sock", sidecarName)
+	waitScript := fmt.Sprintf(
+		`i=0; while [ ! -S %s ] && [ "$i" -lt 60 ]; do i=$((i+1)); sleep 1; done; exec "$@"`,
+		socketPath,
+	)
+
+	for i := range spec.Containers {
+		container := &spec.Containers[i]
+		if container.Name != mainContainerName {
+			continue
+		}
+		fullCommand := append(append([]string{}, container.Command...), container.Args...)
+		container.Command = []string{"/bin/sh", "-c", waitScript, "--"}
+		container.Args = fullCommand
+	}
 }
