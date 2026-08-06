@@ -55,6 +55,28 @@ Both checks are required before proceeding with the installation.
 ## Installing the Barman Cloud Plugin
 
 import { InstallationSnippet } from '@site/src/components/Installation';
+import { HelmInstallationSnippet } from '@site/src/components/HelmInstallation';
+
+### Using the Helm Chart
+
+The plugin can be installed using the provided [Helm chart](https://github.com/cloudnative-pg/charts/tree/main/charts/plugin-barman-cloud):
+
+<HelmInstallationSnippet chartVersion="0.4.0" />
+
+Example output:
+
+```output
+Release "barman-cloud" does not exist. Installing it now.
+NAME: barman-cloud
+LAST DEPLOYED: Wed Jul  1 09:05:16 2026
+NAMESPACE: cnpg-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+```
+
+### Directly using the manifest
 
 Install the plugin using `kubectl` by applying the manifest for the latest
 release:
@@ -82,6 +104,8 @@ certificate.cert-manager.io/barman-cloud-client created
 certificate.cert-manager.io/barman-cloud-server created
 issuer.cert-manager.io/selfsigned-issuer created
 ```
+
+---
 
 Finally, check that the deployment is up and running:
 
