@@ -102,6 +102,15 @@ func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.Names
 	}
 }
 
+// HasAnyBarmanObjectStore returns true if the configuration references at least
+// one barman object store, be it for backup/archiving, recovery, or as a
+// replica source.
+func (config *PluginConfiguration) HasAnyBarmanObjectStore() bool {
+	return len(config.BarmanObjectName) > 0 ||
+		len(config.RecoveryBarmanObjectName) > 0 ||
+		len(config.ReplicaSourceBarmanObjectName) > 0
+}
+
 // GetReferredBarmanObjectsKey gets the list of barman objects referred by this
 // plugin configuration
 func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.NamespacedName {
@@ -263,9 +272,7 @@ func getReplicaSourcePlugin(cluster *cnpgv1.Cluster) *cnpgv1.PluginConfiguration
 func (config *PluginConfiguration) Validate() error {
 	err := NewConfigurationError()
 
-	if len(config.BarmanObjectName) == 0 &&
-		len(config.RecoveryBarmanObjectName) == 0 &&
-		len(config.ReplicaSourceBarmanObjectName) == 0 {
+	if !config.HasAnyBarmanObjectStore() {
 		return err.WithMessage("no reference to barmanObjectName have been included")
 	}
 

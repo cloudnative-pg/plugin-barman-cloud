@@ -322,6 +322,45 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 	return nil, nil
 }
 
+// shouldInjectBarmanSidecar decides whether an instance pod needs the
+// plugin-barman-cloud sidecar.
+//
+// A cluster doing backup/archiving or serving as a replica source needs the
+// sidecar in every instance pod for as long as the cluster exists, so those
+// two cases always inject it. A recovery-only cluster (only
+// RecoveryBarmanObjectName set, mirroring what pluginConfiguration.Validate()
+// accepts) only ever needs the sidecar for its one-time bootstrap restore, so
+// it's gated on cluster.Status.CurrentPrimary instead.
+//
+// CurrentPrimary is set by the instance manager itself, from inside the
+// primary pod, only once it's up and has completed its own bootstrap (see
+// instance_startup.go in cloudnative-pg) - unlike cluster.Status.Instances /
+// IsInitialized(), which flips as soon as the instance's PVC exists, well
+// before the pod is even created. Using IsInitialized() here would mean the
+// sidecar is never added to the one pod that needs it to perform its restore.
+//
+// Once CurrentPrimary is set, this makes the operator's own drift-check
+// (checkPodSpecIsOutdated) see the running pod's spec as outdated and roll it
+// out to drop the sidecar. That's deliberately accepted rather than
+// engineered around: it's one deterministic rollout using the same machinery
+// the operator already uses for every other pod-spec change (a switchover if
+// a replica is available, an in-place restart otherwise), not a new or
+// fragile risk.
+func shouldInjectBarmanSidecar(
+	cluster *cnpgv1.Cluster,
+	pluginConfiguration *config.PluginConfiguration,
+) bool {
+	if len(pluginConfiguration.BarmanObjectName) != 0 || len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
+		return true
+	}
+
+	if len(pluginConfiguration.RecoveryBarmanObjectName) == 0 {
+		return false
+	}
+
+	return cluster.Status.CurrentPrimary == ""
+}
+
 func reconcileInstancePod(
 	ctx context.Context,
 	cluster *cnpgv1.Cluster,
@@ -339,8 +378,7 @@ func reconcileInstancePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if len(pluginConfiguration.BarmanObjectName) != 0 ||
-		len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
+	if shouldInjectBarmanSidecar(cluster, pluginConfiguration) {
 		if err := reconcilePodSpec(
 			cluster,
 			&mutatedPod.Spec,
@@ -353,7 +391,7 @@ func reconcileInstancePod(
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
 	} else {
-		contextLogger.Debug("No need to mutate instance with no backup & archiving configuration")
+		contextLogger.Debug("No need to mutate instance, sidecar not required for this configuration and pod")
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)

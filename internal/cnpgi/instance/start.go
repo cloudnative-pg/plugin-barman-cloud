@@ -25,11 +25,13 @@ import (
 	"github.com/cloudnative-pg/cnpg-i-machinery/pkg/pluginhelper/http"
 	"github.com/cloudnative-pg/cnpg-i/pkg/backup"
 	"github.com/cloudnative-pg/cnpg-i/pkg/metrics"
+	restore "github.com/cloudnative-pg/cnpg-i/pkg/restore/job"
 	"github.com/cloudnative-pg/cnpg-i/pkg/wal"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/common"
+	barmanrestore "github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/restore"
 )
 
 // CNPGI is the implementation of the PostgreSQL sidecar
@@ -59,6 +61,15 @@ func (c *CNPGI) Start(ctx context.Context) error {
 		})
 		metrics.RegisterMetricsServer(server, &metricsImpl{
 			Client: c.Client,
+		})
+		// The instance pod runs the phase-0 bootstrap in-process (no separate
+		// recovery Job), so the same sidecar must answer the Restore RPC that
+		// initializes PGDATA from the object store before PostgreSQL starts.
+		restore.RegisterRestoreJobHooksServer(server, &barmanrestore.JobHookImpl{
+			Client:               c.Client,
+			SpoolDirectory:       c.SpoolDirectory,
+			PgDataPath:           c.PGDataPath,
+			PgWalFolderToSymlink: common.PgWalVolumePgWalPath,
 		})
 		common.AddHealthCheck(server)
 		return nil
