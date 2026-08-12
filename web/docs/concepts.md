@@ -35,7 +35,7 @@ object storage system. It allows you to configure:
 - **Base backup options**—with similar settings for compression, concurrency,
   and encryption—under `.spec.configuration.data`
 - **Retention policies** to manage the life-cycle of archived WALs and backups
-  via `.spec.configuration.retentionPolicy`
+  via `.spec.retentionPolicy`
 
 WAL files are archived in the `wals` directory, while base backups are stored
 as **tarballs** in the `base` directory, following the
