@@ -22,7 +22,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.opentelemetry.io/proto/otlp v1.10.0
 	golang.org/x/sync v0.20.0
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.82.1
 )
 
 require github.com/cenkalti/backoff/v5 v5.0.3 // indirect
