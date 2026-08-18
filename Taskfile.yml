@@ -46,7 +46,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=spellcheck lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_SPELLCHECK_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_SPELLCHECK_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/spellcheck@${DAGGER_SPELLCHECK_SHA}
@@ -60,7 +60,7 @@ tasks:
     desc: Check for conventional commits
     env:
       # renovate: datasource=git-refs depName=commitlint lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_COMMITLINT_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_COMMITLINT_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
@@ -74,7 +74,7 @@ tasks:
       - wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_UNCOMMITTED_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_UNCOMMITTED_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/uncommitted@${DAGGER_UNCOMMITTED_SHA} check-uncommitted --source . stdout
     sources:
@@ -86,7 +86,7 @@ tasks:
       - controller-gen
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CRDGENREF_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_CRDGENREF_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
       # renovate: datasource=go depName=github.com/elastic/crd-ref-docs
       CRDREFDOCS_VERSION: v0.3.0
     cmds:
@@ -383,7 +383,7 @@ tasks:
     run: once
     env:
       # renovate: datasource=git-refs depName=controller-gen lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CONTROLLER_GEN_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_CONTROLLER_GEN_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
     cmds:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/controller-gen@${DAGGER_CONTROLLER_GEN_SHA}
