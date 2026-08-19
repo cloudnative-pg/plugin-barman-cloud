@@ -91,3 +91,59 @@ jobs:
         with:
           name: manifest.yaml
           path: ./manifest.yaml
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Cleanup Disk
+        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          tool-cache: true
+          large-packages: false
+          swap-storage: false
+      - name: Cleanup docker cache
+        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
+        run: |
+          docker system prune -a -f
+      - name: Checkout plugin-barman-cloud
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout CloudNativePG
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: cloudnative-pg/cloudnative-pg
+          path: cloudnativepg
+          fetch-depth: 0
+      - name: Install Task
+        uses: arduino/setup-task@v3.0.0
+      - name: Install Dagger
+        env:
+          # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+          DAGGER_VERSION: 0.21.8
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cloudnativepg/go.mod
+      - name: Start Kind cluster
+        id: kind-cluster
+        working-directory: cloudnativepg
+        run: |
+          hack/setup-cluster.sh create load deploy
+          CLUSTERS=$(kind get clusters)
+          echo "clusters=$CLUSTERS" >> "$GITHUB_OUTPUT"
+      - name: Run integration tests
+        env:
+          KIND_CLUSTER_NAME: ${{ steps.kind-cluster.outputs.clusters }}
+        run: |
+          task integration:e2e

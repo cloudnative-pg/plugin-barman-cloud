@@ -28,7 +28,6 @@ tasks:
     desc: Run the CI pipeline
     deps:
       - core:ci
-      - core:e2e-ephemeral
 
   ####################################
   ## CORE
@@ -142,46 +141,6 @@ tasks:
     deps:
       - internal:build-plugin-image
       - internal:build-sidecar-image
-
-  core:e2e-ephemeral:
-    desc: Run e2e tests in an ephemeral k3s cluster
-    deps:
-      - core:build-images
-    env:
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
-    cmds:
-      - >
-        GITHUB_REF= dagger call -m  dagger/e2e/ run-ephemeral
-        --source .
-        --ca certs/ca.pem
-        --registry {{.REGISTRY_NAME}}:{{.REGISTRY_PORT}}
-        --go-version {{.GO_VERSION}}
-
-  # TODO: see if it is possible to daggerize this. It will have to manage docker to make kind work.
-  # TODO: add a task to clean up the kind cluster for new test runs.
-  # Run the e2e tests. This task will start a kind cluster, deploy the plugin, and run the tests.
-  # Running the e2e tests requires:
-  # * The registry to have a valid TLS certificate.
-  # * The registry to be in the same network of the dagger-engine.
-  # * The dagger-engine to mount the CA.
-  # * The kind cluster to mount the CA.
-  core:e2e-external-kind:
-    desc: Run e2e tests in a local kind cluster
-    deps:
-      - core:build-images
-      - internal:start-kind-cluster
-    vars:
-      KUBECONFIG_PATH:
-        sh: mktemp -t kubeconfig-XXXXX
-    env:
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
-    cmds:
-      - kind get kubeconfig --internal --name {{ .E2E_CLUSTER_NAME }} > {{ .KUBECONFIG_PATH }}
-      - >
-        GITHUB_REF= dagger call -m  dagger/e2e/ run
-        --source .
-        --kubeconfig {{.KUBECONFIG_PATH}}
-        --go-version {{.GO_VERSION}}
 
   ####################################
   ## INTERNAL
@@ -332,96 +291,42 @@ tasks:
     status:
       - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .REGISTRY_NAME }}" 2> /dev/null )" == 'true' \]
 
- # Start a dagger engine that mounts the CA certificate for the local registry.
-  internal:start-dagger-engine-for-local-builds:
-    desc: Start a dagger engine mounting the CA
-    run: once
-    deps:
-      - internal:generate-certs
-      - internal:start-build-network
-    vars:
-      # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.21.9
-      DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
+  internal:registry-network-connect:
+    desc: Make sure the registry is connected to the registry network
+    summary: If we started the registry on our own, it should already be connected. However, if the registry was started
+      somewhere else, it may not be on the expected network.
     internal: true
+    deps:
+      - internal:start-registry
+    run: once
     cmds:
-      - >
-        docker run -d -v /var/lib/dagger --name "{{ .DAGGER_ENGINE_CONTAINER_NAME }}"
-        --network={{ .REGISTRY_NETWORK }}
-        -v certs:/usr/local/share/ca-certificates/
-        --privileged {{ .DAGGER_ENGINE_IMAGE }}
+      - docker network connect {{ .REGISTRY_NETWORK }} {{ .REGISTRY_NAME }} || true
     status:
-      - \[ "$(docker inspect -f {{`'{{.State.Running}}'`}} "{{ .DAGGER_ENGINE_CONTAINER_NAME }}" 2> /dev/null )" == 'true' \]
+      - docker network inspect {{ .REGISTRY_NETWORK }} -f '{{ range .Containers }}{{ .Name }} {{ end }}' | grep "{{ .REGISTRY_NAME }}"
 
   # We build an image and push it to a local registry.
   # The name is always `plugin-barman-cloud:testing`.
   internal:build-plugin-image:
-    desc: Build the operator container image for the plugin
-    deps:
-      - internal:start-registry
-      - internal:start-dagger-engine-for-local-builds
-    env:
-      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
+    desc: Build the operator container image for the plugin using the local Docker engine
     internal: true
+    deps:
+      - internal:registry-network-connect
     cmds:
       - >
-        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64
-        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/plugin-barman-cloud --tags testing
+        dagger run docker buildx build -f containers/Dockerfile.plugin --build-arg GO_VERSION={{.GO_VERSION}}
+        --tag localhost:{{.REGISTRY_PORT}}/plugin-barman-cloud:testing --push .
 
   # We build an image and push it to a local registry.
   # The name is always `sidecar-barman-cloud:testing`.
   internal:build-sidecar-image:
-    desc: Build the sidecar container image for the plugin
+    desc: Build the sidecar container image for the plugin using the local Docker engine
     internal: true
     deps:
-      - internal:start-registry
-      - internal:start-dagger-engine-for-local-builds
-    env:
-      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
-      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
-      _EXPERIMENTAL_DAGGER_RUNNER_HOST: docker-container://{{ .DAGGER_ENGINE_CONTAINER_NAME }}
+      - internal:registry-network-connect
     cmds:
       - >
-        GITHUB_REF= dagger -s call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
-        build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64
-        publish --ref {{ .REGISTRY_NAME }}:{{ .REGISTRY_PORT }}/sidecar-barman-cloud --tags testing
-
-  # Install kind if not at the expected version.
-  internal:install-kind:
-    desc: Install kind
-    run: once
-    vars:
-      # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
-      KIND_VERSION: v0.33.0
-    cmds:
-      - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
-      - kind version | grep -q {{.KIND_VERSION}}
-    status:
-        - kind version | grep -q {{.KIND_VERSION}}
-
-  internal:start-kind-cluster:
-    desc: Start a kind cluster
-    deps:
-      - internal:install-kind
-      - internal:start-build-network
-      - internal:generate-certs
-    run: once
-    cmds:
-      - >
-        kind create cluster --name {{ .E2E_CLUSTER_NAME }}
-        --image kindest/node:{{ .E2E_KUBERNETES_VERSION }}
-        --config hack/kind-config.yaml
-        --wait 5m
-      - >
-        for node in $(kind get nodes --name {{ .E2E_CLUSTER_NAME }} ); do
-          docker network connect {{ .REGISTRY_NETWORK }} $node;
-          docker exec $node sh -c "update-ca-certificates";
-        done
-    status:
-      - kind get clusters | grep -q {{ .E2E_CLUSTER_NAME }}
+        dagger run docker buildx build -f containers/Dockerfile.sidecar --build-arg GO_VERSION={{.GO_VERSION}}
+        --tag localhost:{{.REGISTRY_PORT}}/sidecar-barman-cloud:testing --push .
 
   internal:publish:
     desc: Build and publish a container image for the plugin
@@ -577,6 +482,87 @@ tasks:
       - ./web/versions.json
 
 
+  ####################################
+  ## integration
+  ####################################
 
+  # Deploy the plugin-barman-cloud to kind cluster
+  # To use KIND_CLUSTER_NAME=pg-operator-e2e-v1-33-1 task integration:deploy-to-kind
+  integration:deploy-to-kind:
+    desc: Deploy the operator on a kind cluster generated by the CNPG hack setup script
+    summary: |
+      Deploys the plugin-barman-cloud operator to a Kind cluster for integration testing. This task assumes a
+      Kind cluster has been previously created by the CloudNativePG hack/setup-cluster.sh script. It loads
+      the appropriate kubeconfig and applies the operator manifest via kustomize.
+    deps:
+      - internal:build-plugin-image
+      - internal:build-sidecar-image
+    run: once
+    requires:
+      vars:
+        - KIND_CLUSTER_NAME
+    vars:
+      KUBECONFIG_PATH:
+        sh: mktemp -t kubeconfig-XXXXX
+      KIND_HOSTPORT:
+        # This command extracts the host port for the control plane of the Kind cluster.
+        # Redundant curly braces are used to escape the template syntax in Taskfile.
+        sh: docker inspect --format '{{"{{"}} (index (index .HostConfig.PortBindings "6443/tcp") 0).HostPort {{"}}"}}' {{ .KIND_CLUSTER_NAME }}-control-plane
+      PLUGIN_IMAGE_REPOSITORY: '{{ .PLUGIN_IMAGE_REPOSITORY | default (printf "%s:%s/plugin-barman-cloud" .REGISTRY_NAME .REGISTRY_PORT) }}'
+      PLUGIN_IMAGE_TAG: '{{ .PLUGIN_IMAGE_TAG | default "testing" }}'
+      SIDECAR_IMAGE_REPOSITORY: '{{ .SIDECAR_IMAGE_REPOSITORY | default (printf "%s:%s/sidecar-barman-cloud" .REGISTRY_NAME .REGISTRY_PORT) }}'
+      SIDECAR_IMAGE_TAG: '{{ .SIDECAR_IMAGE_TAG | default "testing" }}'
+      # renovate: datasource=docker depName=alpine/k8s versioning=docker
+      ALPINE_K8S_VERSION: 1.36.2@sha256:44ef4942e171939b9c665a4a84beb80e2dcdb9a24330d4651cfdfd2e9deecc47
+      # renovate: datasource=github-releases depName=cert-manager/cert-manager versioning=semver
+      CERT_MANAGER_VERSION: v1.21.1
+      # Cache busting timestamp to prevent Dagger from caching the deployment steps
+      CACHE_BUST:
+        sh: date +%s
+    cmds:
+      - kind get kubeconfig --name {{ .KIND_CLUSTER_NAME }} > {{ .KUBECONFIG_PATH }}
+      - |
+        dagger shell << "."
+        container | from alpine/k8s:{{ .ALPINE_K8S_VERSION }} | with-mounted-file /kube/.config $(host | file {{ .KUBECONFIG_PATH }}) |
+        with-directory /src . |
+        with-env-variable KUBECONFIG /kube/.config |
+        with-service-binding localhost tcp://127.0.0.1:{{ .KIND_HOSTPORT }} |
+        with-exec -- sh -c "kubectl config set-cluster kind-{{ .KIND_CLUSTER_NAME }} --server=https://localhost:{{ .KIND_HOSTPORT }}" |
+        with-exec -- sh -c "kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/{{ .CERT_MANAGER_VERSION }}/cert-manager.yaml" |
+        with-exec -- sh -c "kubectl wait --for=condition=Available --timeout=120s -n cert-manager deployment --all" |
+        with-env-variable CACHE_BUST {{ .CACHE_BUST }} |
+        with-workdir /src/kubernetes |
+        with-exec -- sh -c "kustomize edit set image plugin-barman-cloud={{ .PLUGIN_IMAGE_REPOSITORY }}:{{ .PLUGIN_IMAGE_TAG }}" |
+        with-exec -- sh -c "kustomize edit set secret plugin-barman-cloud --from-literal=SIDECAR_IMAGE={{ .SIDECAR_IMAGE_REPOSITORY }}:{{ .SIDECAR_IMAGE_TAG }}" |
+        with-exec -- sh -c "kustomize build . | kubectl apply -f -"
+        .
+      - rm -f {{ .KUBECONFIG_PATH }}
 
-
+  integration:e2e:
+    desc: Run the e2e tests
+    deps:
+      - integration:deploy-to-kind
+    run: once
+    requires:
+      vars:
+        - KIND_CLUSTER_NAME
+    vars:
+      KUBECONFIG_PATH:
+        sh: mktemp -t kubeconfig-XXXXX
+      KIND_HOSTPORT:
+        # This command extracts the host port for the control plane of the Kind cluster.
+        # Redundant curly braces are used to escape the template syntax in Taskfile.
+        sh: docker inspect --format '{{"{{"}} (index (index .HostConfig.PortBindings "6443/tcp") 0).HostPort {{"}}"}}' {{ .KIND_CLUSTER_NAME }}-control-plane
+    cmds:
+      - kind get kubeconfig --name {{ .KIND_CLUSTER_NAME }} > {{ .KUBECONFIG_PATH }}
+      # kind writes the external server address as https://127.0.0.1:<port>, which is only valid on
+      # the host. Rewrite it to the "kubernetes" alias that --svc below binds inside the dagger container.
+      - >
+        sed -i.bak "s#server: https://[^:]*:[0-9]*#server: https://kubernetes:{{ .KIND_HOSTPORT }}#" {{ .KUBECONFIG_PATH }}
+      - >
+        GITHUB_REF= dagger call -m dagger/e2e/ run
+        --source .
+        --kubeconfig {{.KUBECONFIG_PATH}}
+        --svc tcp://127.0.0.1:{{.KIND_HOSTPORT}}
+        --go-version {{.GO_VERSION}}
+      - rm -f {{ .KUBECONFIG_PATH }} {{ .KUBECONFIG_PATH }}.bak
