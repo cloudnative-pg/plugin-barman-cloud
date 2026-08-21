@@ -153,14 +153,16 @@ tasks:
       DAGGER_GOLANGCI_LINT_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
       # renovate: datasource=docker depName=golangci/golangci-lint versioning=docker
       GOLANGCI_LINT_VERSION: v2.13.2
+      # renovate: datasource=docker depName=golang versioning=docker
+      GOLANG_IMAGE_VERSION: 1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
     internal: true
     cmds:
       - >
-        GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
-        --version ${GOLANGCI_LINT_VERSION} |
+        echo $(pwd);
+        GITHUB_REF= dagger -c "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
+        --version ${GOLANGCI_LINT_VERSION}
+        --go-version ${GOLANG_IMAGE_VERSION} |
         run . --config .golangci.yml | stdout"
-    sources:
-      - ./**/*.go
 
   internal:wordlist-ordered:
     desc: Order the word list file
@@ -208,7 +210,6 @@ tasks:
           GITHUB_REF: main
           GITHUB_REF_NAME: main
       - documentation:apidoc
-      - internal:wordlist-ordered
     env:
       # renovate: datasource=git-refs depName=uncommitted lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
       DAGGER_UNCOMMITTED_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
@@ -225,11 +226,13 @@ tasks:
       K8S_VERSION: 1.31.0
       # renovate: datasource=git-refs depName=controller-runtime packageName=https://github.com/kubernetes-sigs/controller-runtime versioning=semver
       SETUP_ENVTEST_VERSION: 0.24.1
+      # renovate: datasource=docker depName=golang versioning=docker
+      GOLANG_IMAGE_VERSION: 1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
     internal: true
     cmds:
       - >
         GITHUB_REF= dagger -s call -m ./dagger/gotest
-        --go-version {{.GO_VERSION}}
+        --go-version ${GOLANG_IMAGE_VERSION}
         --kube-version ${K8S_VERSION}
         --setup-envtest-version ${SETUP_ENVTEST_VERSION}
         unit-test --src .
@@ -311,9 +314,14 @@ tasks:
     internal: true
     deps:
       - internal:registry-network-connect
+    env:
+      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
+      # renovate: datasource=docker depName=golang versioning=docker
+      GOLANG_IMAGE_VERSION: 1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
     cmds:
       - >
-        dagger run docker buildx build -f containers/Dockerfile.plugin --build-arg GO_VERSION={{.GO_VERSION}}
+        dagger run docker buildx build -f containers/Dockerfile.plugin --build-arg GO_VERSION=${GOLANG_IMAGE_VERSION}
         --tag localhost:{{.REGISTRY_PORT}}/plugin-barman-cloud:testing --push .
 
   # We build an image and push it to a local registry.
@@ -323,9 +331,14 @@ tasks:
     internal: true
     deps:
       - internal:registry-network-connect
+    env:
+      # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
+      DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
+      # renovate: datasource=docker depName=golang versioning=docker
+      GOLANG_IMAGE_VERSION: 1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
     cmds:
       - >
-        dagger run docker buildx build -f containers/Dockerfile.sidecar --build-arg GO_VERSION={{.GO_VERSION}}
+        dagger run docker buildx build -f containers/Dockerfile.sidecar --build-arg GO_VERSION=${GOLANG_IMAGE_VERSION}
         --tag localhost:{{.REGISTRY_PORT}}/sidecar-barman-cloud:testing --push .
 
   internal:publish:
@@ -348,17 +361,19 @@ tasks:
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
+      # renovate: datasource=docker depName=golang versioning=docker
+      GOLANG_IMAGE_VERSION: 1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6
     internal: true
     cmds:
       - >
         GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.plugin --args GO_VERSION=${GOLANG_IMAGE_VERSION} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
         GITHUB_REF= dagger call -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
-        build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
+        build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION=${GOLANG_IMAGE_VERSION} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
 
   internal:controller-gen:
@@ -440,7 +455,7 @@ tasks:
       - internal:controller-gen
     env:
       # renovate: datasource=git-refs depName=crd-gen-refs lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
-      DAGGER_CRDGENREF_SHA: 7174b66d283da487638a98b431b7707b311a9a32
+      DAGGER_CRDGENREF_SHA: 26cd57fb6ad66e88c036b675b0478d38df93962d
       # renovate: datasource=go depName=github.com/elastic/crd-ref-docs
       CRDREFDOCS_VERSION: v0.3.0
     cmds:
@@ -538,8 +553,11 @@ tasks:
         .
       - rm -f {{ .KUBECONFIG_PATH }}
 
+  # Run e2e tests on the kind cluster specified by KIND_CLUSTER_NAME
   integration:e2e:
     desc: Run the e2e tests
+    summary: |
+        Run e2e against the Kind cluster specified by KIND_CLUSTER_NAME
     deps:
       - integration:deploy-to-kind
     run: once
@@ -555,14 +573,8 @@ tasks:
         sh: docker inspect --format '{{"{{"}} (index (index .HostConfig.PortBindings "6443/tcp") 0).HostPort {{"}}"}}' {{ .KIND_CLUSTER_NAME }}-control-plane
     cmds:
       - kind get kubeconfig --name {{ .KIND_CLUSTER_NAME }} > {{ .KUBECONFIG_PATH }}
-      # kind writes the external server address as https://127.0.0.1:<port>, which is only valid on
-      # the host. Rewrite it to the "kubernetes" alias that --svc below binds inside the dagger container.
+      - defer: rm -f {{ .KUBECONFIG_PATH }}
       - >
-        sed -i.bak "s#server: https://[^:]*:[0-9]*#server: https://kubernetes:{{ .KIND_HOSTPORT }}#" {{ .KUBECONFIG_PATH }}
-      - >
-        GITHUB_REF= dagger call -m dagger/e2e/ run
-        --source .
-        --kubeconfig {{.KUBECONFIG_PATH}}
-        --svc tcp://127.0.0.1:{{.KIND_HOSTPORT}}
-        --go-version {{.GO_VERSION}}
-      - rm -f {{ .KUBECONFIG_PATH }} {{ .KUBECONFIG_PATH }}.bak
+        kubectl --kubeconfig={{.KUBECONFIG_PATH}} config set-cluster kind-{{.KIND_CLUSTER_NAME}}
+        --server=https://127.0.0.1:{{.KIND_HOSTPORT}} --insecure-skip-tls-verify=true
+      - KUBECONFIG={{.KUBECONFIG_PATH}} go test ./test/e2e/... -v -ginkgo.v -timeout 45m
