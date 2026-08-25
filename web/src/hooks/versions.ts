@@ -7,7 +7,10 @@ export function useCurrentVersion(fallback: 'latest' | 'latestReleased' = 'lates
             return useLatestReleasedVersion();
         case 'latest': {
             const version = useActiveVersion('default');
-            return version?.name ?? useLatestVersion('default')?.name;
+            if (version && version.name !== 'current') {
+                return version.name;
+            }
+            return useLatestReleasedVersion();
         }
         default:
             // The following line ensures that if `fallback` is not 'latest' or 'latestReleased',

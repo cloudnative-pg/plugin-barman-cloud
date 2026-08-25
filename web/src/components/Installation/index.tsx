@@ -5,7 +5,7 @@ import {useCurrentVersion} from '@site/src/hooks/versions';
 // InstallationSnippet is the kubectl incantation to install the lastest
 // available version of the Barman Cloud Plugin.
 export function InstallationSnippet(): ReactElement<null> {
-    const latest = useCurrentVersion('latestReleased');
+    const latest = useCurrentVersion('latest');
     return (
         <CodeBlock language="sh">
             {`kubectl apply -f \\
@@ -13,4 +13,3 @@ export function InstallationSnippet(): ReactElement<null> {
         </CodeBlock>
     );
 }
-
