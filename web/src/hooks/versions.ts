@@ -1,4 +1,4 @@
-import {useActiveVersion, useLatestVersion, useVersions} from '@docusaurus/plugin-content-docs/client';
+import {useActiveVersion, useLatestVersion} from '@docusaurus/plugin-content-docs/client';
 
 
 export function useCurrentVersion(fallback: 'latest' | 'latestReleased' = 'latest'): string {
@@ -20,20 +20,5 @@ export function useCurrentVersion(fallback: 'latest' | 'latestReleased' = 'lates
 }
 
 export function useLatestReleasedVersion(): string {
-    const allVersions = useVersions('default');
-
-    // Filter out "current" to only consider versioned docs
-    const versionedDocs = allVersions.filter(version => version.name !== 'current');
-
-    // Handle the case where no versioned documents are found
-    if (versionedDocs.length === 0) {
-        return "unknown_version";
-    }
-
-    const sortedVersions = versionedDocs.sort((a, b) => {
-        return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
-    });
-
-    // The latest version is the first in the sorted list since versionedDocs was not empty,
-    return sortedVersions[0].name;
+    return useLatestVersion('default').name;
 }
