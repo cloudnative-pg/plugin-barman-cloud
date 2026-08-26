@@ -163,3 +163,40 @@ var _ = Describe("PluginConfiguration.ApplyBackupParameters", func() {
 		Expect(cfg.ServerName).To(Equal("cluster-example"))
 	})
 })
+
+var _ = Describe("Additional object stores", func() {
+	newConfiguration := func(parameters map[string]string) *PluginConfiguration {
+		return NewFromCluster(&cnpgv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster-example", Namespace: "test-ns"},
+			Spec: cnpgv1.ClusterSpec{
+				Plugins: []cnpgv1.PluginConfiguration{
+					{Name: metadata.PluginName, Parameters: parameters},
+				},
+			},
+		})
+	}
+
+	It("are referred to, so that they are covered by RBAC and certificates", func() {
+		cfg := newConfiguration(map[string]string{
+			"barmanObjectName":            "minio-store",
+			"additionalBarmanObjectNames": "archive-store, monthly-store ,",
+		})
+
+		names := make([]string, 0, 3)
+		for _, key := range cfg.GetReferredBarmanObjectsKey() {
+			Expect(key.Namespace).To(Equal("test-ns"))
+			names = append(names, key.Name)
+		}
+
+		Expect(names).To(ConsistOf("minio-store", "archive-store", "monthly-store"))
+	})
+
+	It("do not receive anything on their own", func() {
+		cfg := newConfiguration(map[string]string{
+			"barmanObjectName":            "minio-store",
+			"additionalBarmanObjectNames": "archive-store",
+		})
+
+		Expect(cfg.GetBarmanObjectKey().Name).To(Equal("minio-store"))
+	})
+})
