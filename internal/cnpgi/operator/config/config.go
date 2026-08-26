@@ -86,6 +86,24 @@ func (config *PluginConfiguration) GetBarmanObjectKey() types.NamespacedName {
 	}
 }
 
+// ApplyBackupParameters overrides the object store selection with the
+// parameters of the Backup resource. The operator relays them in the
+// BackupRequest, and without this a Backup asking for a different object
+// store is silently written to the cluster one.
+func (config *PluginConfiguration) ApplyBackupParameters(parameters map[string]string) {
+	if len(parameters) == 0 {
+		return
+	}
+
+	if value := parameters["barmanObjectName"]; len(value) > 0 {
+		config.BarmanObjectName = value
+	}
+
+	if value := parameters["serverName"]; len(value) > 0 {
+		config.ServerName = value
+	}
+}
+
 // GetRecoveryBarmanObjectKey gets the namespaced name of the recovery barman object
 func (config *PluginConfiguration) GetRecoveryBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{

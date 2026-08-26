@@ -124,3 +124,42 @@ var _ = Describe("NewFromCluster", func() {
 		Expect(cfg.Validate()).NotTo(Succeed())
 	})
 })
+
+var _ = Describe("PluginConfiguration.ApplyBackupParameters", func() {
+	newConfiguration := func(parameters map[string]string) *PluginConfiguration {
+		return NewFromCluster(&cnpgv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster-example", Namespace: "test-ns"},
+			Spec: cnpgv1.ClusterSpec{
+				Plugins: []cnpgv1.PluginConfiguration{
+					{Name: metadata.PluginName, Parameters: parameters},
+				},
+			},
+		})
+	}
+
+	It("sends the backup to the object store requested by the Backup resource", func() {
+		cfg := newConfiguration(map[string]string{"barmanObjectName": "minio-store"})
+
+		cfg.ApplyBackupParameters(map[string]string{"barmanObjectName": "archive-store"})
+
+		Expect(cfg.GetBarmanObjectKey().Name).To(Equal("archive-store"))
+	})
+
+	It("overrides the server name too", func() {
+		cfg := newConfiguration(map[string]string{"barmanObjectName": "minio-store"})
+
+		cfg.ApplyBackupParameters(map[string]string{"serverName": "another-name"})
+
+		Expect(cfg.ServerName).To(Equal("another-name"))
+		Expect(cfg.GetBarmanObjectKey().Name).To(Equal("minio-store"))
+	})
+
+	It("keeps the cluster object store when the Backup carries no parameters", func() {
+		cfg := newConfiguration(map[string]string{"barmanObjectName": "minio-store"})
+
+		cfg.ApplyBackupParameters(nil)
+
+		Expect(cfg.GetBarmanObjectKey().Name).To(Equal("minio-store"))
+		Expect(cfg.ServerName).To(Equal("cluster-example"))
+	})
+})
