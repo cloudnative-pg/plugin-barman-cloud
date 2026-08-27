@@ -34,6 +34,7 @@ tasks:
 
   wordlist-ordered:
     desc: Order the word list file
+    run: once
     cmds:
       - LANG=C LC_ALL=C sort .wordlist.txt > .wordlist.txt.new
       - mv -f .wordlist.txt.new .wordlist.txt
