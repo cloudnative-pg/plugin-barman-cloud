@@ -72,8 +72,8 @@ func newAzuriteDeployment(namespace, name string) *appsv1.Deployment {
 						{
 							Name: name,
 							// renovate: datasource=docker depName=mcr.microsoft.com/azure-storage/azurite versioning=docker
-							// Version: 3.36.0
-							Image: "mcr.microsoft.com/azure-storage/azurite@sha256:76b8127d608fab8287a14a4bfeb9a5502cdcffb4bf1e86f09f324ebb0e70edba",
+							// Version: 3.37.0
+							Image: "mcr.microsoft.com/azure-storage/azurite@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5",
 							Args: []string{
 								"azurite-blob",
 								"--blobHost",
