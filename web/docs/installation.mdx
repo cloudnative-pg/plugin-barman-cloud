@@ -54,10 +54,9 @@ Both checks are required before proceeding with the installation.
 
 ## Installing the Barman Cloud Plugin
 
-import { InstallationSnippet } from '@site/src/components/Installation';
+import { InstallationSnippet, ManifestVersion } from '@site/src/components/Installation';
 
-Install the plugin using `kubectl` by applying the manifest for the latest
-release:
+Install the plugin using `kubectl` by applying the manifest for <ManifestVersion />:
 
 <InstallationSnippet />
 
@@ -100,10 +99,6 @@ This confirms that the plugin is deployed and ready to use.
 
 ## Testing the latest development snapshot
 
-You can also test the latest development snapshot of the plugin with the
-following command:
+import { DevSnapshotSection } from '@site/src/components/Installation';
 
-```sh
-kubectl apply -f \
-  https://raw.githubusercontent.com/cloudnative-pg/plugin-barman-cloud/refs/heads/main/manifest.yaml
-```
+<DevSnapshotSection />
