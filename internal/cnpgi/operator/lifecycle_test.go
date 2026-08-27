@@ -302,7 +302,6 @@ var _ = Describe("LifecycleImplementation", func() {
 			response, err := reconcileInstancePod(ctx, cluster, request, emptyConfig, sidecarConfiguration{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			// An empty patch means the pod was left untouched: no sidecar injected.
 			Expect(response.JsonPatch).To(BeEmpty())
 		})
 

@@ -102,9 +102,7 @@ func (config *PluginConfiguration) GetReplicaSourceBarmanObjectKey() types.Names
 	}
 }
 
-// HasAnyBarmanObjectStore returns true if the configuration references at least
-// one barman object store, be it for backup/archiving, recovery, or as a
-// replica source.
+// HasAnyBarmanObjectStore reports whether any barman object store is configured.
 func (config *PluginConfiguration) HasAnyBarmanObjectStore() bool {
 	return len(config.BarmanObjectName) > 0 ||
 		len(config.RecoveryBarmanObjectName) > 0 ||

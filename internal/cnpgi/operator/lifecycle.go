@@ -325,27 +325,24 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 // shouldInjectBarmanSidecar decides whether an instance pod needs the
 // plugin-barman-cloud sidecar.
 //
-// A cluster doing backup/archiving or serving as a replica source needs the
-// sidecar in every instance pod for as long as the cluster exists, so those
-// two cases always inject it. A recovery-only cluster (only
-// RecoveryBarmanObjectName set, mirroring what pluginConfiguration.Validate()
-// accepts) only ever needs the sidecar for its one-time bootstrap restore, so
-// it's gated on cluster.Status.CurrentPrimary instead.
+// Backup/archiving and replica-source configs need it for as long as the
+// cluster exists, so those always inject it. A recovery-only cluster (only
+// RecoveryBarmanObjectName set, mirroring pluginConfiguration.Validate())
+// only needs it for the one-time bootstrap restore, so it's gated on
+// cluster.Status.CurrentPrimary instead.
 //
-// CurrentPrimary is set by the instance manager itself, from inside the
-// primary pod, only once it's up and has completed its own bootstrap (see
-// instance_startup.go in cloudnative-pg) - unlike cluster.Status.Instances /
-// IsInitialized(), which flips as soon as the instance's PVC exists, well
-// before the pod is even created. Using IsInitialized() here would mean the
-// sidecar is never added to the one pod that needs it to perform its restore.
+// CurrentPrimary is set by the instance manager itself, from inside the pod,
+// only once bootstrap completes (see instance_startup.go in cloudnative-pg).
+// cluster.Status.Instances / IsInitialized() looks equivalent but flips as
+// soon as the instance's PVC exists, before the pod is even created - using
+// it here would mean the sidecar never reaches the pod that needs it.
 //
-// Once CurrentPrimary is set, this makes the operator's own drift-check
-// (checkPodSpecIsOutdated) see the running pod's spec as outdated and roll it
-// out to drop the sidecar. That's deliberately accepted rather than
-// engineered around: it's one deterministic rollout using the same machinery
-// the operator already uses for every other pod-spec change (a switchover if
-// a replica is available, an in-place restart otherwise), not a new or
-// fragile risk.
+// Once CurrentPrimary is set, the operator's drift-check
+// (checkPodSpecIsOutdated) sees the running pod's spec as outdated and rolls
+// it out to drop the sidecar. Accepted deliberately: one deterministic
+// rollout via the same machinery used for any other pod-spec change
+// (switchover if a replica exists, in-place restart otherwise), not a new
+// risk.
 func shouldInjectBarmanSidecar(
 	cluster *cnpgv1.Cluster,
 	pluginConfiguration *config.PluginConfiguration,

@@ -39,8 +39,7 @@ var _ = Describe("IdentityImplementation", func() {
 				serviceTypes = append(serviceTypes, capability.GetService().GetType())
 			}
 
-			// The instance sidecar now runs the phase-0 restore in-process, so it must
-			// advertise TYPE_RESTORE_JOB alongside the services it already served.
+			// Runs the phase-0 restore in-process now, hence TYPE_RESTORE_JOB below.
 			Expect(serviceTypes).To(ConsistOf(
 				identity.PluginCapability_Service_TYPE_WAL_SERVICE,
 				identity.PluginCapability_Service_TYPE_BACKUP_SERVICE,
