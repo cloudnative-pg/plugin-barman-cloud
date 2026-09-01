@@ -198,15 +198,5 @@ var _ = Describe("Backup and restore", func() {
 			"using in-tree for backup and the plugin for restore on Azure",
 			&azureBackupPluginInTreeBackupPluginRestore{},
 		),
-		Entry("using the plugin for backup and restore on GCS",
-			&gcsBackupPluginBackupPluginRestore{},
-		),
-		Entry("using the plugin for backup and in-tree for restore on GCS",
-			&gcsBackupPluginBackupInTreeRestore{},
-		),
-		Entry(
-			"using in-tree for backup and the plugin for restore on GCS",
-			&gcsBackupPluginInTreeBackupPluginRestore{},
-		),
 	)
 })

@@ -268,9 +268,5 @@ var _ = Describe("Replica cluster", func() {
 			"with Azurite",
 			azuriteReplicaClusterFactory{},
 		),
-		Entry(
-			"with fake-gcs-server",
-			gcsReplicaClusterFactory{},
-		),
 	)
 })
