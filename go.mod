@@ -5,13 +5,13 @@ go 1.26.4
 require (
 	github.com/cert-manager/cert-manager v1.21.1
 	github.com/cloudnative-pg/api v1.30.0
-	github.com/cloudnative-pg/barman-cloud v0.5.2-0.20260806065336-5aa56cd49543
+	github.com/cloudnative-pg/barman-cloud v0.6.0
 	github.com/cloudnative-pg/cloudnative-pg v1.30.0
 	github.com/cloudnative-pg/cnpg-i v0.6.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
-	github.com/cloudnative-pg/machinery v0.5.0
+	github.com/cloudnative-pg/machinery v0.6.0
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	google.golang.org/grpc v1.83.2
@@ -42,7 +42,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
