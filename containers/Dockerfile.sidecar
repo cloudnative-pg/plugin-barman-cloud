@@ -63,6 +63,9 @@ RUN python3 -m venv /venv && \
 # already present in the distroless base image.
 # Distroless package list from: https://github.com/GoogleContainerTools/distroless/blob/main/base/config.bzl
 # and https://github.com/GoogleContainerTools/distroless/blob/main/python3/config.bzl
+# libselinux1/libpcre2-8-0 are pulled in transitively by python3.13-venv's apt metadata,
+# but the actual distroless base does not ship them, so they are excluded from the
+# "already present" set below to force them to be bundled (tar needs them at runtime).
 RUN mkdir -p /dependencies /build/downloads && \
     cd /build/downloads && \
     DISTROLESS_PACKAGES="libc6 libssl3t64 libzstd1 zlib1g libgcc-s1 libstdc++6 \
@@ -73,10 +76,11 @@ RUN mkdir -p /dependencies /build/downloads && \
         libpython3.13-stdlib python3.13-minimal python3.13-venv" && \
     apt-cache depends --recurse --no-recommends --no-suggests \
         --no-conflicts --no-breaks --no-replaces --no-enhances \
-        $DISTROLESS_PACKAGES 2>/dev/null | grep "^\w" | sort -u > /tmp/distroless.txt && \
+        $DISTROLESS_PACKAGES 2>/dev/null | grep "^\w" | sort -u | \
+        grep -v -x -E 'libselinux1|libpcre2-8-0' > /tmp/distroless.txt && \
     apt-cache depends --recurse --no-recommends --no-suggests \
         --no-conflicts --no-breaks --no-replaces --no-enhances \
-        libpq5 liblz4-1 libsnappy1v5 2>/dev/null | grep "^\w" | sort -u | \
+        libpq5 liblz4-1 libsnappy1v5 tar 2>/dev/null | grep "^\w" | sort -u | \
         grep -v -F -x -f /tmp/distroless.txt > /tmp/packages.txt && \
     apt-get download $(cat /tmp/packages.txt) && \
     for deb in *.deb; do \
@@ -102,6 +106,7 @@ LABEL summary="$SUMMARY" \
 
 COPY --from=pythonbuilder /venv /venv
 COPY --from=pythonbuilder /dependencies/usr/lib /usr/lib
+COPY --from=pythonbuilder /dependencies/usr/bin/tar /usr/bin/tar
 COPY --from=gobuilder /workspace/manager /manager
 
 # Compile all Python bytecode as root to avoid runtime compilation
