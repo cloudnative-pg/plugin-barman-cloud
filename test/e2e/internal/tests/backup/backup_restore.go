@@ -56,6 +56,12 @@ var _ = Describe("Backup and restore", func() {
 			ctx SpecContext,
 			factory testCaseFactory,
 		) {
+			switch factory.(type) {
+			case *gcsBackupPluginBackupPluginRestore, *gcsBackupPluginBackupInTreeRestore,
+				*gcsBackupPluginInTreeBackupPluginRestore:
+				Skip("GCS e2e tests are disabled until https://github.com/EnterpriseDB/barman/issues/1218 is fixed")
+			}
+
 			testResources := factory.createBackupRestoreTestResources(namespace.Name)
 
 			By("starting the ObjectStore deployment")
@@ -197,6 +203,16 @@ var _ = Describe("Backup and restore", func() {
 		Entry(
 			"using in-tree for backup and the plugin for restore on Azure",
 			&azureBackupPluginInTreeBackupPluginRestore{},
+		),
+		Entry("using the plugin for backup and restore on GCS",
+			&gcsBackupPluginBackupPluginRestore{},
+		),
+		Entry("using the plugin for backup and in-tree for restore on GCS",
+			&gcsBackupPluginBackupInTreeRestore{},
+		),
+		Entry(
+			"using in-tree for backup and the plugin for restore on GCS",
+			&gcsBackupPluginInTreeBackupPluginRestore{},
 		),
 	)
 })

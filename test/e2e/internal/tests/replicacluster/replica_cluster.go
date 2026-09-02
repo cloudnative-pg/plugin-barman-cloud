@@ -57,6 +57,11 @@ var _ = Describe("Replica cluster", func() {
 			ctx SpecContext,
 			factory testCaseFactory,
 		) {
+			switch factory.(type) {
+			case gcsReplicaClusterFactory:
+				Skip("GCS e2e tests are disabled until https://github.com/EnterpriseDB/barman/issues/1218 is fixed")
+			}
+
 			testResources := factory.createReplicaClusterTestResources(namespace.Name)
 
 			By("starting the ObjectStore deployments")
@@ -267,6 +272,10 @@ var _ = Describe("Replica cluster", func() {
 		Entry(
 			"with Azurite",
 			azuriteReplicaClusterFactory{},
+		),
+		Entry(
+			"with fake-gcs-server",
+			gcsReplicaClusterFactory{},
 		),
 	)
 })
