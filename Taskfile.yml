@@ -67,6 +67,26 @@ tasks:
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
         lint --source . --args "--from=origin/main" stdout
 
+  pip-compile-sidecar:
+    desc: Regenerate containers/sidecar-requirements.txt with the same Python version as the sidecar image
+    cmds:
+      - >
+        GITHUB_REF= dagger call --no-mod
+        container from --address=debian:trixie-slim
+        with-env-variable --name=DEBIAN_FRONTEND --value=noninteractive
+        with-exec --args="apt-get,update,-qq"
+        with-exec --args="apt-get,install,-y,-qq,python3,python3-venv,python3-pip,gcc,libpq-dev"
+        with-exec --args="pip,install,--quiet,--break-system-packages,pip-tools,click<8.5.0"
+        with-directory --path=/work --source=containers
+        with-workdir --path=/work
+        with-exec --args="pip-compile,--allow-unsafe,--generate-hashes,--output-file=sidecar-requirements.txt,--strip-extras,sidecar-requirements.in"
+        file --path=/work/sidecar-requirements.txt
+        export --path=containers/sidecar-requirements.txt
+    sources:
+      - containers/sidecar-requirements.in
+    generates:
+      - containers/sidecar-requirements.txt
+
   uncommitted:
     desc: Check for uncommitted changes
     deps:
