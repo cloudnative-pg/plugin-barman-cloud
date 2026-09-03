@@ -1,5 +1,83 @@
 # Changelog
 
+## [0.15.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.14.0...v0.15.0) (2026-09-03)
+
+
+### Features
+
+* **deps:** Bump Barman version to 3.20.0 ([#1090](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1090)) ([1bb6bab](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1bb6bab640f5adf038c86e33c96d42765d2aa708))
+* Serve restore hooks from the instance sidecar ([#1025](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1025)) ([7bb01a8](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/7bb01a865b15c0f5f608c8bfbc7561daadf2de3d))
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#1041](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1041)) ([9a3cc0d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9a3cc0d35492697a31ddc13b87f269cca3e83ea5))
+* **deps:** Update all non-major go dependencies ([#1086](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1086)) ([31b2553](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/31b25538bf6d8fadf2cd28c15b23c9c81ae22fac))
+* **deps:** Update kubernetes monorepo to v0.37.0 ([#1084](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1084)) ([b15b661](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b15b661648792cb2cb899ee628b8a3aa909c3fc8))
+* **deps:** Update module google.golang.org/grpc to v1.83.2 ([#1073](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1073)) ([b3d948c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b3d948ce821c68be1d99c84c679e020b5f3db363))
+
+## [0.14.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.13.0...v0.14.0) (2026-07-29)
+
+
+### Features
+
+* Honor the operator's check_empty_wal_archive decision ([#1009](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1009)) ([7bcb74b](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/7bcb74b987a3cca232c6f8021157eb711a1289b0))
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#963](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/963)) ([f949241](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f94924105b51b7b015338d4ec2c71904ef8d095c))
+* **deps:** Update all non-major go dependencies ([#979](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/979)) ([bf52833](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/bf5283359478071f116464c14a7a3d3d0a358eea))
+* **deps:** Update all non-major go dependencies ([#982](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/982)) ([5f84ecc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/5f84ecce4a9433da27346d194f6a4b456d59f75f))
+* **deps:** Update all non-major go dependencies to 53ffbf0 ([#973](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/973)) ([7190349](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/719034947061f72ce8fcc919f5e209aa7fd7d874))
+* **deps:** Update all non-major go dependencies to 592f761 ([#972](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/972)) ([2fa63c4](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2fa63c4bc28c03fbb79e3751a001868e991b8917))
+* **deps:** Update all non-major go dependencies to 8d9302e ([#975](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/975)) ([0c687cb](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0c687cbbf13f4ce5ca1690d4dcf768d76cb4731a))
+* **deps:** Update all non-major go dependencies to v2.30.0 ([#957](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/957)) ([61b82ce](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/61b82ce250e95f04d49d0fb427e79364f2d900c0))
+* **deps:** Update documentation dependencies to v3.10.2 ([#1001](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1001)) ([88f2e29](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/88f2e296746f495d3e7b27cd7297e772d53f61e9))
+* **deps:** Update github.com/cloudnative-pg/barman-cloud digest to 950b0f5 ([#1022](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1022)) ([98537c4](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/98537c4d0e899e136e85237b29020a9bbbf9f5aa))
+* **deps:** Update k8s.io/utils digest to a95e086 ([#968](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/968)) ([f7f0136](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f7f0136520b1032698b26e33e6eff1caa01173f5))
+* **deps:** Update k8s.io/utils digest to be93311 ([#986](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/986)) ([2cc4e99](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2cc4e9905db6b1d1c5788dd6093a1a7d330d9064))
+* **deps:** Update kubernetes monorepo to v0.36.2 ([#958](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/958)) ([030b28c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/030b28c4b9aee205f7a43f1fcc4da363b50839d9))
+* **deps:** Update kubernetes monorepo to v0.36.3 ([#1031](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1031)) ([ce81794](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ce8179442b49e0686ec05505b4ba79360b54ec8c))
+* **deps:** Update module github.com/cloudnative-pg/cnpg-i to v0.6.0 ([#1021](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1021)) ([13450a3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/13450a370d16fda87c128fc3a2f420f5b0cc442b))
+* **deps:** Update module google.golang.org/grpc to v1.82.1 ([#1008](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1008)) ([3c27364](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3c273641e3fb8027011be74ebb09d0ba91f71c7b))
+* **docs:** Fix broken anchor link in concepts.md ([#1013](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1013)) ([9c84d06](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9c84d069edc39c2848813aff5fd13c13c2ac8ff9))
+* Inject barman sidecar in replica clusters bootstrapped with pg_basebackup ([#965](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/965)) ([eb5e860](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/eb5e8607752d60bf36b4a9ddcaa5bb447f323012))
+* Reduce startupProbe periodSeconds without losing failure tolerance ([#992](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/992)) ([bf95543](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/bf955430cb58987bbbe3cd2925ea06700cf85609)), refs [#991](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/991)
+* Restore WAL from replica source during designated primary promotion ([#966](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/966)) ([c34b232](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c34b2329ea39f9a1030d9d1225aa4d0a276255eb))
+* **walrestore:** Serve pg_rewind without prefetching and flag machinery ([#1007](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1007)) ([fb3f0f9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/fb3f0f9dabba85d87af85418d58b2f8224ed6305))
+
+## [0.13.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.12.0...v0.13.0) (2026-06-10)
+
+
+### Features
+
+* Configure k8s recommended labels on subresources ([#865](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/865)) ([4bbaf18](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/4bbaf18cd30174229d98e23151d2d257c90b561a)), closes [#545](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/545)
+* Pass additionalCommandArgs to barman-cloud-restore ([#914](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/914)) ([c5f149b](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c5f149b86a38fd2af33045d785c2e9a69a7e340a)), closes [#821](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/821)
+
+
+### Bug Fixes
+
+* Add lz4 compression support for base backups ([#868](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/868)) ([e30154b](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/e30154b938b053f688b5ab520000233e164df6b6)), closes [#867](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/867)
+* Classify WAL restore errors with precise gRPC statuses ([#927](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/927)) ([aaf6120](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/aaf6120eaaf96d805d26fe4550b1f9c14dd8e02f))
+* **deps:** Update all non-major go dependencies ([#877](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/877)) ([a81f6e3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/a81f6e3d73ee348df22439f2daf062f4be598910))
+* **deps:** Update all non-major go dependencies ([#898](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/898)) ([acdbfb8](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/acdbfb8b10f93cf52f874ec893905709d9bcaa8b))
+* **deps:** Update all non-major go dependencies to 5d46599 ([#940](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/940)) ([40aa4b2](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/40aa4b21b88e2e323226c391078240d365653de9))
+* **deps:** Update all non-major go dependencies to 8e1642e ([#939](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/939)) ([f708825](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f7088258fd0ca1bca2e7dc15753be495d7dcc022))
+* **deps:** Update all non-major go dependencies to bd68198 ([#950](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/950)) ([787d2b3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/787d2b35ad4f86a0c125e4996194ec8fe7957de7))
+* **deps:** Update documentation dependencies to v3.10.1 ([#878](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/878)) ([6cf473d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/6cf473d5e8a16e204364b53bb0718d541c8c99ac))
+* **deps:** Update k8s.io/utils digest to ff6756f ([#894](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/894)) ([b7389e1](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b7389e18e5ec216a601722bb6686b11c49745b03))
+* **deps:** Update kubernetes monorepo to v0.35.4 ([#853](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/853)) ([21f811a](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/21f811a3f22b8f87ca9230a131f57f832c086fcf))
+* **deps:** Update kubernetes monorepo to v0.36.1 ([#909](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/909)) ([99eb4a3](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/99eb4a3fe5f4503c76f9afea08164d8e511c4f5b))
+* **deps:** Update module github.com/cloudnative-pg/cloudnative-pg to v1.29.1 [security] ([#902](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/902)) ([ba5063f](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ba5063f01393309459e02c30078c34b429f8f21b))
+* **deps:** Update module github.com/cloudnative-pg/machinery to v0.5.0 ([#925](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/925)) ([ef4b711](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ef4b7111372877eed087b9178d157dd0d1084bf8))
+* **deps:** Update module github.com/onsi/ginkgo/v2 to v2.28.2 ([#874](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/874)) ([8cb32e5](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/8cb32e5a5153347a6b05bf63816bcbc9d94f4d67))
+* **deps:** Update module google.golang.org/grpc to v1.81.0 ([#884](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/884)) ([6fdecfd](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/6fdecfde21b7a5cd05bc3f53895243fbf8537770))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.24.0 ([#880](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/880)) ([58f4fed](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/58f4fed40ba788f76f706e148bebf1892a2dd609))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.24.1 ([#910](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/910)) ([9be87b0](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9be87b0d9c87c0df7f1f72caa33bf848fbc16582))
+* **docs:** Update broken link to CloudNativePG documentation ([#904](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/904)) ([43f92fb](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/43f92fbcf1f57d95bbca22cb63c9697d75fc0dbc)), closes [#729](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/729)
+* **scheme:** Register meta types for CNPG scheme group version ([#943](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/943)) ([bb7845d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/bb7845dd621115026744c9f1b32cb2fd0cb4a729)), closes [#942](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/942)
+
 ## [0.12.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.11.0...v0.12.0) (2026-04-13)
 
 

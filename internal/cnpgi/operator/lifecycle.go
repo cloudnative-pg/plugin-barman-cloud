@@ -273,8 +273,10 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 		return args
 	}
 
-	// Prefer the cluster object store (backup/archive). If not set, fallback to the recovery object store.
-	// If neither is configured, no additional args are provided.
+	// Only one object store provides the sidecar arguments, with precedence:
+	// BarmanObjectName (backup/archive) > RecoveryBarmanObjectName (recovery
+	// bootstrap) > ReplicaSourceBarmanObjectName (pg_basebackup replica).
+	// If none is configured, no additional args are provided.
 	if len(pluginConfiguration.BarmanObjectName) > 0 {
 		var barmanObjectStore barmancloudv1.ObjectStore
 		if err := impl.Client.Get(ctx, pluginConfiguration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
@@ -303,7 +305,57 @@ func (impl LifecycleImplementation) collectAdditionalInstanceArgs(
 		return args, nil
 	}
 
+	if len(pluginConfiguration.ReplicaSourceBarmanObjectName) > 0 {
+		key := pluginConfiguration.GetReplicaSourceBarmanObjectKey()
+		var barmanObjectStore barmancloudv1.ObjectStore
+		if err := impl.Client.Get(ctx, key, &barmanObjectStore); err != nil {
+			return nil, fmt.Errorf("while getting replica source barman object store %s: %w", key.String(), err)
+		}
+		args := barmanObjectStore.Spec.InstanceSidecarConfiguration.AdditionalContainerArgs
+		args = append(
+			args,
+			collectTypedAdditionalArgs(&barmanObjectStore)...,
+		)
+		return args, nil
+	}
+
 	return nil, nil
+}
+
+// shouldInjectBarmanSidecar decides whether an instance pod needs the
+// plugin-barman-cloud sidecar.
+//
+// Backup/archiving and replica-source configs need it for as long as the
+// cluster exists, so those always inject it. A recovery-only cluster (only
+// RecoveryBarmanObjectName set, mirroring pluginConfiguration.Validate())
+// only needs it for the one-time bootstrap restore, so it's gated on
+// cluster.Status.CurrentPrimary instead.
+//
+// CurrentPrimary is set by the instance manager itself, from inside the pod,
+// only once bootstrap completes (see instance_startup.go in cloudnative-pg).
+// cluster.Status.Instances / IsInitialized() looks equivalent but flips as
+// soon as the instance's PVC exists, before the pod is even created - using
+// it here would mean the sidecar never reaches the pod that needs it.
+//
+// Once CurrentPrimary is set, the operator's drift-check
+// (checkPodSpecIsOutdated) sees the running pod's spec as outdated and rolls
+// it out to drop the sidecar. Accepted deliberately: one deterministic
+// rollout via the same machinery used for any other pod-spec change
+// (switchover if a replica exists, in-place restart otherwise), not a new
+// risk.
+func shouldInjectBarmanSidecar(
+	cluster *cnpgv1.Cluster,
+	pluginConfiguration *config.PluginConfiguration,
+) bool {
+	if len(pluginConfiguration.BarmanObjectName) != 0 || len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
+		return true
+	}
+
+	if len(pluginConfiguration.RecoveryBarmanObjectName) == 0 {
+		return false
+	}
+
+	return cluster.Status.CurrentPrimary == ""
 }
 
 func reconcileInstancePod(
@@ -323,8 +375,7 @@ func reconcileInstancePod(
 
 	mutatedPod := pod.DeepCopy()
 
-	if len(pluginConfiguration.BarmanObjectName) != 0 ||
-		len(pluginConfiguration.ReplicaSourceBarmanObjectName) != 0 {
+	if shouldInjectBarmanSidecar(cluster, pluginConfiguration) {
 		if err := reconcilePodSpec(
 			cluster,
 			&mutatedPod.Spec,
@@ -337,7 +388,7 @@ func reconcileInstancePod(
 			return nil, fmt.Errorf("while reconciling pod spec for pod: %w", err)
 		}
 	} else {
-		contextLogger.Debug("No need to mutate instance with no backup & archiving configuration")
+		contextLogger.Debug("No need to mutate instance, sidecar not required for this configuration and pod")
 	}
 
 	patch, err := object.CreatePatch(mutatedPod, pod)
@@ -387,8 +438,9 @@ func reconcilePodSpec(
 	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
-		FailureThreshold: 10,
-		TimeoutSeconds:   10,
+		PeriodSeconds:    1,
+		FailureThreshold: 30,
+		TimeoutSeconds:   5,
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/manager", "healthcheck", "unix"},
