@@ -64,7 +64,7 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 		Images: []kustomizeTypes.Image{
 			{
 				Name:    "ghcr.io/cloudnative-pg/plugin-barman-cloud-testing",
-				NewName: "registry.barman-cloud-plugin:5000/plugin-barman-cloud",
+				NewName: "registry.dev:5000/plugin-barman-cloud",
 				NewTag:  "testing",
 			},
 		},
@@ -74,7 +74,7 @@ var _ = SynchronizedBeforeSuite(func(ctx SpecContext) []byte {
 					Name:     "plugin-barman-cloud",
 					Behavior: "replace",
 					KvPairSources: kustomizeTypes.KvPairSources{
-						LiteralSources: []string{"SIDECAR_IMAGE=registry.barman-cloud-plugin:5000/sidecar-barman-cloud:testing"},
+						LiteralSources: []string{"SIDECAR_IMAGE=registry.dev:5000/sidecar-barman-cloud:testing"},
 					},
 				},
 			},

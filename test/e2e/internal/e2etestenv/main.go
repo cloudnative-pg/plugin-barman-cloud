@@ -98,7 +98,7 @@ func WithIgnoreExistingResources(ignore bool) SetupOption {
 
 func defaultSetupOptions() SetupOptions {
 	return SetupOptions{
-		CertManagerVersion: certmanager.DefaultVersion,
+		// CertManagerVersion: certmanager.DefaultVersion,
 	}
 }
 
