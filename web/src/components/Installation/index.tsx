@@ -1,5 +1,7 @@
 import {ReactElement} from 'react';
 import CodeBlock from '@theme/CodeBlock';
+import Link from '@docusaurus/Link';
+import {useLocation} from '@docusaurus/router';
 import {useActiveVersion} from '@docusaurus/plugin-content-docs/client';
 
 // DEV_MANIFEST_URL is the URL of the manifest.yaml on the main branch of the plugin repo.
@@ -31,14 +33,17 @@ export function ManifestVersion(): ReactElement<null> {
         : <>the latest development snapshot from the <code>main</code> branch</>;
 }
 
-// DevSnapshotSection offers the main-branch manifest as an alternative;
-// on the Dev docs the main install already is that manifest, so hide it.
+// DevSnapshotSection shows how to test the main-branch manifest. On
+// the Dev docs, the kubectl install above already does that, so we
+// hide this section there. (The Helm tab there installs the latest
+// release, not a dev build.)
 export function DevSnapshotSection(): ReactElement {
     const activeVersion = useActiveVersion('default');
+    const {pathname} = useLocation();
     if (!activeVersion || activeVersion.name === 'current') {
         return (
-            <p>The <a href="#installing-the-barman-cloud-plugin">install
-                command above</a> already applies the latest development
+            <p>The <Link to={`${pathname}?install-method=kubectl#installing-the-barman-cloud-plugin`}>kubectl
+                install command above</Link> already applies the latest development
                 snapshot from the <code>main</code> branch.</p>
         );
     }

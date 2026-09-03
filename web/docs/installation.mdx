@@ -59,10 +59,12 @@ import TabItem from '@theme/TabItem';
 import { InstallationSnippet, ManifestVersion } from '@site/src/components/Installation';
 import { HelmInstallationSnippet } from '@site/src/components/HelmInstallation';
 
-<Tabs groupId="install-method">
+<Tabs groupId="install-method" queryString>
   <TabItem value="helm" label="Helm Chart" default>
 
-The plugin can be installed using the provided [Helm chart](https://github.com/cloudnative-pg/charts/tree/main/charts/plugin-barman-cloud):
+The plugin can be installed using the provided [Helm chart](https://github.com/cloudnative-pg/charts/tree/main/charts/plugin-barman-cloud).
+This installs the latest published chart release; to test an unreleased
+development snapshot instead, switch to the [**Manifest (kubectl)**](./?install-method=kubectl#installing-the-barman-cloud-plugin) tab.
 
 <HelmInstallationSnippet />
 
