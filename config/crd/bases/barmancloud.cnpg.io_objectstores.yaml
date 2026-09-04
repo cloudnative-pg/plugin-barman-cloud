@@ -666,6 +666,11 @@ spec:
                       The retentionCheckInterval defines the frequency at which the
                       system checks and enforces retention policies.
                     type: integer
+                  sidecarImage:
+                    description: |-
+                      SidecarImage overrides the plugin sidecar image for workloads that use this ObjectStore.
+                      When omitted, the image configured on the plugin deployment is used.
+                    type: string
                 type: object
               retentionPolicy:
                 description: |-

@@ -27,6 +27,11 @@ import (
 
 // InstanceSidecarConfiguration defines the configuration for the sidecar that runs in the instance pods.
 type InstanceSidecarConfiguration struct {
+	// SidecarImage overrides the plugin sidecar image for workloads that use this ObjectStore.
+	// When omitted, the image configured on the plugin deployment is used.
+	// +optional
+	SidecarImage string `json:"sidecarImage,omitempty"`
+
 	// The environment to be explicitly passed to the sidecar
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
