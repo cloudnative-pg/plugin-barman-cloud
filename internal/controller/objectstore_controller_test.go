@@ -31,8 +31,8 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -261,7 +261,7 @@ var _ = Describe("ObjectStoreReconciler", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 		})
 
-		It("should produce empty ResourceNames when all ObjectStores are deleted", func() {
+		It("should omit the secrets rule when all ObjectStores are deleted", func() {
 			store := newTestObjectStore("my-store", "default", "aws-creds")
 			role := newLabeledRole("my-cluster", "default", []barmancloudv1.ObjectStore{*store})
 
@@ -291,10 +291,11 @@ var _ = Describe("ObjectStoreReconciler", func() {
 				Name:      "my-cluster-barman-cloud",
 			}, &updatedRole)).To(Succeed())
 
-			// All rules should have empty ResourceNames
 			Expect(updatedRole.Rules[0].ResourceNames).To(BeEmpty())
 			Expect(updatedRole.Rules[1].ResourceNames).To(BeEmpty())
-			Expect(updatedRole.Rules[2].ResourceNames).To(BeEmpty())
+			for _, rule := range updatedRole.Rules {
+				Expect(rule.Resources).NotTo(Equal([]string{"secrets"}))
+			}
 		})
 
 		It("should return an error when listing Roles fails", func() {
