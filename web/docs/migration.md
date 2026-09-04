@@ -103,6 +103,10 @@ As you can see, the contents of `barmanObjectStore` have been copied directly
 under the `configuration` field of the `ObjectStore` resource, using the same
 secret references.
 
+### IAM Role for Service Account (IRSA)
+
+If you use IRSA, you need to configure the `ObjectStore` to utilize the correct role as described in the [`Object Store Reference`](object_stores.md#iam-role-for-service-account-irsa).
+
 ## Step 2: Update the `Cluster` for plugin WAL archiving
 
 Once the `ObjectStore` resource is in place, update the `Cluster` resource as
