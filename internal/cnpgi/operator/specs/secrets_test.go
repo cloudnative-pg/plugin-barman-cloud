@@ -51,6 +51,23 @@ var _ = Describe("CollectSecretNamesFromCredentials", func() {
 			Expect(secrets).To(ContainElement("aws-secret"))
 		})
 
+		It("should include the SSE-C customer key secret", func() {
+			credentials := &barmanapi.BarmanCredentials{
+				AWS: &barmanapi.S3Credentials{
+					InheritFromIAMRole: true,
+					SSECustomerKey: &machineryapi.SecretKeySelector{
+						LocalObjectReference: machineryapi.LocalObjectReference{
+							Name: "sse-c-key",
+						},
+						Key: "key",
+					},
+				},
+			}
+
+			secrets := CollectSecretNamesFromCredentials(credentials)
+			Expect(secrets).To(ConsistOf("sse-c-key"))
+		})
+
 		It("should handle nil AWS credentials", func() {
 			credentials := &barmanapi.BarmanCredentials{}
 
