@@ -17,7 +17,6 @@ vars:
   GITHUB_REPOSITORY: '{{.GITHUB_REPOSITORY | default "cloudnative-pg/plugin-barman-cloud"}}'
   DAGGER_ENGINE_CONTAINER_NAME: e2e-dagger-engine
 
-
 tasks:
 
   ####################################
@@ -44,19 +43,16 @@ tasks:
       - documentation:docusaurus-build-test
       - documentation:docusaurus-version-is-aligned
 
-  # run the go linters
   core:lint:
     desc: Run the linters
     deps:
       - internal:lint
 
-    # run the go linters
   core:uncommitted:
     desc: Check for uncommitted changes
     deps:
       - internal:uncommitted
 
-    # run the spellcheck
   core:spellcheck:
     desc: Run the spellcheck
     deps:
@@ -183,6 +179,9 @@ tasks:
         --version ${GOLANGCI_LINT_VERSION}
         --go-version ${GOLANG_IMAGE_VERSION} |
         run . --config .golangci.yml | stdout"
+    sources:
+      - ./**/*.go
+      - .golangci.yml
 
   internal:wordlist-ordered:
     desc: Order the word list file
@@ -515,7 +514,6 @@ tasks:
     sources:
       - .release-please-manifest.json
       - ./web/versions.json
-
 
   ####################################
   ## integration
