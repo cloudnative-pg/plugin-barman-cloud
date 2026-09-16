@@ -34,6 +34,7 @@ func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCreden
 			barmanCredentials.AWS.SecretAccessKeyReference,
 			barmanCredentials.AWS.RegionReference,
 			barmanCredentials.AWS.SessionToken,
+			barmanCredentials.AWS.SSECustomerKey,
 		)
 	}
 	if barmanCredentials.Azure != nil {
