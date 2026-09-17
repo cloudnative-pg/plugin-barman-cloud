@@ -38,6 +38,7 @@ import (
 
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/backup"
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/credentialrotation"
+	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/highavailability"
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/replicacluster"
 	_ "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/tests/walrestore"
 
