@@ -171,12 +171,22 @@ spec:
         value: when_required
       - name: AWS_RESPONSE_CHECKSUM_VALIDATION
         value: when_required
+      - name: AWS_DEFAULT_REGION
+        value: eu-central-1
   [...]
 ```
 
 These settings ensure that checksum calculations and validations are only
 applied when explicitly required, avoiding compatibility issues with certain
 S3-compatible storage providers.
+
+Newer AWS SDK libraries can also fail to resolve the target region
+automatically, particularly on recent releases of S3-compatible storage
+providers. If the sidecar logs show region-related errors, set
+`AWS_DEFAULT_REGION` in the same `env` block. This was reported in
+[GitHub issue #800](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/800),
+where the operator also required the checksum variables on a cloud with
+strict defaults.
 
 Example with DigitalOcean Spaces (SFO3, path-style):
 
