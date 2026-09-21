@@ -57,6 +57,29 @@ var _ = Describe("CollectSecretNamesFromCredentials", func() {
 			secrets := CollectSecretNamesFromCredentials(credentials)
 			Expect(secrets).To(BeEmpty())
 		})
+
+		It("should return empty list when using InheritFromIAMRole", func() {
+			credentials := &barmanapi.BarmanCredentials{
+				AWS: &barmanapi.S3Credentials{
+					InheritFromIAMRole: true,
+					AccessKeyIDReference: &machineryapi.SecretKeySelector{
+						LocalObjectReference: machineryapi.LocalObjectReference{
+							Name: "aws-secret",
+						},
+						Key: "access-key-id",
+					},
+					RegionReference: &machineryapi.SecretKeySelector{
+						LocalObjectReference: machineryapi.LocalObjectReference{
+							Name: "aws-region",
+						},
+						Key: "region",
+					},
+				},
+			}
+
+			secrets := CollectSecretNamesFromCredentials(credentials)
+			Expect(secrets).To(BeEmpty())
+		})
 	})
 
 	Context("when collecting secrets from Azure credentials", func() {
