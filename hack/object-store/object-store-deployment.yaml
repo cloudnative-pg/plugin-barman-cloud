@@ -1,0 +1,101 @@
+# RustFS, an S3-compatible object store, served over TLS with a certificate
+# issued by cert-manager (see object-store-certificate.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: object-store
+  labels:
+    app: object-store
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: object-store
+  template:
+    metadata:
+      labels:
+        app: object-store
+    spec:
+      # RustFS runs as a non-root user but the PVC is root-owned: the init
+      # container creates writable subdirectories for data and logs.
+      initContainers:
+      - name: init-permissions
+        image: docker.io/library/busybox:1.38.0
+        command:
+        - sh
+        - -c
+        - mkdir -p /data/rustfs /logs/rustfs && chmod 0777 /data/rustfs /logs/rustfs
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /logs
+          name: logs
+      containers:
+      - name: object-store
+        image: docker.io/rustfs/rustfs:1.0.0-glibc
+        command:
+        - /usr/bin/rustfs
+        ports:
+        - containerPort: 9000
+          name: api
+        env:
+        - name: RUSTFS_ADDRESS
+          value: ":9000"
+        - name: RUSTFS_VOLUMES
+          value: /data/rustfs
+        - name: RUSTFS_REGION
+          value: us-east-1
+        - name: RUSTFS_CONSOLE_ENABLE
+          value: "false"
+        - name: RUSTFS_OBS_LOG_DIRECTORY
+          value: /logs/rustfs
+        # RustFS enables TLS when it finds rustfs_cert.pem and rustfs_key.pem
+        # in this directory.
+        - name: RUSTFS_TLS_PATH
+          value: /certs
+        - name: RUSTFS_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: object-store
+              key: ACCESS_KEY_ID
+        - name: RUSTFS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: object-store
+              key: ACCESS_SECRET_KEY
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+            scheme: HTTPS
+          initialDelaySeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9000
+            scheme: HTTPS
+          initialDelaySeconds: 30
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /logs
+          name: logs
+        - mountPath: /certs
+          name: certs
+          readOnly: true
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: object-store
+      - name: logs
+        emptyDir: {}
+      - name: certs
+        secret:
+          secretName: object-store-tls
+          items:
+          - key: tls.crt
+            path: rustfs_cert.pem
+          - key: tls.key
+            path: rustfs_key.pem

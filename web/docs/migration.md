@@ -64,13 +64,13 @@ spec:
   backup:
     barmanObjectStore:
       destinationPath: s3://backups/
-      endpointURL: http://minio-eu:9000
+      endpointURL: http://object-store-eu:9000
       s3Credentials:
         accessKeyId:
-          name: minio-eu
+          name: s3-eu
           key: ACCESS_KEY_ID
         secretAccessKey:
-          name: minio-eu
+          name: s3-eu
           key: ACCESS_SECRET_KEY
       wal:
         compression: gzip
@@ -83,17 +83,17 @@ plugin:
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-eu
+  name: s3-eu
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: http://minio-eu:9000
+    endpointURL: http://object-store-eu:9000
     s3Credentials:
       accessKeyId:
-        name: minio-eu
+        name: s3-eu
         key: ACCESS_KEY_ID
       secretAccessKey:
-        name: minio-eu
+        name: s3-eu
         key: ACCESS_SECRET_KEY
     wal:
       compression: gzip
@@ -128,7 +128,7 @@ previous `backup` section:
   - name: barman-cloud.cloudnative-pg.io
     isWALArchiver: true
     parameters:
-      barmanObjectName: minio-eu
+      barmanObjectName: s3-eu
 ```
 
 ---
@@ -205,14 +205,14 @@ spec:
   - name: pg-eu
     barmanObjectStore:
       destinationPath: s3://backups/
-      endpointURL: http://minio-eu:9000
+      endpointURL: http://object-store-eu:9000
       serverName: pg-eu
       s3Credentials:
         accessKeyId:
-          name: minio-eu
+          name: s3-eu
           key: ACCESS_KEY_ID
         secretAccessKey:
-          name: minio-eu
+          name: s3-eu
           key: ACCESS_SECRET_KEY
       wal:
         compression: gzip
@@ -224,17 +224,17 @@ Create the `ObjectStore` resource for the external cluster:
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-eu
+  name: s3-eu
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: http://minio-eu:9000
+    endpointURL: http://object-store-eu:9000
     s3Credentials:
     accessKeyId:
-        name: minio-eu
+        name: s3-eu
         key: ACCESS_KEY_ID
     secretAccessKey:
-        name: minio-eu
+        name: s3-eu
         key: ACCESS_SECRET_KEY
     wal:
       compression: gzip
@@ -254,7 +254,7 @@ spec:
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-eu
+        barmanObjectName: s3-eu
         serverName: pg-eu
 ```
 

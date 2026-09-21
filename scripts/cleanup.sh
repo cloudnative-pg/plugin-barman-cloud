@@ -24,4 +24,4 @@ cd "$(dirname "$0")/.." || exit
 
 kubectl delete clusters --all
 kubectl delete backups --all
-kubectl exec -ti mc -- mc rm -r --force minio/backups
+kubectl exec -ti s3-client -- aws s3 rm --recursive s3://backups

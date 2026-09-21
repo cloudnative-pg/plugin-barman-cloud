@@ -8,16 +8,16 @@ spec:
   backup:
     barmanObjectStore:
       endpointCA:
-        name: minio-server-tls
+        name: object-store-tls
         key: tls.crt
       destinationPath: s3://backups/
-      endpointURL: https://minio:9000
+      endpointURL: https://object-store:9000
       s3Credentials:
         accessKeyId:
-          name: minio
+          name: object-store
           key: ACCESS_KEY_ID
         secretAccessKey:
-          name: minio
+          name: object-store
           key: ACCESS_SECRET_KEY
       wal:
         compression: gzip

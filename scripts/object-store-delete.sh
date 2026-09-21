@@ -16,4 +16,4 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
-kubectl exec -ti mc -- mc rm -r --force minio/backups
+kubectl exec -ti s3-client -- aws s3 rm --recursive s3://backups

@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	minioName       = "minio"
+	s3Name          = "s3"
 	objectStoreName = "source"
 	clusterName     = "source"
 	s3ClientName    = "s3-client"
@@ -43,16 +43,16 @@ const (
 	walMaxParallel = 3
 )
 
-// newObjectStoreResources returns the minio server Deployment/Service/Secret/PVC.
+// newObjectStoreResources returns the S3 object store Deployment/Service/Secret/PVC.
 func newObjectStoreResources(namespace string) *objectstore.Resources {
-	return objectstore.NewMinioObjectStoreResources(namespace, minioName)
+	return objectstore.NewS3ObjectStoreResources(namespace, s3Name)
 }
 
-// newObjectStore returns a minio-backed ObjectStore configured with the WAL
+// newObjectStore returns an S3-backed ObjectStore configured with the WAL
 // prefetch parallelism (maxParallel) under test. Archiving with gzip makes the
 // archived segments carry the ".gz" suffix that forged segments are copied from.
 func newObjectStore(namespace string) *pluginBarmanCloudV1.ObjectStore {
-	store := objectstore.NewMinioObjectStore(namespace, objectStoreName, minioName)
+	store := objectstore.NewS3ObjectStore(namespace, objectStoreName, s3Name)
 	store.Spec.Configuration.Wal = &barmanapi.WalBackupConfiguration{
 		MaxParallel: walMaxParallel,
 		Compression: barmanapi.CompressionTypeGzip,
@@ -98,7 +98,7 @@ func newCluster(namespace string) *cloudnativepgv1.Cluster {
 }
 
 // newS3ClientDeployment returns a deployment running the AWS CLI configured to
-// talk to the in-namespace minio service. The test execs `aws s3` commands in
+// talk to the in-namespace S3 service. The test execs `aws s3` commands in
 // it to forge WAL segments on the object store and to check their presence.
 func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 	labels := map[string]string{"app": s3ClientName}
@@ -127,13 +127,13 @@ func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 							Env: []corev1.EnvVar{
 								{
 									Name:  "AWS_ENDPOINT_URL",
-									Value: "http://" + minioName + ":9000",
+									Value: "http://" + s3Name + ":9000",
 								},
 								{
 									Name: "AWS_ACCESS_KEY_ID",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: minioName},
+											LocalObjectReference: corev1.LocalObjectReference{Name: s3Name},
 											Key:                  "ACCESS_KEY_ID",
 										},
 									},
@@ -142,7 +142,7 @@ func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 									Name: "AWS_SECRET_ACCESS_KEY",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: minioName},
+											LocalObjectReference: corev1.LocalObjectReference{Name: s3Name},
 											Key:                  "ACCESS_SECRET_KEY",
 										},
 									},
@@ -153,7 +153,7 @@ func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 								},
 								// The CRC-based default checksums introduced in AWS
 								// CLI 2.23 are not supported by every S3-compatible
-								// object store, minio included.
+								// object store.
 								{
 									Name:  "AWS_REQUEST_CHECKSUM_CALCULATION",
 									Value: "when_required",
