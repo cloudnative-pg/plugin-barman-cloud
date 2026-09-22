@@ -49,16 +49,28 @@ func updateRecoveryWindow(
 		return ptr.To(metav1.NewTime(*t))
 	}
 
-	recoveryWindow := objectStore.Status.ServerRecoveryWindow[serverName]
-	recoveryWindow.FirstRecoverabilityPoint = convertTime(backupList.GetFirstRecoverabilityPoint())
-	recoveryWindow.LastSuccessfulBackupTime = convertTime(backupList.GetLastSuccessfulBackupTime())
+	objectStoreKey := client.ObjectKeyFromObject(objectStore)
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var current barmancloudv1.ObjectStore
+		if err := c.Get(ctx, objectStoreKey, &current); err != nil {
+			return err
+		}
 
-	if objectStore.Status.ServerRecoveryWindow == nil {
-		objectStore.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
-	}
-	objectStore.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+		recoveryWindow := current.Status.ServerRecoveryWindow[serverName]
+		recoveryWindow.FirstRecoverabilityPoint = convertTime(backupList.GetFirstRecoverabilityPoint())
+		recoveryWindow.LastSuccessfulBackupTime = convertTime(backupList.GetLastSuccessfulBackupTime())
 
-	return c.Status().Update(ctx, objectStore)
+		if current.Status.ServerRecoveryWindow == nil {
+			current.Status.ServerRecoveryWindow = make(map[string]barmancloudv1.RecoveryWindow)
+		}
+		current.Status.ServerRecoveryWindow[serverName] = recoveryWindow
+
+		if err := c.Status().Update(ctx, &current); err != nil {
+			return err
+		}
+		objectStore.Status = current.Status
+		return nil
+	})
 }
 
 // setLastFailedBackupTime sets the last failed backup time in the
