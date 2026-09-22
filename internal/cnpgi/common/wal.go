@@ -408,6 +408,11 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// is the one that PostgreSQL has requested to restore.
 	// The failure has already been logged in walRestorer.RestoreList method
 	if walStatus[0].Err != nil {
+		if errors.Is(walStatus[0].Err, barmanRestorer.ErrConnectivity) {
+			// Only available from Barman 3.20.0
+			contextLogger.Info("transient connectivity issue while restoring WAL, will retry",
+				"walName", walStatus[0].WalName, "error", walStatus[0].Err)
+		}
 		return classifyWALRestoreError(walStatus[0].WalName, walStatus[0].Err)
 	}
 
