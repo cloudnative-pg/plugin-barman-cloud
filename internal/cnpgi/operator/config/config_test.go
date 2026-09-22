@@ -71,7 +71,7 @@ var _ = Describe("NewFromCluster", func() {
 						PluginConfiguration: &cnpgv1.PluginConfiguration{
 							Name: metadata.PluginName,
 							Parameters: map[string]string{
-								"barmanObjectName": "minio-store",
+								"barmanObjectName": "object-store",
 								"serverName":       "cluster-example",
 							},
 						},
@@ -86,7 +86,7 @@ var _ = Describe("NewFromCluster", func() {
 		// while the backup/archive and recovery object stores remain empty: this is the
 		// distinguishing trait of a pg_basebackup replica cluster (a recovery-bootstrapped
 		// replica would also populate RecoveryBarmanObjectName).
-		Expect(cfg.ReplicaSourceBarmanObjectName).To(Equal("minio-store"))
+		Expect(cfg.ReplicaSourceBarmanObjectName).To(Equal("object-store"))
 		Expect(cfg.ReplicaSourceServerName).To(Equal("cluster-example"))
 		Expect(cfg.BarmanObjectName).To(BeEmpty())
 		Expect(cfg.RecoveryBarmanObjectName).To(BeEmpty())
@@ -111,7 +111,7 @@ var _ = Describe("NewFromCluster", func() {
 						Name: "source",
 						PluginConfiguration: &cnpgv1.PluginConfiguration{
 							Name:       "some-other-plugin.cloudnative-pg.io",
-							Parameters: map[string]string{"barmanObjectName": "minio-store"},
+							Parameters: map[string]string{"barmanObjectName": "object-store"},
 						},
 					},
 				},
