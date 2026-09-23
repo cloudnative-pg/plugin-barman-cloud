@@ -101,6 +101,9 @@ func newCluster(namespace string) *cloudnativepgv1.Cluster {
 // talk to the in-namespace S3 service. The test execs `aws s3` commands in
 // it to forge WAL segments on the object store and to check their presence.
 func newS3ClientDeployment(namespace string) *appsv1.Deployment {
+	seccompProfile := &corev1.SeccompProfile{
+		Type: corev1.SeccompProfileTypeRuntimeDefault,
+	}
 	labels := map[string]string{"app": s3ClientName}
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -165,11 +168,12 @@ func newS3ClientDeployment(namespace string) *appsv1.Deployment {
 							},
 							SecurityContext: &corev1.SecurityContext{
 								AllowPrivilegeEscalation: ptr.To(false),
-								SeccompProfile: &corev1.SeccompProfile{
-									Type: corev1.SeccompProfileTypeRuntimeDefault,
-								},
+								SeccompProfile:           seccompProfile,
 							},
 						},
+					},
+					SecurityContext: &corev1.PodSecurityContext{
+						SeccompProfile: seccompProfile,
 					},
 				},
 			},
