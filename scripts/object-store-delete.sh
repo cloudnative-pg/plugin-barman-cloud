@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ##
 ## Copyright © contributors to CloudNativePG, established as
 ## CloudNativePG a Series of LF Projects, LLC.
