@@ -32,6 +32,10 @@ spec:
           name: data
         - mountPath: /logs
           name: logs
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
       containers:
       - name: object-store
         image: docker.io/rustfs/rustfs:1.0.0-glibc
@@ -65,6 +69,10 @@ spec:
             secretKeyRef:
               name: object-store
               key: ACCESS_SECRET_KEY
+        securityContext:
+          allowPrivilegeEscalation: false
+          seccompProfile:
+            type: RuntimeDefault
         livenessProbe:
           httpGet:
             path: /health
@@ -85,6 +93,9 @@ spec:
         - mountPath: /certs
           name: certs
           readOnly: true
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
       - name: data
         persistentVolumeClaim:
