@@ -67,6 +67,15 @@
       versioningTemplate: 'regex:(?<major>\\d+)\\.(?<minor>\\d+)',
       extractVersionTemplate: '^(?<version>v\\d+\\.\\d+)\\.\\d+$',
     },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)hack/.+\\.yaml$/',
+      ],
+      matchStrings: [
+        '#\\s*renovate:\\s*datasource=(?<datasource>[a-z-.]+?)\\s+depName=(?<depName>[^\\s]+?)(?:\\s+versioning=(?<versioning>[^\\s]+?))?\\s*\\n\\s*#\\s*Version:\\s*(?<currentValue>[^\\s]+?)\\s*\\n\\s*image:\\s*[^@\\s]+@(?<currentDigest>sha256:[a-f0-9]+)',
+      ],
+    },
   ],
   'pip-compile': {
     managerFilePatterns: [
@@ -80,6 +89,20 @@
     enabled: false,
   },
   packageRules: [
+    {
+      // RustFS's default image is Alpine/musl, slower than glibc
+      // (rustfs/rustfs#1662). A bare `-glibc` suffix isn't a safe pin:
+      // semver compares prerelease identifiers lexically, and "rc" >
+      // "glibc", so a stale 1.0.0-rc.6-glibc still outranks the final
+      // 1.0.0-glibc. Restrict to final MAJOR.MINOR.PATCH-glibc tags so
+      // RC/beta builds never enter the comparison, and a missing glibc
+      // tag just stalls the update instead of falling back to musl or an
+      // old RC.
+      matchPackageNames: [
+        'docker.io/rustfs/rustfs',
+      ],
+      allowedVersions: '/^\\d+\\.\\d+\\.\\d+-glibc$/',
+    },
     {
       matchDatasources: [
         'go',

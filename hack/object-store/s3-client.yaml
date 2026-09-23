@@ -18,7 +18,9 @@ spec:
     spec:
       containers:
       - name: s3-client
-        image: docker.io/amazon/aws-cli:2.36.49
+        # renovate: datasource=docker depName=amazon/aws-cli versioning=docker
+        # Version: 2.37.0
+        image: docker.io/amazon/aws-cli@sha256:337494c2047176fe9abcf45a5d1eaf1c2c62cae40953284fb1143b5c6170f065
         command:
         - sleep
         - infinity
