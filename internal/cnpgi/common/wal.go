@@ -406,10 +406,12 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 
 	// We return immediately if the first WAL has errors, because the first WAL
 	// is the one that PostgreSQL has requested to restore.
-	// The failure has already been logged in walRestorer.RestoreList method
+	// The failure has already been logged in walRestorer.RestoreList method,
+	// connectivity failures get an extra line stating they are transient.
 	if walStatus[0].Err != nil {
 		if errors.Is(walStatus[0].Err, barmanRestorer.ErrConnectivity) {
-			// Only available from Barman 3.20.0
+			// Barman reports transient network errors with exit code 2
+			// starting from 3.20.0
 			contextLogger.Info("transient connectivity issue while restoring WAL, will retry",
 				"walName", walStatus[0].WalName, "error", walStatus[0].Err)
 		}
