@@ -49,8 +49,7 @@ spec:
           value: when_required
         volumeMounts:
         - name: certs
-          mountPath: /certs/ca.crt
-          subPath: ca.crt
+          mountPath: /certs
           readOnly: true
         securityContext:
           allowPrivilegeEscalation: false
