@@ -230,10 +230,10 @@ spec:
     destinationPath: s3://backups/
     endpointURL: http://object-store-eu:9000
     s3Credentials:
-    accessKeyId:
+      accessKeyId:
         name: s3-eu
         key: ACCESS_KEY_ID
-    secretAccessKey:
+      secretAccessKey:
         name: s3-eu
         key: ACCESS_SECRET_KEY
     wal:

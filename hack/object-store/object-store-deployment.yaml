@@ -88,7 +88,8 @@ spec:
             path: /health
             port: 9000
             scheme: HTTPS
-          initialDelaySeconds: 30
+          initialDelaySeconds: 5
+          periodSeconds: 5
         volumeMounts:
         - mountPath: /data
           name: data

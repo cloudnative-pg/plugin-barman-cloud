@@ -85,11 +85,10 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
-					// RustFS runs as a non-root user but the PVC is root-owned, and
-					// a non-root init container cannot chown it on OpenShift.
-					// Instead the init creates a subdirectory it owns and makes it
-					// world-writable, which works as root (kind, cloud) or as the
-					// SCC-assigned UID (OpenShift).
+					// The PVC is root-owned and a non-root init container can't chown it on
+					// OpenShift. So it owns a subdirectory it creates and makes world-writable
+					// — that works whether it runs as root (kind, cloud) or the SCC UID
+					// (OpenShift).
 					InitContainers: []corev1.Container{
 						{
 							Name: "init-permissions",
@@ -195,7 +194,6 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 	}
 }
 
-// newHealthProbe returns a probe hitting the RustFS health endpoint.
 func newHealthProbe(initialDelaySeconds, periodSeconds int32) *corev1.Probe {
 	return &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{

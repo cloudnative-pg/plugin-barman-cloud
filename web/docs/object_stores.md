@@ -430,7 +430,7 @@ write permissions to the bucket.
 ## RustFS Object Store
 
 [RustFS](https://rustfs.com/) is an open source, S3-compatible object store
-that can run inside your Kubernetes cluster. Please refer to the
+that can run inside your Kubernetes cluster. See the
 [RustFS documentation](https://docs.rustfs.com/) for deployment options; a
 minimal `Deployment` with a `PersistentVolumeClaim` and a `Service` exposing
 port 9000 is enough for testing purposes. RustFS serves plain HTTP unless it
