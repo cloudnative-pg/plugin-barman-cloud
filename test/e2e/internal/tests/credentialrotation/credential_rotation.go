@@ -44,8 +44,8 @@ import (
 const (
 	clusterName     = "source"
 	objectStoreName = "source"
-	oldSecretName   = "minio"
-	newSecretName   = "minio-rotated"
+	oldSecretName   = "s3"
+	newSecretName   = "s3-rotated"
 )
 
 var _ = Describe("Credential rotation", func() {
@@ -66,11 +66,11 @@ var _ = Describe("Credential rotation", func() {
 
 	It("should update the Role when the ObjectStore secret reference changes", func(ctx SpecContext) {
 		By("starting the ObjectStore deployment")
-		resources := objectstore.NewMinioObjectStoreResources(namespace.Name, oldSecretName)
+		resources := objectstore.NewS3ObjectStoreResources(namespace.Name, oldSecretName)
 		Expect(resources.Create(ctx, cl)).To(Succeed())
 
 		By("creating the ObjectStore")
-		store := objectstore.NewMinioObjectStore(namespace.Name, objectStoreName, oldSecretName)
+		store := objectstore.NewS3ObjectStore(namespace.Name, objectStoreName, oldSecretName)
 		Expect(cl.Create(ctx, store)).To(Succeed())
 
 		By("creating the Cluster")
@@ -104,8 +104,8 @@ var _ = Describe("Credential rotation", func() {
 				Namespace: namespace.Name,
 			},
 			Data: map[string][]byte{
-				"ACCESS_KEY_ID":     []byte("minio"),
-				"ACCESS_SECRET_KEY": []byte("minio123"),
+				"ACCESS_KEY_ID":     []byte("s3accesskey"),
+				"ACCESS_SECRET_KEY": []byte("s3secretkey123"),
 			},
 		}
 		Expect(cl.Create(ctx, newSecret)).To(Succeed())

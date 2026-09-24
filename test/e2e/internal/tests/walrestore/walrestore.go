@@ -64,7 +64,7 @@ const (
 	// walLogDir is the WALs subdirectory (timeline + log id) the forged segments
 	// live under; a freshly bootstrapped, idle cluster stays within it.
 	walLogDir = "0000000100000000"
-	// bucket is the destination bucket of the minio ObjectStore.
+	// bucket is the destination bucket of the S3 ObjectStore.
 	bucket = "backups"
 )
 

@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	minio   = "minio"
+	s3      = "s3"
 	azurite = "azurite"
 	gcs     = "gcs"
 	// Size of the PVCs for the object stores and the cluster instances.
@@ -67,8 +67,8 @@ func (s s3BackupPluginBackupPluginRestore) createBackupRestoreTestResources(
 ) backupRestoreTestResources {
 	result := backupRestoreTestResources{}
 
-	result.ObjectStoreResources = objectstore.NewMinioObjectStoreResources(namespace, minio)
-	result.ObjectStore = objectstore.NewMinioObjectStore(namespace, objectStoreName, minio)
+	result.ObjectStoreResources = objectstore.NewS3ObjectStoreResources(namespace, s3)
+	result.ObjectStore = objectstore.NewS3ObjectStore(namespace, objectStoreName, s3)
 	result.SrcCluster = newSrcClusterWithPlugin(namespace)
 	result.SrcBackup = newSrcPluginBackup(namespace)
 	result.DstCluster = newDstClusterWithPlugin(namespace)
@@ -84,8 +84,8 @@ func (s s3BackupPluginBackupInTreeRestore) createBackupRestoreTestResources(
 ) backupRestoreTestResources {
 	result := backupRestoreTestResources{}
 
-	result.ObjectStoreResources = objectstore.NewMinioObjectStoreResources(namespace, minio)
-	result.ObjectStore = objectstore.NewMinioObjectStore(namespace, objectStoreName, minio)
+	result.ObjectStoreResources = objectstore.NewS3ObjectStoreResources(namespace, s3)
+	result.ObjectStore = objectstore.NewS3ObjectStore(namespace, objectStoreName, s3)
 	result.SrcCluster = newSrcClusterWithPlugin(namespace)
 	result.SrcBackup = newSrcPluginBackup(namespace)
 	result.DstCluster = newDstClusterInTreeS3(namespace)
@@ -101,8 +101,8 @@ func (s s3BackupPluginInTreeBackupPluginRestore) createBackupRestoreTestResource
 ) backupRestoreTestResources {
 	result := backupRestoreTestResources{}
 
-	result.ObjectStoreResources = objectstore.NewMinioObjectStoreResources(namespace, minio)
-	result.ObjectStore = objectstore.NewMinioObjectStore(namespace, objectStoreName, minio)
+	result.ObjectStoreResources = objectstore.NewS3ObjectStoreResources(namespace, s3)
+	result.ObjectStore = objectstore.NewS3ObjectStore(namespace, objectStoreName, s3)
 	result.SrcCluster = newSrcClusterInTreeS3(namespace)
 	result.SrcBackup = newSrcInTreeBackup(namespace)
 	result.DstCluster = newDstClusterWithPlugin(namespace)
@@ -392,19 +392,19 @@ func newSrcClusterInTreeS3(namespace string) *cloudnativepgv1.Cluster {
 						AWS: &barmanapi.S3Credentials{
 							AccessKeyIDReference: &api.SecretKeySelector{
 								LocalObjectReference: api.LocalObjectReference{
-									Name: minio,
+									Name: s3,
 								},
 								Key: "ACCESS_KEY_ID",
 							},
 							SecretAccessKeyReference: &api.SecretKeySelector{
 								LocalObjectReference: api.LocalObjectReference{
-									Name: minio,
+									Name: s3,
 								},
 								Key: "ACCESS_SECRET_KEY",
 							},
 						},
 					},
-					EndpointURL:     "http://" + net.JoinHostPort(minio, "9000"),
+					EndpointURL:     "http://" + net.JoinHostPort(s3, "9000"),
 					DestinationPath: "s3://backups/",
 				},
 			},
@@ -454,19 +454,19 @@ func newDstClusterInTreeS3(namespace string) *cloudnativepgv1.Cluster {
 							AWS: &barmanapi.S3Credentials{
 								AccessKeyIDReference: &api.SecretKeySelector{
 									LocalObjectReference: api.LocalObjectReference{
-										Name: minio,
+										Name: s3,
 									},
 									Key: "ACCESS_KEY_ID",
 								},
 								SecretAccessKeyReference: &api.SecretKeySelector{
 									LocalObjectReference: api.LocalObjectReference{
-										Name: minio,
+										Name: s3,
 									},
 									Key: "ACCESS_SECRET_KEY",
 								},
 							},
 						},
-						EndpointURL:     "http://" + net.JoinHostPort(minio, "9000"),
+						EndpointURL:     "http://" + net.JoinHostPort(s3, "9000"),
 						DestinationPath: "s3://backups/",
 					},
 				},

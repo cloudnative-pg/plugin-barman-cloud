@@ -9,7 +9,7 @@ spec:
   - name: barman-cloud.cloudnative-pg.io
     isWALArchiver: true
     parameters:
-      barmanObjectName: minio-store
+      barmanObjectName: object-store
 
   storage:
     size: 1Gi

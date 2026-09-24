@@ -77,7 +77,7 @@ The plugin works with all storage backends supported by `barman-cloud`, includin
 In addition, the following S3-compatible and simulator solutions have been
 tested and verified:
 
-- [MinIO](https://min.io/) – An S3-compatible storage solution
+- [RustFS](https://rustfs.com/) – An S3-compatible storage solution
 - [Azurite](https://github.com/Azure/Azurite) – A simulator for Azure Blob Storage
 - [fake-gcs-server](https://github.com/fsouza/fake-gcs-server) – A simulator for Google Cloud Storage
 

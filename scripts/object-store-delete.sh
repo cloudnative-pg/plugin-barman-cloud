@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ##
 ## Copyright © contributors to CloudNativePG, established as
 ## CloudNativePG a Series of LF Projects, LLC.
@@ -16,4 +17,4 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
-kubectl exec -ti mc -- mc rm -r --force minio/backups
+kubectl exec -ti deploy/s3-client -- aws s3 rm --recursive s3://backups

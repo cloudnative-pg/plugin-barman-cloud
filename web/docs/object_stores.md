@@ -131,7 +131,7 @@ overhead.
 
 ### S3-Compatible Storage Providers
 
-You can use S3-compatible services like **MinIO**, **Linode (Akamai) Object Storage**,
+You can use S3-compatible services like **RustFS**, **Linode (Akamai) Object Storage**,
 or **DigitalOcean Spaces** by specifying a custom `endpointURL`.
 
 Example with Linode (Akamai) Object Storage (`us-east1`):
@@ -196,7 +196,7 @@ spec:
 
 ### Using Object Storage with a Private CA
 
-For object storage services (e.g., MinIO) that use HTTPS with certificates
+For object storage services (e.g., RustFS) that use HTTPS with certificates
 signed by a private CA, set the `endpointCA` field in the `ObjectStore`
 definition. Unless you already have it, create a Kubernetes `Secret` with the
 CA bundle:
@@ -211,7 +211,7 @@ Then reference it:
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-store
+  name: s3-store
 spec:
   configuration:
     endpointURL: <myEndpointURL>
@@ -427,71 +427,54 @@ write permissions to the bucket.
 ---
 
 
-## MinIO Object Store
+## RustFS Object Store
 
-In order to use the Tenant resource you first need to deploy the
-[MinIO operator](https://docs.min.io/community/minio-object-store/operations/deployments/installation.html).
-For the latest documentation of MinIO, please refer to the
-[MinIO official documentation](https://docs.min.io/community/minio-object-store/).
+[RustFS](https://rustfs.com/) is an open source, S3-compatible object store
+that can run inside your Kubernetes cluster. See the
+[RustFS documentation](https://docs.rustfs.com/) for deployment options; a
+minimal `Deployment` with a `PersistentVolumeClaim` and a `Service` exposing
+port 9000 is enough for testing purposes. RustFS serves plain HTTP unless it
+finds a certificate and key under the directory pointed to by
+`RUSTFS_TLS_PATH`, in which case it serves HTTPS and you must reference the
+CA through `endpointCA` (see
+[Using Object Storage with a Private CA](#using-object-storage-with-a-private-ca)).
 
-MinIO Object Store's API is compatible with S3, and the default configuration of the Tenant
-will create these services:
-- `<tenant>-console` on port 9090 (with autocert) or 9443 (without autocert)
-- `<tenant>-hl` on port 9000
-Where `<tenant>` is the `metadata.name` you assigned to your Tenant resource.
-
-:::note
-The `<tenant>-console` service will only be available if you have enabled the
-[MinIO Console](https://docs.min.io/community/minio-object-store/administration/minio-console.html).
-
-For example, the following Tenant:
-```yml
-apiVersion: minio.min.io/v2
-kind: Tenant
-metadata:
-  name: cnpg-backups
-spec:
-  [...]
-```
-would have services called `cnpg-backups-console` and `cnpg-backups-hl` respectively.
-
-The `console` service is for managing the tenant, while the `hl` service exposes the S3
-compatible API. If your tenant is configured with `requestAutoCert` you will communicate
-to these services over HTTPS, if not you will use HTTP.
-
-For authentication you can use your username and password, or create an access key.
-Whichever method you choose, it has to be stored as a secret.
+RustFS reads its root credentials from the `RUSTFS_ACCESS_KEY` and
+`RUSTFS_SECRET_KEY` environment variables. Store the same values in a
+`Secret` for the plugin:
 
 ```sh
-kubectl create secret generic minio-creds \
-  --from-literal=MINIO_ACCESS_KEY=<minio access key or username> \
-  --from-literal=MINIO_SECRET_KEY=<minio secret key or password>
+kubectl create secret generic s3-creds \
+  --from-literal=ACCESS_KEY_ID=<rustfs access key> \
+  --from-literal=ACCESS_SECRET_KEY=<rustfs secret key>
 ```
 
-Finally, create the Barman ObjectStore:
+Finally, create the Barman `ObjectStore`, pointing `endpointURL` at the
+RustFS `Service`:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-store
+  name: s3-store
 spec:
   configuration:
     destinationPath: s3://BUCKET_NAME/
-    endpointURL: http://<tenant>-hl:9000
+    endpointURL: http://<rustfs-service>:9000
     s3Credentials:
       accessKeyId:
-        name: minio-creds
-        key: MINIO_ACCESS_KEY
+        name: s3-creds
+        key: ACCESS_KEY_ID
       secretAccessKey:
-        name: minio-creds
-        key: MINIO_SECRET_KEY
+        name: s3-creds
+        key: ACCESS_SECRET_KEY
   [...]
 ```
+
+The bucket is created on first use if it does not exist.
 
 :::important
 Verify on `s3://BUCKET_NAME/` the presence of archived WAL files before
 proceeding with a backup.
 :::
-
 ---
