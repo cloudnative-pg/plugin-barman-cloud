@@ -15,7 +15,7 @@ spec:
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-store
+        barmanObjectName: object-store
         serverName: cluster-example
   storage:
     size: 1Gi

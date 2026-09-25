@@ -44,9 +44,6 @@ type CNPGI struct {
 
 // Start starts the GRPC service
 func (c *CNPGI) Start(ctx context.Context) error {
-	// PgWalVolumePgWalPath is the path of pg_wal directory inside the WAL volume when present
-	const PgWalVolumePgWalPath = "/var/lib/postgresql/wal/pg_wal"
-
 	enrich := func(server *grpc.Server) error {
 		wal.RegisterWALServer(server, common.WALServiceImplementation{
 			InstanceName:   c.InstanceName,
@@ -60,7 +57,7 @@ func (c *CNPGI) Start(ctx context.Context) error {
 			Client:               c.Client,
 			SpoolDirectory:       c.SpoolDirectory,
 			PgDataPath:           c.PGDataPath,
-			PgWalFolderToSymlink: PgWalVolumePgWalPath,
+			PgWalFolderToSymlink: common.PgWalVolumePgWalPath,
 		})
 
 		common.AddHealthCheck(server)

@@ -57,6 +57,11 @@ var _ = Describe("Replica cluster", func() {
 			ctx SpecContext,
 			factory testCaseFactory,
 		) {
+			switch factory.(type) {
+			case gcsReplicaClusterFactory:
+				Skip("GCS e2e tests are disabled until https://github.com/EnterpriseDB/barman/issues/1218 is fixed")
+			}
+
 			testResources := factory.createReplicaClusterTestResources(namespace.Name)
 
 			By("starting the ObjectStore deployments")
@@ -261,7 +266,7 @@ var _ = Describe("Replica cluster", func() {
 			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 		},
 		Entry(
-			"with MinIO",
+			"with S3",
 			s3ReplicaClusterFactory{},
 		),
 		Entry(

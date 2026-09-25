@@ -1,0 +1,71 @@
+# AWS CLI client kept alive to inspect the object store, e.g.
+#   kubectl exec -ti deploy/s3-client -- aws s3 ls s3://backups/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-client
+  labels:
+    app: s3-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3-client
+  template:
+    metadata:
+      labels:
+        app: s3-client
+    spec:
+      containers:
+      - name: s3-client
+        # renovate: datasource=docker depName=amazon/aws-cli versioning=docker
+        # Version: 2.37.0
+        image: docker.io/amazon/aws-cli@sha256:337494c2047176fe9abcf45a5d1eaf1c2c62cae40953284fb1143b5c6170f065
+        command:
+        - sleep
+        - infinity
+        env:
+        - name: AWS_ENDPOINT_URL
+          value: https://object-store:9000
+        - name: AWS_DEFAULT_REGION
+          value: us-east-1
+        - name: AWS_CA_BUNDLE
+          value: /certs/ca.crt
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: object-store
+              key: ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: object-store
+              key: ACCESS_SECRET_KEY
+        # The CRC-based default checksums introduced in AWS CLI 2.23 are not
+        # supported by every S3-compatible object store.
+        - name: AWS_REQUEST_CHECKSUM_CALCULATION
+          value: when_required
+        - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+          value: when_required
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: certs
+        secret:
+          secretName: object-store-tls
+          items:
+          - key: tls.crt
+            path: ca.crt

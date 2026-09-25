@@ -52,6 +52,11 @@ const (
 	// BarmanEndpointCACertificateFileName is the name of the file in which the barman endpoint
 	// CA certificate is stored.
 	BarmanEndpointCACertificateFileName = "barman-ca.crt"
+
+	// PgWalVolumePgWalPath is the path of the pg_wal directory inside the WAL volume,
+	// used when a separate WAL storage is configured. During a restore the pg_wal
+	// directory is moved here and symlinked back into PGDATA.
+	PgWalVolumePgWalPath = "/var/lib/postgresql/wal/pg_wal"
 )
 
 // GetRestoreCABundleEnv gets the enveronment variables to be used when custom

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.14.0...v0.15.0) (2026-09-03)
+
+
+### Features
+
+* **deps:** Bump Barman version to 3.20.0 ([#1090](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1090)) ([1bb6bab](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1bb6bab640f5adf038c86e33c96d42765d2aa708))
+* Serve restore hooks from the instance sidecar ([#1025](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1025)) ([7bb01a8](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/7bb01a865b15c0f5f608c8bfbc7561daadf2de3d))
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#1041](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1041)) ([9a3cc0d](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/9a3cc0d35492697a31ddc13b87f269cca3e83ea5))
+* **deps:** Update all non-major go dependencies ([#1086](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1086)) ([31b2553](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/31b25538bf6d8fadf2cd28c15b23c9c81ae22fac))
+* **deps:** Update kubernetes monorepo to v0.37.0 ([#1084](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1084)) ([b15b661](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b15b661648792cb2cb899ee628b8a3aa909c3fc8))
+* **deps:** Update module google.golang.org/grpc to v1.83.2 ([#1073](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1073)) ([b3d948c](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/b3d948ce821c68be1d99c84c679e020b5f3db363))
+
 ## [0.14.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.13.0...v0.14.0) (2026-07-29)
 
 

@@ -75,7 +75,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	BeforeEach(func() {
 		pluginConfiguration = &config.PluginConfiguration{
-			BarmanObjectName: "minio-store-dest",
+			BarmanObjectName: "object-store-dest",
 		}
 		cluster = &cnpgv1.Cluster{
 			Spec: cnpgv1.ClusterSpec{
@@ -90,7 +90,7 @@ var _ = Describe("LifecycleImplementation", func() {
 						PluginConfiguration: &cnpgv1.PluginConfiguration{
 							Name: "barman-cloud.cloudnative-pg.io",
 							Parameters: map[string]string{
-								"barmanObjectName": "minio-store-source",
+								"barmanObjectName": "object-store-source",
 							},
 						},
 					},
@@ -99,7 +99,7 @@ var _ = Describe("LifecycleImplementation", func() {
 					{
 						Name: "barman-cloud.cloudnative-pg.io",
 						Parameters: map[string]string{
-							"barmanObjectName": "minio-store-dest",
+							"barmanObjectName": "object-store-dest",
 						},
 					},
 				},
@@ -240,6 +240,69 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/initContainers")))
 			Expect(patch).To(ContainElement(
 				HaveKey("value")))
+		})
+
+		It("injects the sidecar for a recovery-only cluster", func(ctx SpecContext) {
+			recoveryOnlyConfig := &config.PluginConfiguration{
+				RecoveryBarmanObjectName: "object-store-recovery",
+			}
+			pod := &corev1.Pod{
+				TypeMeta:   podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, recoveryOnlyConfig, sidecarConfiguration{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).NotTo(BeEmpty())
+			var patch []map[string]interface{}
+			Expect(json.Unmarshal(response.JsonPatch, &patch)).To(Succeed())
+			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/initContainers")))
+		})
+
+		It("does not inject the sidecar for a recovery-only cluster that has "+
+			"already completed its initial bootstrap", func(ctx SpecContext) {
+			recoveryOnlyConfig := &config.PluginConfiguration{
+				RecoveryBarmanObjectName: "object-store-recovery",
+			}
+			cluster.Status.CurrentPrimary = "test-pod"
+			pod := &corev1.Pod{
+				TypeMeta:   podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, recoveryOnlyConfig, sidecarConfiguration{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).To(BeEmpty())
+		})
+
+		It("does not mutate the pod when no object store is configured", func(ctx SpecContext) {
+			emptyConfig := &config.PluginConfiguration{}
+			pod := &corev1.Pod{
+				TypeMeta:   podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{
+				ObjectDefinition: podJSON,
+			}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, emptyConfig, sidecarConfiguration{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.JsonPatch).To(BeEmpty())
 		})
 
 		It("returns an error for invalid pod definition", func(ctx SpecContext) {

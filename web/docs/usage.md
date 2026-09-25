@@ -17,28 +17,28 @@ Cloud Plugin involves just a few steps:
 From that moment, you’ll be able to issue on-demand backups or define a backup
 schedule, as well as rely on the object store for recovery operations.
 
-The rest of this page details each step, using MinIO as object store provider.
+The rest of this page details each step, using RustFS as object store provider.
 
 ## Defining the `ObjectStore`
 
 An `ObjectStore` resource must be created for each object store used in your
-PostgreSQL architecture. Here's an example configuration using MinIO:
+PostgreSQL architecture. Here's an example configuration using RustFS:
 
 ```yaml
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-store
+  name: s3-store
 spec:
   configuration:
     destinationPath: s3://backups/
-    endpointURL: http://minio:9000
+    endpointURL: http://object-store:9000
     s3Credentials:
       accessKeyId:
-        name: minio
+        name: object-store
         key: ACCESS_KEY_ID
       secretAccessKey:
-        name: minio
+        name: object-store
         key: ACCESS_SECRET_KEY
     wal:
       compression: gzip
@@ -72,7 +72,7 @@ spec:
   - name: barman-cloud.cloudnative-pg.io
     isWALArchiver: true
     parameters:
-      barmanObjectName: minio-store
+      barmanObjectName: s3-store
   storage:
     size: 1Gi
 ```
@@ -147,7 +147,7 @@ spec:
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-store
+        barmanObjectName: s3-store
         serverName: cluster-example
   storage:
     size: 1Gi
@@ -176,14 +176,14 @@ spec:
     isWALArchiver: true
     parameters:
       # Backup Object Store (push, read-write)
-      barmanObjectName: minio-store-bis
+      barmanObjectName: s3-store-bis
   externalClusters:
   - name: source
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
         # Recovery Object Store (pull, read-only)
-        barmanObjectName: minio-store
+        barmanObjectName: s3-store
         serverName: cluster-example
   storage:
     size: 1Gi
@@ -215,7 +215,7 @@ spec:
   - name: barman-cloud.cloudnative-pg.io
     isWALArchiver: true
     parameters:
-      barmanObjectName: minio-store-a
+      barmanObjectName: s3-store-a
 
   replica:
     self: cluster-dc-a
@@ -227,13 +227,13 @@ spec:
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-store-a
+        barmanObjectName: s3-store-a
 
   - name: cluster-dc-b
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-store-b
+        barmanObjectName: s3-store-b
 ```
 
 ## Configuring the plugin instance sidecar
@@ -262,7 +262,7 @@ and could generate a rollout of the `Cluster`.
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: minio-store
+  name: s3-store
 spec:
   configuration:
   # [...]

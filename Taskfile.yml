@@ -9,7 +9,7 @@ vars:
   GO_VERSION:
     sh: sed -n 's/^toolchain go//p' go.mod | grep . || sed -n 's/^go //p' go.mod
   # renovate: datasource=docker depName=kindest/node versioning=semver
-  E2E_KUBERNETES_VERSION: v1.36.1
+  E2E_KUBERNETES_VERSION: v1.37.0
   E2E_CLUSTER_NAME: barman-cloud-plugin-e2e-{{.E2E_KUBERNETES_VERSION}}
   REGISTRY_NETWORK: barman-cloud-plugin
   REGISTRY_NAME: registry.barman-cloud-plugin
@@ -23,7 +23,7 @@ tasks:
       # renovate: datasource=git-refs depName=golangci-lint lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
       DAGGER_GOLANGCI_LINT_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
       # renovate: datasource=docker depName=golangci/golangci-lint versioning=semver
-      GOLANGCI_LINT_VERSION: v2.12.2
+      GOLANGCI_LINT_VERSION: v2.13.2
     cmds:
       - >
         GITHUB_REF= dagger -sc "github.com/sagikazarmark/daggerverse/golangci-lint@${DAGGER_GOLANGCI_LINT_SHA}
@@ -34,6 +34,7 @@ tasks:
 
   wordlist-ordered:
     desc: Order the word list file
+    run: once
     cmds:
       - LANG=C LC_ALL=C sort .wordlist.txt > .wordlist.txt.new
       - mv -f .wordlist.txt.new .wordlist.txt
@@ -65,6 +66,26 @@ tasks:
       - >
         GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/commitlint@${DAGGER_COMMITLINT_SHA}
         lint --source . --args "--from=origin/main" stdout
+
+  pip-compile-sidecar:
+    desc: Regenerate containers/sidecar-requirements.txt with the same Python version as the sidecar image
+    cmds:
+      - >
+        GITHUB_REF= dagger call --no-mod
+        container from --address=debian:trixie-slim
+        with-env-variable --name=DEBIAN_FRONTEND --value=noninteractive
+        with-exec --args="apt-get,update,-qq"
+        with-exec --args="apt-get,install,-y,-qq,python3,python3-venv,python3-pip,gcc,libpq-dev"
+        with-exec --args="pip,install,--quiet,--break-system-packages,pip-tools,click<8.5.0"
+        with-directory --path=/work --source=containers
+        with-workdir --path=/work
+        with-exec --args="pip-compile,--allow-unsafe,--generate-hashes,--output-file=sidecar-requirements.txt,--strip-extras,sidecar-requirements.in"
+        file --path=/work/sidecar-requirements.txt
+        export --path=containers/sidecar-requirements.txt
+    sources:
+      - containers/sidecar-requirements.in
+    generates:
+      - containers/sidecar-requirements.txt
 
   uncommitted:
     desc: Check for uncommitted changes
@@ -206,7 +227,7 @@ tasks:
       - start-build-network
     vars:
       # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
-      DAGGER_VERSION: 0.21.8
+      DAGGER_VERSION: 0.21.9
       DAGGER_ENGINE_IMAGE: registry.dagger.io/engine:v{{ .DAGGER_VERSION }}
     cmds:
       - >
@@ -263,7 +284,7 @@ tasks:
     run: once
     vars:
       # renovate: datasource=git-refs depName=kind lookupName=https://github.com/kubernetes-sigs/kind versioning=semver
-      KIND_VERSION: v0.32.0
+      KIND_VERSION: v0.33.0
     cmds:
       - go install sigs.k8s.io/kind@{{.KIND_VERSION}}
       - kind version | grep -q {{.KIND_VERSION}}

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio
+  name: object-store
 spec:
   accessModes:
     - ReadWriteOnce
