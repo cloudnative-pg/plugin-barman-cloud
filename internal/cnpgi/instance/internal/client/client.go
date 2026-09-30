@@ -36,6 +36,9 @@ import (
 // DefaultTTLSeconds is the default TTL in seconds of cache entries
 const DefaultTTLSeconds = 10
 
+// DefaultCleanupIntervalSeconds is the default interval in seconds for cache cleanup
+const DefaultCleanupIntervalSeconds = 30
+
 type cachedEntry struct {
 	entry         client.Object
 	fetchUnixTime int64
@@ -49,18 +52,30 @@ func (e *cachedEntry) isExpired() bool {
 // ExtendedClient is an extended client that is capable of caching multiple secrets without relying on informers
 type ExtendedClient struct {
 	client.Client
-	cachedObjects []cachedEntry
-	mux           *sync.Mutex
+	cachedObjects   []cachedEntry
+	mux             *sync.Mutex
+	cleanupInterval time.Duration
+	cleanupDone     chan struct{} // Signals when cleanup routine exits
 }
 
-// NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation
+// NewExtendedClient returns an extended client capable of caching secrets on the 'Get' operation.
+// It starts a background goroutine that periodically cleans up expired cache entries.
+// The cleanup routine will stop when the provided context is cancelled.
 func NewExtendedClient(
+	ctx context.Context,
 	baseClient client.Client,
 ) client.Client {
-	return &ExtendedClient{
-		Client: baseClient,
-		mux:    &sync.Mutex{},
+	ec := &ExtendedClient{
+		Client:          baseClient,
+		mux:             &sync.Mutex{},
+		cleanupInterval: DefaultCleanupIntervalSeconds * time.Second,
+		cleanupDone:     make(chan struct{}),
 	}
+
+	// Start the background cleanup routine
+	go ec.startCleanupRoutine(ctx)
+
+	return ec
 }
 
 func (e *ExtendedClient) isObjectCached(obj client.Object) bool {
@@ -207,4 +222,56 @@ func (e *ExtendedClient) Patch(
 	}
 
 	return e.Client.Patch(ctx, obj, patch, opts...)
+}
+
+// startCleanupRoutine periodically removes expired entries from the cache.
+// It runs until the context is cancelled.
+func (e *ExtendedClient) startCleanupRoutine(ctx context.Context) {
+	defer close(e.cleanupDone)
+	contextLogger := log.FromContext(ctx).WithName("extended_client_cleanup")
+	ticker := time.NewTicker(e.cleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			contextLogger.Debug("stopping cache cleanup routine")
+			return
+		case <-ticker.C:
+			// Check context before cleanup to avoid unnecessary work during shutdown
+			if ctx.Err() != nil {
+				return
+			}
+			e.cleanupExpiredEntries(ctx)
+		}
+	}
+}
+
+// cleanupExpiredEntries removes all expired entries from the cache.
+func (e *ExtendedClient) cleanupExpiredEntries(ctx context.Context) {
+	contextLogger := log.FromContext(ctx).WithName("extended_client_cleanup")
+
+	e.mux.Lock()
+	defer e.mux.Unlock()
+
+	initialCount := len(e.cachedObjects)
+	if initialCount == 0 {
+		return
+	}
+
+	// Create a new slice with only non-expired entries
+	validEntries := make([]cachedEntry, 0, initialCount)
+	for _, entry := range e.cachedObjects {
+		if !entry.isExpired() {
+			validEntries = append(validEntries, entry)
+		}
+	}
+
+	removedCount := initialCount - len(validEntries)
+	if removedCount > 0 {
+		e.cachedObjects = validEntries
+		contextLogger.Debug("cleaned up expired cache entries",
+			"removedCount", removedCount,
+			"remainingCount", len(validEntries))
+	}
 }
