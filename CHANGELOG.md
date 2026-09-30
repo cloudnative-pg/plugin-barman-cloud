@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.0...v0.15.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#1126](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1126)) ([1eb1d14](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/1eb1d14fc7b2117d167ba09ff4b78f1c6fdc5616))
+* **deps:** Update dependency barman to v3.20.1 ([#1121](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1121)) ([d423ab8](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/d423ab81964e2e61fe0e1c1797326fcfbe24e494))
+* **deps:** Update kubernetes monorepo to v0.37.1 ([#1127](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1127)) ([283e9c0](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/283e9c0fc77df5e471bc97a507e62f99c3ee017a))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.25.1 ([#1096](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1096)) ([86cf846](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/86cf8464303b9537b139120680e5eed9b76b6219))
+* **deps:** Upgrade dagger to gRPC-Go v1.83.2 ([#1134](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1134)) ([03e51f2](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/03e51f2b0d77e9a27ef1c1e2036405fa6ba66a1f))
+* Log transient connectivity errors during WAL restore ([#1112](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1112)) ([01637c9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/01637c96930db0d1ead4eb87be174519808fa5b5)), refs [#1111](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1111)
+
 ## [0.15.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.14.0...v0.15.0) (2026-09-03)
 
 
