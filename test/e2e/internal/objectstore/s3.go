@@ -20,6 +20,8 @@ SPDX-License-Identifier: Apache-2.0
 package objectstore
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net"
 
@@ -243,8 +245,8 @@ func newS3Secret(namespace, name string) *corev1.Secret {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"ACCESS_KEY_ID":     []byte("s3accesskey"),
-			"ACCESS_SECRET_KEY": []byte("s3secretkey123"),
+			"ACCESS_KEY_ID":     []byte(S3AccessKeyID),
+			"ACCESS_SECRET_KEY": []byte(S3SecretAccessKey),
 		},
 	}
 }
@@ -270,6 +272,39 @@ func newS3PVC(namespace, name string) *corev1.PersistentVolumeClaim {
 			},
 		},
 	}
+}
+
+// S3AccessKeyID and S3SecretAccessKey are the credentials of the S3-compatible
+// object store created by NewS3ObjectStoreResources.
+const (
+	S3AccessKeyID     = "s3accesskey"
+	S3SecretAccessKey = "s3secretkey123"
+)
+
+// SSECustomerKeySecretKey is the key of the SSE-C key in the secret created by
+// NewSSECustomerKeySecret.
+const SSECustomerKeySecretKey = "key"
+
+// NewSSECustomerKeySecret creates a secret holding a random base64-encoded
+// 256-bit SSE-C key, and returns it together with the encoded key.
+func NewSSECustomerKeySecret(namespace, name string) (*corev1.Secret, string) {
+	raw := make([]byte, 32)
+	_, _ = rand.Read(raw)
+	key := base64.StdEncoding.EncodeToString(raw)
+
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			SSECustomerKeySecretKey: []byte(key),
+		},
+	}, key
 }
 
 // NewS3ObjectStore creates a new ObjectStore pointing at the S3-compatible
