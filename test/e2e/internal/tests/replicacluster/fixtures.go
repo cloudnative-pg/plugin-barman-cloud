@@ -21,6 +21,7 @@ package replicacluster
 
 import (
 	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	machineryapi "github.com/cloudnative-pg/machinery/pkg/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -58,6 +59,9 @@ type replicaClusterTestResources struct {
 	ReplicaObjectStore          *pluginBarmanCloudV1.ObjectStore
 	ReplicaCluster              *cloudnativepgv1.Cluster
 	ReplicaBackup               *cloudnativepgv1.Backup
+	// SSECustomerKeys maps the S3 endpoint of each object store to the
+	// base64-encoded SSE-C key its objects must be encrypted with
+	SSECustomerKeys map[string]string
 }
 
 type s3ReplicaClusterFactory struct{}
@@ -73,6 +77,36 @@ func (f s3ReplicaClusterFactory) createReplicaClusterTestResources(namespace str
 	result.ReplicaObjectStore = objectstore.NewS3ObjectStore(namespace, replicaObjectStoreName, s3Replica)
 	result.ReplicaCluster = newReplicaCluster(namespace)
 	result.ReplicaBackup = newReplicaBackup(namespace)
+
+	return result
+}
+
+// s3SSECReplicaClusterFactory encrypts each object store with its own SSE-C
+// key: the designated primary of the replica cluster archives WAL to one
+// object store while restoring it from the other, in the same sidecar.
+type s3SSECReplicaClusterFactory struct{}
+
+func (f s3SSECReplicaClusterFactory) createReplicaClusterTestResources(
+	namespace string,
+) replicaClusterTestResources {
+	result := s3ReplicaClusterFactory{}.createReplicaClusterTestResources(namespace)
+	result.SSECustomerKeys = map[string]string{}
+
+	for _, store := range []struct {
+		resources   *objectstore.Resources
+		objectStore *pluginBarmanCloudV1.ObjectStore
+	}{
+		{result.SrcObjectStoreResources, result.SrcObjectStore},
+		{result.ReplicaObjectStoreResources, result.ReplicaObjectStore},
+	} {
+		secret, key := objectstore.NewSSECustomerKeySecret(namespace, store.objectStore.Name+"-sse-c")
+		store.resources.SSECustomerKey = secret
+		store.objectStore.Spec.Configuration.AWS.SSECustomerKey = &machineryapi.SecretKeySelector{
+			LocalObjectReference: machineryapi.LocalObjectReference{Name: secret.Name},
+			Key:                  objectstore.SSECustomerKeySecretKey,
+		}
+		result.SSECustomerKeys[store.objectStore.Spec.Configuration.EndpointURL] = key
+	}
 
 	return result
 }

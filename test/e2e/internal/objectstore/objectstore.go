@@ -39,6 +39,8 @@ type Resources struct {
 	Service    *corev1.Service
 	Secret     *corev1.Secret
 	PVC        *corev1.PersistentVolumeClaim
+	// SSECustomerKey is the secret holding the SSE-C key of the object store, if any
+	SSECustomerKey *corev1.Secret
 }
 
 // Create creates the object store resources.
@@ -51,6 +53,11 @@ func (osr Resources) Create(ctx context.Context, cl client.Client) error {
 	if osr.Secret != nil {
 		if err := cl.Create(ctx, osr.Secret); err != nil {
 			return fmt.Errorf("failed to create secret: %w", err)
+		}
+	}
+	if osr.SSECustomerKey != nil {
+		if err := cl.Create(ctx, osr.SSECustomerKey); err != nil {
+			return fmt.Errorf("failed to create SSE-C key secret: %w", err)
 		}
 	}
 	if osr.Deployment != nil {
