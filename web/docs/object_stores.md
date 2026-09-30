@@ -252,8 +252,8 @@ the whole lifetime of the backups it protects. `sseCustomerKey` can be combined
 with any authentication method, including `inheritFromIAMRole`, but not with
 the bucket-managed `encryption` setting (SSE-S3 / SSE-KMS) of the `data` and
 `wal` sections: `barman-cloud` rejects `--sse-customer-key` together with
-`--encryption`, so an object store that sets both fails at the first backup or
-WAL archive.
+`--encryption`, so an `ObjectStore` that sets both is rejected when it is
+created or updated.
 
 :::note
 SSE-C relies on the `--sse-customer-key` option introduced in Barman 3.20.0,
