@@ -436,6 +436,16 @@ spec:
                   message: use the 'serverName' plugin parameter in the Cluster resource
                   reason: FieldValueForbidden
                   rule: '!has(self.serverName)'
+                - fieldPath: .data.encryption
+                  message: cannot be used together with s3Credentials.sseCustomerKey
+                  reason: FieldValueForbidden
+                  rule: '!has(self.s3Credentials) || !has(self.s3Credentials.sseCustomerKey)
+                    || !has(self.data) || !has(self.data.encryption)'
+                - fieldPath: .wal.encryption
+                  message: cannot be used together with s3Credentials.sseCustomerKey
+                  reason: FieldValueForbidden
+                  rule: '!has(self.s3Credentials) || !has(self.s3Credentials.sseCustomerKey)
+                    || !has(self.wal) || !has(self.wal.encryption)'
               instanceSidecarConfiguration:
                 description: The configuration for the sidecar that runs in the instance
                   pods
