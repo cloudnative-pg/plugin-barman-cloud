@@ -94,6 +94,9 @@ type RecoveryWindow struct {
 
 	// The last failed backup time
 	LastFailedBackupTime *metav1.Time `json:"lastFailedBackupTime,omitempty"`
+
+	// The last time a WAL file was successfully archived by this plugin
+	LastArchivedWALTime *metav1.Time `json:"lastArchivedWALTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
