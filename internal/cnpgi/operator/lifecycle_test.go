@@ -75,7 +75,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 	BeforeEach(func() {
 		pluginConfiguration = &config.PluginConfiguration{
-			BarmanObjectName: "minio-store-dest",
+			BarmanObjectName: "object-store-dest",
 		}
 		cluster = &cnpgv1.Cluster{
 			Spec: cnpgv1.ClusterSpec{
@@ -90,7 +90,7 @@ var _ = Describe("LifecycleImplementation", func() {
 						PluginConfiguration: &cnpgv1.PluginConfiguration{
 							Name: "barman-cloud.cloudnative-pg.io",
 							Parameters: map[string]string{
-								"barmanObjectName": "minio-store-source",
+								"barmanObjectName": "object-store-source",
 							},
 						},
 					},
@@ -99,7 +99,7 @@ var _ = Describe("LifecycleImplementation", func() {
 					{
 						Name: "barman-cloud.cloudnative-pg.io",
 						Parameters: map[string]string{
-							"barmanObjectName": "minio-store-dest",
+							"barmanObjectName": "object-store-dest",
 						},
 					},
 				},
@@ -244,7 +244,7 @@ var _ = Describe("LifecycleImplementation", func() {
 
 		It("injects the sidecar for a recovery-only cluster", func(ctx SpecContext) {
 			recoveryOnlyConfig := &config.PluginConfiguration{
-				RecoveryBarmanObjectName: "minio-store-recovery",
+				RecoveryBarmanObjectName: "object-store-recovery",
 			}
 			pod := &corev1.Pod{
 				TypeMeta:   podTypeMeta,
@@ -268,7 +268,7 @@ var _ = Describe("LifecycleImplementation", func() {
 		It("does not inject the sidecar for a recovery-only cluster that has "+
 			"already completed its initial bootstrap", func(ctx SpecContext) {
 			recoveryOnlyConfig := &config.PluginConfiguration{
-				RecoveryBarmanObjectName: "minio-store-recovery",
+				RecoveryBarmanObjectName: "object-store-recovery",
 			}
 			cluster.Status.CurrentPrimary = "test-pod"
 			pod := &corev1.Pod{

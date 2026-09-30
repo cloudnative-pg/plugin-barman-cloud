@@ -266,7 +266,7 @@ var _ = Describe("Replica cluster", func() {
 			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 		},
 		Entry(
-			"with MinIO",
+			"with S3",
 			s3ReplicaClusterFactory{},
 		),
 		Entry(

@@ -18,12 +18,12 @@ jobs:
     steps:
       - name: Cleanup Disk
         if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@v1.3.1
+        uses: jlumbroso/free-disk-space@v2.0.0
         with:
           android: true
           dotnet: true
           haskell: true
-          tool-cache: true
+          preinstalled-runtimes: true
           large-packages: false
           swap-storage: false
       - name: Cleanup docker cache

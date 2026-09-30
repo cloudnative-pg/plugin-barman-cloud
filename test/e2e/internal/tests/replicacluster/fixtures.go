@@ -42,8 +42,8 @@ const (
 	replicaObjectStoreName = "replica"
 	replicaClusterName     = "replica"
 	replicaBackupName      = "replica"
-	minioSrc               = "minio-src"
-	minioReplica           = "minio-replica"
+	s3Src                  = "s3-src"
+	s3Replica              = "s3-replica"
 	gcsSrc                 = "fakegcs-src"
 	azuriteSrc             = "azurite-src"
 	azuriteReplica         = "azurite-replica"
@@ -65,12 +65,12 @@ type s3ReplicaClusterFactory struct{}
 func (f s3ReplicaClusterFactory) createReplicaClusterTestResources(namespace string) replicaClusterTestResources {
 	result := replicaClusterTestResources{}
 
-	result.SrcObjectStoreResources = objectstore.NewMinioObjectStoreResources(namespace, minioSrc)
-	result.SrcObjectStore = objectstore.NewMinioObjectStore(namespace, srcObjectStoreName, minioSrc)
+	result.SrcObjectStoreResources = objectstore.NewS3ObjectStoreResources(namespace, s3Src)
+	result.SrcObjectStore = objectstore.NewS3ObjectStore(namespace, srcObjectStoreName, s3Src)
 	result.SrcCluster = newSrcCluster(namespace)
 	result.SrcBackup = newSrcBackup(namespace)
-	result.ReplicaObjectStoreResources = objectstore.NewMinioObjectStoreResources(namespace, minioReplica)
-	result.ReplicaObjectStore = objectstore.NewMinioObjectStore(namespace, replicaObjectStoreName, minioReplica)
+	result.ReplicaObjectStoreResources = objectstore.NewS3ObjectStoreResources(namespace, s3Replica)
+	result.ReplicaObjectStore = objectstore.NewS3ObjectStore(namespace, replicaObjectStoreName, s3Replica)
 	result.ReplicaCluster = newReplicaCluster(namespace)
 	result.ReplicaBackup = newReplicaBackup(namespace)
 

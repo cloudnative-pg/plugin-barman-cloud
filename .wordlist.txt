@@ -51,6 +51,7 @@ RTO
 RecoveryWindow
 ResourceRequirements
 RetentionPolicy
+RustFS
 SAS
 SDK
 SFO
