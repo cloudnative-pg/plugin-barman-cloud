@@ -154,11 +154,11 @@ func scaleDeployment(ctx SpecContext, cl client.Client, replicas int32) error {
 		Name:      pluginDeployment,
 		Namespace: pluginNamespace,
 	}, &deploy); err != nil {
-		return err //nolint:wrapcheck
+		return err
 	}
 	deploy.Spec.Replicas = ptr.To(replicas)
 
-	return cl.Update(ctx, &deploy) //nolint:wrapcheck
+	return cl.Update(ctx, &deploy)
 }
 
 // getLeaderPodName reads the leader election Lease and returns the name of
