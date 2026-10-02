@@ -141,6 +141,26 @@ deployment "barman-cloud" successfully rolled out
 
 This confirms that the plugin is deployed and ready to use.
 
+## Running Multiple Replicas
+
+The plugin Deployment can run with more than one replica for high
+availability. Every replica serves the gRPC interface used by the CloudNativePG
+operator, so the `barman-cloud` Service load-balances requests across all
+ready pods. The `ObjectStore` controller uses leader election, so only one
+replica reconciles `ObjectStore` resources at a time; the others take over
+automatically if the leader is lost.
+
+To scale the plugin:
+
+```sh
+kubectl -n cnpg-system scale deploy/barman-cloud --replicas=2
+```
+
+The Deployment keeps the `Recreate` strategy: during an upgrade all replicas
+are replaced together, so the plugin is briefly unavailable regardless of the
+replica count. Multiple replicas protect against pod or node loss, not against
+upgrade downtime.
+
 ## Testing the latest development snapshot
 
 import { DevSnapshotSection } from '@site/src/components/Installation';
