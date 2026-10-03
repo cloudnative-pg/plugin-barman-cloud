@@ -81,6 +81,8 @@ func (b BackupServiceImplementation) Backup(
 		return nil, err
 	}
 
+	configuration.ApplyBackupParameters(request.GetParameters())
+
 	var objectStore barmancloudv1.ObjectStore
 	if err := b.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
 		contextLogger.Error(err, "while getting object store", "key", configuration.GetRecoveryBarmanObjectKey())

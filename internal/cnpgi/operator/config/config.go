@@ -76,6 +76,12 @@ type PluginConfiguration struct {
 
 	ReplicaSourceBarmanObjectName string
 	ReplicaSourceServerName       string
+
+	// AdditionalBarmanObjectNames lists the object stores that a Backup
+	// resource is allowed to request on top of the ones used by the cluster
+	// itself. Nothing is written to them unless a Backup asks for one, but
+	// they take part in the RBAC and in the certificates of the instances.
+	AdditionalBarmanObjectNames []string
 }
 
 // GetBarmanObjectKey gets the namespaced name of the barman object
@@ -83,6 +89,24 @@ func (config *PluginConfiguration) GetBarmanObjectKey() types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: config.Cluster.Namespace,
 		Name:      config.BarmanObjectName,
+	}
+}
+
+// ApplyBackupParameters overrides the object store selection with the
+// parameters of the Backup resource. The operator relays them in the
+// BackupRequest, and without this a Backup asking for a different object
+// store is silently written to the cluster one.
+func (config *PluginConfiguration) ApplyBackupParameters(parameters map[string]string) {
+	if len(parameters) == 0 {
+		return
+	}
+
+	if value := parameters["barmanObjectName"]; len(value) > 0 {
+		config.BarmanObjectName = value
+	}
+
+	if value := parameters["serverName"]; len(value) > 0 {
+		config.ServerName = value
 	}
 }
 
@@ -122,8 +146,11 @@ func (config *PluginConfiguration) GetReferredBarmanObjectsKey() []types.Namespa
 	if len(config.ReplicaSourceBarmanObjectName) > 0 {
 		objectNames.Put(config.ReplicaSourceBarmanObjectName)
 	}
+	for _, name := range config.AdditionalBarmanObjectNames {
+		objectNames.Put(name)
+	}
 
-	result := make([]types.NamespacedName, 0, 3)
+	result := make([]types.NamespacedName, 0, 4)
 	for _, name := range objectNames.ToSortedList() {
 		result = append(result, types.NamespacedName{
 			Name:      name,
@@ -186,12 +213,31 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
 		ServerName:       serverName,
+		// reachable by a Backup resource requesting them explicitly
+		AdditionalBarmanObjectNames: parseObjectNameList(helper.Parameters["additionalBarmanObjectNames"]),
 		// used for restore and wal_restore during backup recovery
 		RecoveryServerName:       recoveryServerName,
 		RecoveryBarmanObjectName: recoveryBarmanObjectName,
 		// used for wal_restore in the designed primary of a replica cluster
 		ReplicaSourceServerName:       replicaSourceServerName,
 		ReplicaSourceBarmanObjectName: replicaSourceBarmanObjectName,
+	}
+
+	return result
+}
+
+// parseObjectNameList splits a comma separated list of object store names,
+// dropping the empty entries
+func parseObjectNameList(value string) []string {
+	if len(value) == 0 {
+		return nil
+	}
+
+	var result []string
+	for _, name := range strings.Split(value, ",") {
+		if name = strings.TrimSpace(name); len(name) > 0 {
+			result = append(result, name)
+		}
 	}
 
 	return result
