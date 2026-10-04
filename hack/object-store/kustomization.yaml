@@ -1,0 +1,8 @@
+resources:
+- object-store-deployment.yaml
+- object-store-pvc.yaml
+- object-store-secret.yaml
+- object-store-service.yaml
+- object-store-certificate.yaml
+- selfsigned-issuer.yaml
+- s3-client.yaml

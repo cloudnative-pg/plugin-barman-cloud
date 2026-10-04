@@ -1,12 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: minio-server
+  name: object-store-server
 spec:
-  secretName: minio-server-tls
-  commonName: minio
+  secretName: object-store-tls
+  commonName: object-store
   dnsNames:
-    - minio
+    - object-store
+    - object-store.default
+    - object-store.default.svc
 
   duration: 2160h # 90d
   renewBefore: 360h # 15d

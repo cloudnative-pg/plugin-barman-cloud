@@ -14,14 +14,14 @@ spec:
   - name: barman-cloud.cloudnative-pg.io
     isWALArchiver: true
     parameters:
-      barmanObjectName: minio-store-bis
+      barmanObjectName: object-store-bis
 
   externalClusters:
   - name: source
     plugin:
       name: barman-cloud.cloudnative-pg.io
       parameters:
-        barmanObjectName: minio-store
+        barmanObjectName: object-store
         serverName: cluster-example
 
   storage:
