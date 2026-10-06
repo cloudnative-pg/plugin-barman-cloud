@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package operator
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -151,7 +152,7 @@ func (impl LifecycleImplementation) reconcileJob(
 	}
 
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
-		image:        pluginConfiguration.ResolveSidecarImage(viper.GetString("sidecar-image")),
+		image:        cmp.Or(pluginConfiguration.SidecarImage, viper.GetString("sidecar-image")),
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
@@ -251,7 +252,7 @@ func (impl LifecycleImplementation) reconcilePod(
 	}
 
 	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
-		image:          pluginConfiguration.ResolveSidecarImage(viper.GetString("sidecar-image")),
+		image:          cmp.Or(pluginConfiguration.SidecarImage, viper.GetString("sidecar-image")),
 		env:            env,
 		certificates:   certificates,
 		resources:      resources,

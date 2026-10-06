@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package config
 
 import (
+	"cmp"
 	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -70,11 +71,13 @@ type PluginConfiguration struct {
 
 	BarmanObjectName string
 	ServerName       string
-	SidecarImage     string
+
+	// SidecarImage overrides the default sidecar image. It is the first set
+	// of: spec.plugins[], the recovery source, the replica source.
+	SidecarImage string
 
 	RecoveryBarmanObjectName string
 	RecoveryServerName       string
-	RecoverySidecarImage     string
 
 	ReplicaSourceBarmanObjectName string
 	ReplicaSourceServerName       string
@@ -165,11 +168,9 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 
 	recoveryServerName := ""
 	recoveryBarmanObjectName := ""
-	recoverySidecarImage := ""
 	if recoveryParameters := getRecoveryParameters(cluster); recoveryParameters != nil {
 		recoveryBarmanObjectName = recoveryParameters["barmanObjectName"]
 		recoveryServerName = recoveryParameters["serverName"]
-		recoverySidecarImage = recoveryParameters["sidecarImage"]
 		if len(recoveryServerName) == 0 {
 			recoveryServerName = cluster.Name
 		}
@@ -190,11 +191,14 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
 		ServerName:       serverName,
-		SidecarImage:     helper.Parameters["sidecarImage"],
+		SidecarImage: cmp.Or(
+			helper.Parameters["sidecarImage"],
+			getRecoveryParameters(cluster)["sidecarImage"],
+			getReplicaSourceParameters(cluster)["sidecarImage"],
+		),
 		// used for restore and wal_restore during backup recovery
 		RecoveryServerName:       recoveryServerName,
 		RecoveryBarmanObjectName: recoveryBarmanObjectName,
-		RecoverySidecarImage:     recoverySidecarImage,
 		// used for wal_restore in the designed primary of a replica cluster
 		ReplicaSourceServerName:       replicaSourceServerName,
 		ReplicaSourceBarmanObjectName: replicaSourceBarmanObjectName,
@@ -270,20 +274,6 @@ func getReplicaSourcePlugin(cluster *cnpgv1.Cluster) *cnpgv1.PluginConfiguration
 	}
 
 	return recoveryExternalCluster.PluginConfiguration
-}
-
-// ResolveSidecarImage returns the image to be used for the sidecar.
-// The precedence is: the plugin parameter in spec.plugins[], the plugin
-// parameter of the recovery source and, finally, the passed default.
-func (config *PluginConfiguration) ResolveSidecarImage(defaultImage string) string {
-	switch {
-	case len(config.SidecarImage) > 0:
-		return config.SidecarImage
-	case len(config.RecoverySidecarImage) > 0:
-		return config.RecoverySidecarImage
-	default:
-		return defaultImage
-	}
 }
 
 // Validate checks if the barmanObjectName is set

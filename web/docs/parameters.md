@@ -12,7 +12,14 @@ The following parameters are available for the Barman Cloud Plugin:
   plugin.
 - `serverName`: Specifies the server name in the object store.
 - `sidecarImage`: overrides the [sidecar container image](images.md#sidecar-container-image)
-  injected into the instance pods of the cluster.
+  injected into the instance pods and the recovery job pods of the cluster.
+  It can also be set on a recovery or replica source in `externalClusters[]`.
+
+:::warning
+`sidecarImage` is meant for debugging and testing. Running a sidecar whose
+version differs from the operator's is not recommended. Leave it unset in
+production.
+:::
 
 :::important
 The `serverName` parameter in the `ObjectStore` resource is retained solely for
