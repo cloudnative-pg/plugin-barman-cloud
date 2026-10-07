@@ -124,3 +124,73 @@ var _ = Describe("NewFromCluster", func() {
 		Expect(cfg.Validate()).NotTo(Succeed())
 	})
 })
+
+var _ = Describe("sidecar image resolution", func() {
+	newCluster := func(pluginImage, recoveryImage string) *cnpgv1.Cluster {
+		cluster := &cnpgv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "test-ns"},
+			Spec: cnpgv1.ClusterSpec{
+				Bootstrap: &cnpgv1.BootstrapConfiguration{
+					Recovery: &cnpgv1.BootstrapRecovery{Source: "source"},
+				},
+				ExternalClusters: []cnpgv1.ExternalCluster{{
+					Name: "source",
+					PluginConfiguration: &cnpgv1.PluginConfiguration{
+						Name: metadata.PluginName,
+						Parameters: map[string]string{
+							"barmanObjectName": "object-store",
+							"sidecarImage":     recoveryImage,
+						},
+					},
+				}},
+			},
+		}
+		if pluginImage != "" {
+			cluster.Spec.Plugins = []cnpgv1.PluginConfiguration{{
+				Name:       metadata.PluginName,
+				Parameters: map[string]string{"sidecarImage": pluginImage},
+			}}
+		}
+		return cluster
+	}
+
+	It("is empty when no image is requested", func() {
+		cfg := NewFromCluster(newCluster("", ""))
+		Expect(cfg.SidecarImage).To(BeEmpty())
+	})
+
+	It("uses the spec.plugins[] image", func() {
+		cfg := NewFromCluster(newCluster("plugin:1", ""))
+		Expect(cfg.SidecarImage).To(Equal("plugin:1"))
+	})
+
+	It("falls back to the recovery source image", func() {
+		cfg := NewFromCluster(newCluster("", "recovery:1"))
+		Expect(cfg.SidecarImage).To(Equal("recovery:1"))
+	})
+
+	It("prefers the spec.plugins[] image over the recovery source image", func() {
+		cfg := NewFromCluster(newCluster("plugin:1", "recovery:1"))
+		Expect(cfg.SidecarImage).To(Equal("plugin:1"))
+	})
+
+	It("falls back to the replica source image", func() {
+		cluster := &cnpgv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "test-ns"},
+			Spec: cnpgv1.ClusterSpec{
+				ReplicaCluster: &cnpgv1.ReplicaClusterConfiguration{Source: "source"},
+				ExternalClusters: []cnpgv1.ExternalCluster{{
+					Name: "source",
+					PluginConfiguration: &cnpgv1.PluginConfiguration{
+						Name: metadata.PluginName,
+						Parameters: map[string]string{
+							"barmanObjectName": "object-store",
+							"sidecarImage":     "replica:1",
+						},
+					},
+				}},
+			},
+		}
+		Expect(NewFromCluster(cluster).SidecarImage).To(Equal("replica:1"))
+	})
+})

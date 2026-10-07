@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package operator
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -151,6 +152,7 @@ func (impl LifecycleImplementation) reconcileJob(
 	}
 
 	return reconcileJob(ctx, cluster, request, sidecarConfiguration{
+		image:        cmp.Or(pluginConfiguration.SidecarImage, viper.GetString("sidecar-image")),
 		env:          env,
 		certificates: certificates,
 		resources:    resources,
@@ -158,6 +160,7 @@ func (impl LifecycleImplementation) reconcileJob(
 }
 
 type sidecarConfiguration struct {
+	image          string
 	env            []corev1.EnvVar
 	certificates   []corev1.VolumeProjection
 	resources      corev1.ResourceRequirements
@@ -249,6 +252,7 @@ func (impl LifecycleImplementation) reconcilePod(
 	}
 
 	return reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+		image:          cmp.Or(pluginConfiguration.SidecarImage, viper.GetString("sidecar-image")),
 		env:            env,
 		certificates:   certificates,
 		resources:      resources,
@@ -450,7 +454,7 @@ func reconcilePodSpec(
 
 	// fixed values
 	sidecarTemplate.Name = "plugin-barman-cloud"
-	sidecarTemplate.Image = viper.GetString("sidecar-image")
+	sidecarTemplate.Image = config.image
 	sidecarTemplate.ImagePullPolicy = cluster.Spec.ImagePullPolicy
 	sidecarTemplate.StartupProbe = baseProbe.DeepCopy()
 	sidecarTemplate.SecurityContext = &corev1.SecurityContext{

@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package config
 
 import (
+	"cmp"
 	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -70,6 +71,10 @@ type PluginConfiguration struct {
 
 	BarmanObjectName string
 	ServerName       string
+
+	// SidecarImage overrides the default sidecar image. It is the first set
+	// of: spec.plugins[], the recovery source, the replica source.
+	SidecarImage string
 
 	RecoveryBarmanObjectName string
 	RecoveryServerName       string
@@ -186,6 +191,11 @@ func NewFromCluster(cluster *cnpgv1.Cluster) *PluginConfiguration {
 		// used for the backup/archive
 		BarmanObjectName: helper.Parameters["barmanObjectName"],
 		ServerName:       serverName,
+		SidecarImage: cmp.Or(
+			helper.Parameters["sidecarImage"],
+			getRecoveryParameters(cluster)["sidecarImage"],
+			getReplicaSourceParameters(cluster)["sidecarImage"],
+		),
 		// used for restore and wal_restore during backup recovery
 		RecoveryServerName:       recoveryServerName,
 		RecoveryBarmanObjectName: recoveryBarmanObjectName,
