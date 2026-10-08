@@ -82,6 +82,8 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
+          runAsUser: 10001  # rustfs user ID
+          runAsGroup: 10001  # rustfs group ID
           seccompProfile:
             type: RuntimeDefault
         livenessProbe:
