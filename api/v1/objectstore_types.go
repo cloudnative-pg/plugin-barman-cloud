@@ -59,6 +59,8 @@ type InstanceSidecarConfiguration struct {
 type ObjectStoreSpec struct {
 	// The configuration for the barman-cloud tool suite
 	// +kubebuilder:validation:XValidation:rule="!has(self.serverName)",fieldPath=".serverName",reason="FieldValueForbidden",message="use the 'serverName' plugin parameter in the Cluster resource"
+	// +kubebuilder:validation:XValidation:rule="!has(self.s3Credentials) || !has(self.s3Credentials.sseCustomerKey) || !has(self.data) || !has(self.data.encryption)",fieldPath=".data.encryption",reason="FieldValueForbidden",message="cannot be used together with s3Credentials.sseCustomerKey"
+	// +kubebuilder:validation:XValidation:rule="!has(self.s3Credentials) || !has(self.s3Credentials.sseCustomerKey) || !has(self.wal) || !has(self.wal.encryption)",fieldPath=".wal.encryption",reason="FieldValueForbidden",message="cannot be used together with s3Credentials.sseCustomerKey"
 	Configuration barmanapi.BarmanObjectStoreConfiguration `json:"configuration"`
 
 	// RetentionPolicy is the retention policy to be used for backups
