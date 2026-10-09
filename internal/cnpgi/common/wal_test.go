@@ -244,3 +244,45 @@ var _ = Describe("resolveArchiveEmptyWalArchiveCheck", func() {
 		)
 	})
 })
+
+var _ = Describe("prefetchAhead", func() {
+	It("names the segments after the requested one", func() {
+		got, err := prefetchAhead("00000001000000000000000C", 3)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).To(Equal([]string{
+			"00000001000000000000000D",
+			"00000001000000000000000E",
+			"00000001000000000000000F",
+		}))
+	})
+})
+
+var _ = Describe("persistentConnectionSkipReason", func() {
+	s3Store := func(wal *barmanapi.WalBackupConfiguration) *barmanapi.BarmanObjectStoreConfiguration {
+		return &barmanapi.BarmanObjectStoreConfiguration{
+			BarmanCredentials: barmanapi.BarmanCredentials{AWS: &barmanapi.S3Credentials{}},
+			Wal:               wal,
+		}
+	}
+
+	DescribeTable(
+		"accepts only an S3 gzip restore with no extra command arguments",
+		func(cfg *barmanapi.BarmanObjectStoreConfiguration, want string) {
+			Expect(persistentConnectionSkipReason(cfg)).To(Equal(want))
+		},
+		Entry("unset", &barmanapi.BarmanObjectStoreConfiguration{}, "disabled"),
+		Entry("gzip on s3", s3Store(&barmanapi.WalBackupConfiguration{
+			PersistentConnection: true,
+			Compression:          barmanapi.CompressionTypeGzip,
+		}), ""),
+		Entry("snappy stays on the command", s3Store(&barmanapi.WalBackupConfiguration{
+			PersistentConnection: true,
+			Compression:          barmanapi.CompressionTypeSnappy,
+		}), "wal.compression is not gzip"),
+		Entry("extra restore arguments stay on the command", s3Store(&barmanapi.WalBackupConfiguration{
+			PersistentConnection:         true,
+			Compression:                  barmanapi.CompressionTypeGzip,
+			RestoreAdditionalCommandArgs: []string{"--timeout", "30"},
+		}), "restoreAdditionalCommandArgs is set"),
+	)
+})

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
@@ -351,6 +352,26 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	if walRestorer, err = barmanRestorer.New(ctx, env, w.SpoolDirectory); err != nil {
 		return fmt.Errorf("while creating the restorer: %w", err)
 	}
+	if reason := persistentConnectionSkipReason(barmanConfiguration); reason == "" &&
+		barmanConfiguration.Wal != nil && barmanConfiguration.Wal.PersistentConnection {
+		archiveServer := serverName
+		if barmanConfiguration.ServerName != "" {
+			archiveServer = barmanConfiguration.ServerName
+		}
+		err = walRestorer.EnablePersistentConnection(barmanRestorer.PersistentConnection{
+			EndpointURL:     barmanConfiguration.EndpointURL,
+			DestinationPath: barmanConfiguration.DestinationPath,
+			ServerName:      archiveServer,
+			Compression:     string(barmanConfiguration.Wal.Compression),
+			AddressingStyle: string(barmanConfiguration.S3AddressingStyle),
+		})
+		if err != nil {
+			contextLogger.Info("persistent WAL connection is not available, using barman-cloud-wal-restore",
+				"error", err)
+		}
+	} else if barmanConfiguration.Wal != nil && barmanConfiguration.Wal.PersistentConnection && reason != "" {
+		contextLogger.Info("persistent WAL connection left unused", "reason", reason)
+	}
 
 	// A flag left over from a normal-recovery invocation that ran before this pod
 	// was demoted must not survive into a pg_rewind restore: the flag machinery
@@ -364,6 +385,23 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		if err := clearEndOfWALStreamFlag(walRestorer); err != nil {
 			return err
 		}
+	}
+
+	// wal.prefetch returns the requested segment as soon as it is ready and
+	// keeps downloading the following segments in the background. maxParallel
+	// stays on the path below, which waits for the whole batch.
+	if !rewindMode && IsWALFile(walName) &&
+		barmanConfiguration.Wal != nil && barmanConfiguration.Wal.Prefetch > 0 {
+		return w.restoreWithPrefetch(
+			contextLogger,
+			walRestorer,
+			walName,
+			destinationPath,
+			options,
+			barmanConfiguration.Wal.Prefetch,
+			shouldUseEndOfWALStreamFlag(cluster, w.InstanceName, rewindMode),
+			startTime,
+		)
 	}
 
 	// Step 1: check if this WAL file is not already in the spool
@@ -468,11 +506,142 @@ func (w WALServiceImplementation) SetFirstRequired(
 	panic("implement me")
 }
 
+type prefetchSlot struct {
+	done chan struct{}
+}
+
+var (
+	prefetchMu  sync.Mutex
+	prefetching = map[string]*prefetchSlot{}
+)
+
+// restoreWithPrefetch returns the requested WAL as soon as it is available.
+// The following segments are downloaded into the spool without delaying this
+// response. A missing speculative segment is not an error and does not set
+// end-of-wal-stream: the segment may simply not have been archived yet, and
+// the next restore invocation will ask for it.
+func (w WALServiceImplementation) restoreWithPrefetch(
+	contextLogger log.Logger,
+	walRestorer *barmanRestorer.WALRestorer,
+	walName string,
+	destinationPath string,
+	options []string,
+	prefetch int,
+	useEndOfWALStreamFlag bool,
+	startTime time.Time,
+) error {
+	waitPrefetch(walName)
+
+	wasInSpool, err := walRestorer.RestoreFromSpool(walName, destinationPath)
+	if err != nil {
+		return fmt.Errorf("while restoring a file from the spool directory: %w", err)
+	}
+	if !wasInSpool {
+		if useEndOfWALStreamFlag {
+			if err := checkEndOfWALStreamFlag(walRestorer); err != nil {
+				return err
+			}
+		}
+		if err := walRestorer.Restore(walName, destinationPath, options); err != nil {
+			if errors.Is(err, barmanRestorer.ErrConnectivity) {
+				contextLogger.Info("transient connectivity issue while restoring WAL, will retry",
+					"walName", walName, "error", err)
+			}
+			return classifyWALRestoreError(walName, err)
+		}
+	}
+
+	ahead, err := prefetchAhead(walName, prefetch)
+	if err != nil {
+		return err
+	}
+	for _, name := range ahead {
+		beginPrefetch(name, func() {
+			err := walRestorer.PrefetchIntoSpool(name, options)
+			if err == nil || errors.Is(err, barmanRestorer.ErrWALNotFound) {
+				return
+			}
+			contextLogger.Error(err, "background WAL prefetch failed", "walName", name)
+		})
+	}
+
+	contextLogger.Info("WAL restore returned while prefetch continues",
+		"walName", walName,
+		"prefetch", prefetch,
+		"fromSpool", wasInSpool,
+		"totalTime", time.Since(startTime))
+	return nil
+}
+
+func prefetchAhead(walName string, count int) ([]string, error) {
+	if count < 1 {
+		return nil, nil
+	}
+	names, err := gatherWALFilesToRestore(walName, count+1)
+	if err != nil || len(names) < 2 {
+		return nil, err
+	}
+	return names[1:], nil
+}
+
+func waitPrefetch(walName string) {
+	prefetchMu.Lock()
+	slot := prefetching[walName]
+	prefetchMu.Unlock()
+	if slot != nil {
+		<-slot.done
+	}
+}
+
+func beginPrefetch(walName string, download func()) {
+	prefetchMu.Lock()
+	if _, running := prefetching[walName]; running {
+		prefetchMu.Unlock()
+		return
+	}
+	slot := &prefetchSlot{done: make(chan struct{})}
+	prefetching[walName] = slot
+	prefetchMu.Unlock()
+
+	go func() {
+		defer func() {
+			prefetchMu.Lock()
+			delete(prefetching, walName)
+			close(slot.done)
+			prefetchMu.Unlock()
+		}()
+		download()
+	}()
+}
+
+// persistentConnectionSkipReason reports why wal.persistentConnection cannot
+// be used. An empty string means the open S3 client should handle regular WAL files.
+func persistentConnectionSkipReason(cfg *barmanapi.BarmanObjectStoreConfiguration) string {
+	if cfg.Wal == nil || !cfg.Wal.PersistentConnection {
+		return "disabled"
+	}
+	if cfg.AWS == nil {
+		return "s3Credentials is not set"
+	}
+	if cfg.Wal.Encryption != "" {
+		return "wal.encryption is set"
+	}
+	if len(cfg.Wal.RestoreAdditionalCommandArgs) > 0 {
+		return "restoreAdditionalCommandArgs is set"
+	}
+	switch cfg.Wal.Compression {
+	case barmanapi.CompressionTypeNone, barmanapi.CompressionTypeGzip:
+		return ""
+	default:
+		return "wal.compression is not gzip"
+	}
+}
+
 // maxWALFilesPerInvocation returns how many WAL files a single restore
 // invocation is allowed to fetch, the requested one included. Prefetching is
 // disabled when restoring on behalf of pg_rewind, which walks the WAL
 // backward: the following segments would never be requested, and past the end
-// of the timeline they do not even exist
+// of the timeline they do not even exist.
 func maxWALFilesPerInvocation(barmanConfiguration *barmanapi.BarmanObjectStoreConfiguration, rewindMode bool) int {
 	if rewindMode {
 		return 1
