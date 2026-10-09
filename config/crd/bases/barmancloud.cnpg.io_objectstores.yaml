@@ -385,6 +385,22 @@ spec:
                           value - with 1 being the minimum accepted value.
                         minimum: 1
                         type: integer
+                      persistentConnection:
+                        description: |-
+                          PersistentConnection keeps one S3 client open in the plugin process and
+                          reuses it for WAL restore. Leave it unset to start barman-cloud-wal-restore
+                          for every file. The open client is used only for S3, and only when WAL
+                          compression is gzip or unset. Encryption and restoreAdditionalCommandArgs
+                          stay on the barman-cloud-wal-restore path.
+                        type: boolean
+                      prefetch:
+                        description: |-
+                          Prefetch is the number of WAL segments after the requested one to
+                          download into the spool without making the requested segment wait.
+                          When unset, maxParallel keeps its current behavior: the requested
+                          segment is returned only after every parallel download finishes.
+                        minimum: 1
+                        type: integer
                       restoreAdditionalCommandArgs:
                         description: |-
                           Additional arguments that can be appended to the 'barman-cloud-wal-restore'
