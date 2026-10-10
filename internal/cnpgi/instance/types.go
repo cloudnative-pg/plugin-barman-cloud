@@ -20,10 +20,12 @@ SPDX-License-Identifier: Apache-2.0
 package instance
 
 import (
+	"net/url"
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/types"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 )
 
@@ -34,10 +36,15 @@ type backupResultMetadata struct {
 	displayName string
 	clusterUID  string
 	pluginName  string
+
+	barmanObjectName string
+	serverName       string
+	destinationPath  string
+	endpointURL      string
 }
 
 func (b backupResultMetadata) toMap() map[string]string {
-	return map[string]string{
+	result := map[string]string{
 		"timeline":    b.timeline,
 		"version":     b.version,
 		"name":        b.name,
@@ -45,18 +52,47 @@ func (b backupResultMetadata) toMap() map[string]string {
 		"clusterUID":  b.clusterUID,
 		"pluginName":  b.pluginName,
 	}
+
+	// location keys are omitted when empty (for retrocompatibility)
+	location := map[string]string{
+		"barmanObjectName": b.barmanObjectName,
+		"serverName":       b.serverName,
+		"destinationPath":  b.destinationPath,
+		"endpointURL":      b.endpointURL,
+	}
+	for key, value := range location {
+		if len(value) > 0 {
+			result[key] = value
+		}
+	}
+
+	return result
 }
 
-func newBackupResultMetadata(clusterUID types.UID, timeline int) backupResultMetadata {
-	return backupResultMetadata{
+func newBackupResultMetadata(
+	clusterUID types.UID,
+	timeline int,
+	objectStore *barmancloudv1.ObjectStore,
+	serverName string,
+) backupResultMetadata {
+	result := backupResultMetadata{
 		timeline:   strconv.Itoa(timeline),
 		clusterUID: string(clusterUID),
+		serverName: serverName,
 		// static values
 		version:     metadata.Data.Version,
 		name:        metadata.Data.Name,
 		displayName: metadata.Data.DisplayName,
 		pluginName:  metadata.PluginName,
 	}
+
+	if objectStore != nil {
+		result.barmanObjectName = objectStore.Name
+		result.destinationPath = redactURL(objectStore.Spec.Configuration.DestinationPath)
+		result.endpointURL = redactURL(objectStore.Spec.Configuration.EndpointURL)
+	}
+
+	return result
 }
 
 func newBackupResultMetadataFromMap(m map[string]string) backupResultMetadata {
@@ -72,4 +108,15 @@ func newBackupResultMetadataFromMap(m map[string]string) backupResultMetadata {
 		clusterUID:  m["clusterUID"],
 		pluginName:  m["pluginName"],
 	}
+}
+
+// redactURL masks any password embedded in the given URL, so that it
+// is not exposed in the status of the Backup object
+func redactURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.User == nil {
+		return rawURL
+	}
+
+	return parsed.Redacted()
 }
