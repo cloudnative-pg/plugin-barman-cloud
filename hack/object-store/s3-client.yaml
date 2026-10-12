@@ -57,6 +57,8 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
+          runAsUser: 65534  # nobody user ID
+          runAsGroup: 65534  # nobody group ID
           seccompProfile:
             type: RuntimeDefault
       securityContext:

@@ -157,6 +157,25 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(response.JsonPatch).NotTo(BeEmpty())
 		})
 
+		It("uses the requested sidecar image", func(ctx SpecContext) {
+			job := &batchv1.Job{
+				TypeMeta:   jobTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-job", Labels: map[string]string{}},
+				Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{utils.JobRoleLabelName: fullRecoveryJobName},
+					},
+					Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: fullRecoveryJobName}}},
+				}},
+			}
+			jobJSON, _ := json.Marshal(job)
+			request := &lifecycle.OperatorLifecycleRequest{ObjectDefinition: jobJSON}
+
+			response, err := reconcileJob(ctx, cluster, request, sidecarConfiguration{image: "custom:1"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(response.JsonPatch)).To(ContainSubstring(`"image":"custom:1"`))
+		})
+
 		It("skips non-recovery jobs", func(ctx SpecContext) {
 			job := &batchv1.Job{
 				TypeMeta: jobTypeMeta,
@@ -240,6 +259,21 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(patch).To(ContainElement(HaveKeyWithValue("path", "/spec/initContainers")))
 			Expect(patch).To(ContainElement(
 				HaveKey("value")))
+		})
+
+		It("uses the requested sidecar image", func(ctx SpecContext) {
+			pod := &corev1.Pod{
+				TypeMeta:   podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "postgres"}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{ObjectDefinition: podJSON}
+
+			response, err := reconcileInstancePod(
+				ctx, cluster, request, pluginConfiguration, sidecarConfiguration{image: "custom:1"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(response.JsonPatch)).To(ContainSubstring(`"image":"custom:1"`))
 		})
 
 		It("injects the sidecar for a recovery-only cluster", func(ctx SpecContext) {

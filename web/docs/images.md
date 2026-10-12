@@ -35,3 +35,12 @@ built from the
 These sidecar images are designed to work seamlessly with the
 [`minimal` PostgreSQL container images](https://github.com/cloudnative-pg/postgres-containers?tab=readme-ov-file#minimal-images)
 maintained by the CloudNativePG Community.
+
+The image can be overridden per cluster with the
+[`sidecarImage` parameter](parameters.md).
+
+:::warning
+This override is meant for debugging and testing. Running a sidecar whose
+version differs from the operator's is not recommended. Leave it unset in
+production.
+:::
