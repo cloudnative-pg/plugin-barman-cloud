@@ -137,4 +137,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/cloudnative-pg/barman-cloud => github.com/ardentperf/barman-cloud v0.0.0-20261015101929-85a9775bfba5
+replace github.com/cloudnative-pg/barman-cloud => github.com/ardentperf/barman-cloud v0.0.0-20261015153907-e30fec073692

@@ -21,6 +21,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -360,7 +361,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 	// before the spool short-circuit in Step 1, so a request for a WAL file that
 	// happens to already be staged in the spool cannot skip the clear.
 	if rewindMode {
-		if err := clearEndOfWALStreamFlag(walRestorer); err != nil {
+		if err := walRestorer.ClearEndOfWALStream(); err != nil {
 			return err
 		}
 	}
@@ -569,22 +570,6 @@ func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer, walName st
 	}
 	if contains {
 		return ErrEndOfWALStreamReached
-	}
-	return nil
-}
-
-// clearEndOfWALStreamFlag removes the end-of-wal-stream flag, if present, without
-// treating it as an error. It is used instead of checkEndOfWALStreamFlag when
-// restoring on behalf of pg_rewind, which must not abort on a flag it did not
-// set itself.
-func clearEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
-	contain, err := walRestorer.IsEndOfWALStream()
-	if err != nil {
-		return err
-	}
-
-	if contain {
-		return walRestorer.ResetEndOfWalStream()
 	}
 	return nil
 }

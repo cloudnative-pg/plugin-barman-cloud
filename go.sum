@@ -4,8 +4,8 @@ github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAw
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
-github.com/ardentperf/barman-cloud v0.0.0-20261015101929-85a9775bfba5 h1:3F2hf5M++74OqtSIO8m7p4tXTjp1n7yTVJQ6Ri2Y87U=
-github.com/ardentperf/barman-cloud v0.0.0-20261015101929-85a9775bfba5/go.mod h1:lxmfYjLD8M6glf4u/c3Tii0BvHcVJHCMvB8gZj6OMSc=
+github.com/ardentperf/barman-cloud v0.0.0-20261015153907-e30fec073692 h1:rs0XnSiBz+z6NyO1eI9y1N88XIAxpMpf0NOCj8QLf6Y=
+github.com/ardentperf/barman-cloud v0.0.0-20261015153907-e30fec073692/go.mod h1:lxmfYjLD8M6glf4u/c3Tii0BvHcVJHCMvB8gZj6OMSc=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/avast/retry-go/v5 v5.0.0 h1:kf1Qc2UsTZ4qq8elDymqfbISvkyMuhgRxuJqX2NHP7k=
