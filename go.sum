@@ -28,8 +28,8 @@ github.com/cloudnative-pg/cnpg-i v0.6.0 h1:LA//DLkFOLIjU0ASOpFkydZhGir9IAIDfgSsT
 github.com/cloudnative-pg/cnpg-i v0.6.0/go.mod h1:4kcpLAj+feMTnh0TVadXRASdVnEhBytNSm/BvktLgmI=
 github.com/cloudnative-pg/cnpg-i-machinery v0.4.2 h1:0reS9MtyLYINHXQ/MfxJ9jp39hhBf8e3Qdj+T5Nsq6I=
 github.com/cloudnative-pg/cnpg-i-machinery v0.4.2/go.mod h1:gvrKabgxXq0zGthXGucemDdsxakLEQDMxn43M4HLW30=
-github.com/cloudnative-pg/machinery v0.6.0 h1:faHxS1AK75XkzppOcAKdOexKmzX7iGK6jX2b9itssb4=
-github.com/cloudnative-pg/machinery v0.6.0/go.mod h1:wyw9E/0uYGAixp9+0PLsJ6qHiEiFKDkeXb9O2dRi2w0=
+github.com/cloudnative-pg/machinery v0.6.1 h1:qcFS4TIO2XH0yW2uwts5KdWGldBBwvTZw00qJNStqvs=
+github.com/cloudnative-pg/machinery v0.6.1/go.mod h1:AUE7ifNhkD8BU/ebFY+dxrpvOaUlU4Fvl+yjiUkCpMY=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -161,8 +161,8 @@ github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 h1:n6/
 github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00/go.mod h1:Pm3mSP3c5uWn86xMLZ5Sa7JB9GsEZySvHYXCTK4E9q4=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/onsi/ginkgo/v2 v2.33.0 h1:C8gBA6Uc2ZEubiV+SXiu5tZnMTwEmXHgkJwGozKtZf8=
-github.com/onsi/ginkgo/v2 v2.33.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
+github.com/onsi/ginkgo/v2 v2.33.1 h1:62XfWJbEIjPSCSDYrsCPP/SHcmH7O0M8ne8zfqQ2iz4=
+github.com/onsi/ginkgo/v2 v2.33.1/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.44.0 h1:eAiGl3Pw5jz5GQdDff0BcxYpAX1JxW8xD7mFUuwNfZQ=
 github.com/onsi/gomega v1.44.0/go.mod h1:e/C2HwaZ1DhvjzXXuFhcR7hY7Sh9pl7MmoWKEjzwcdA=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=
