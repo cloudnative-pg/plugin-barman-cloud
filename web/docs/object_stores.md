@@ -205,7 +205,7 @@ spec:
 
 ### Server-Side Encryption with Customer Keys (SSE-C)
 
-Some S3-compatible providers — most notably **Hetzner Object Storage** — do
+Some S3-compatible providers, most notably **Hetzner Object Storage**, do
 not offer bucket-managed server-side encryption (SSE-S3 / SSE-KMS) and instead
 only support **Server-Side Encryption with Customer-provided keys (SSE-C)**.
 With SSE-C the encryption key never leaves your control: it is supplied with
@@ -227,7 +227,7 @@ kubectl create secret generic aws-sse-c \
 
 :::warning
 Keep this key safe and backed up **outside** the object store. If you lose
-it, your backups and WAL files become permanently unrecoverable — the
+it, your backups and WAL files become permanently unrecoverable. The
 provider cannot decrypt them for you.
 :::
 
@@ -255,19 +255,15 @@ spec:
   [...]
 ```
 
-The same key is applied to **every** operation — base backups, WAL archiving,
-WAL restore, and data restore — so it must remain unchanged and available for
-the whole lifetime of the backups it protects. `sseCustomerKey` can be combined
-with any authentication method, including `inheritFromIAMRole`, but not with
-the bucket-managed `encryption` setting (SSE-S3 / SSE-KMS) of the `data` and
-`wal` sections: `barman-cloud` rejects `--sse-customer-key` together with
-`--encryption`, so an `ObjectStore` that sets both is rejected when it is
-created or updated.
+The same key is applied to **every** operation (base backups, WAL archiving,
+WAL restore, and data restore). It must remain unchanged and available for
+the whole lifetime of the backups it protects. To use a new key, use a new
+`destinationPath` or `serverName`.
 
-:::note
-SSE-C relies on the `--sse-customer-key` option introduced in Barman 3.20.0,
-which the plugin sidecar image ships starting from version 0.15.0.
-:::
+`sseCustomerKey` can be combined with any authentication method, including
+`inheritFromIAMRole`. It cannot be combined with the bucket-managed
+`encryption` setting (SSE-S3 / SSE-KMS) of the `data` and `wal` sections. An
+`ObjectStore` that sets both is rejected when it is created or updated.
 
 ### Using Object Storage with a Private CA
 
