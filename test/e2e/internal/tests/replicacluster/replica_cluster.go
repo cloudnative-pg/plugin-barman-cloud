@@ -25,7 +25,9 @@ import (
 	"time"
 
 	cloudnativepgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,10 +36,35 @@ import (
 	cluster2 "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/cluster"
 	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/command"
 	nmsp "github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/namespace"
+	"github.com/cloudnative-pg/plugin-barman-cloud/test/e2e/internal/objectstore"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+// checkSSECustomerKeyScript prints how many objects the bucket holds and how
+// many of them are not readable with the given SSE-C key alone: readable
+// without a key, with the other key, or not with the given one
+const checkSSECustomerKeyScript = `
+import base64, sys, boto3, botocore
+endpoint, access_key, secret_key, key, other_key = sys.argv[1:6]
+s3 = boto3.client("s3", endpoint_url=endpoint, region_name="us-east-1",
+    aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+def readable(name, sse_key=None):
+    args = {}
+    if sse_key:
+        args = {"SSECustomerAlgorithm": "AES256", "SSECustomerKey": base64.b64decode(sse_key)}
+    try:
+        s3.head_object(Bucket="backups", Key=name, **args)
+        return True
+    except botocore.exceptions.ClientError:
+        return False
+names = [o["Key"] for page in s3.get_paginator("list_objects_v2").paginate(Bucket="backups")
+    for o in page.get("Contents", [])]
+bad = [n for n in names if readable(n) or readable(n, other_key) or not readable(n, key)]
+print("objects=%d misencrypted=%d" % (len(names), len(bad)))
+print(bad[:10])
+`
 
 var _ = Describe("Replica cluster", func() {
 	var namespace *corev1.Namespace
@@ -73,6 +100,18 @@ var _ = Describe("Replica cluster", func() {
 			// We do not need to create the replica object store if we are using the same object store for both clusters.
 			if testResources.ReplicaObjectStore != nil {
 				Expect(cl.Create(ctx, testResources.ReplicaObjectStore)).To(Succeed())
+			}
+
+			if testResources.SSECustomerKeys != nil {
+				By("rejecting an ObjectStore that combines SSE-C with bucket-managed encryption")
+				invalid := testResources.SrcObjectStore.DeepCopy()
+				invalid.ObjectMeta = metav1.ObjectMeta{Name: "invalid-sse-c", Namespace: namespace.Name}
+				invalid.Spec.Configuration.Wal = &barmanapi.WalBackupConfiguration{
+					Encryption: barmanapi.EncryptionTypeAES256,
+				}
+				err := cl.Create(ctx, invalid)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("cannot be used together with s3Credentials.sseCustomerKey"))
 			}
 
 			By("Creating a CloudNativePG cluster")
@@ -264,10 +303,40 @@ var _ = Describe("Replica cluster", func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(output).To(BeEquivalentTo("2\n"))
 			}).Within(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			for endpoint, key := range testResources.SSECustomerKeys {
+				By(fmt.Sprintf("checking every object in %s is encrypted with its own SSE-C key", endpoint))
+				var otherKey string
+				for otherEndpoint, k := range testResources.SSECustomerKeys {
+					if otherEndpoint != endpoint {
+						otherKey = k
+					}
+				}
+				output, stdErr, err := command.ExecuteInContainer(ctx,
+					*clientSet,
+					cfg,
+					command.ContainerLocator{
+						NamespaceName: replica.Namespace,
+						PodName:       fmt.Sprintf("%v-1", replica.Name),
+						ContainerName: "plugin-barman-cloud",
+					},
+					nil,
+					[]string{
+						"/venv/bin/python3", "-c", checkSSECustomerKeyScript,
+						endpoint, objectstore.S3AccessKeyID, objectstore.S3SecretAccessKey, key, otherKey,
+					})
+				Expect(err).NotTo(HaveOccurred(), "stderr: %s", stdErr)
+				GinkgoWriter.Printf("%s: %s", endpoint, output)
+				Expect(output).To(MatchRegexp(`^objects=[1-9][0-9]* misencrypted=0\n`))
+			}
 		},
 		Entry(
 			"with S3",
 			s3ReplicaClusterFactory{},
+		),
+		Entry(
+			"with S3 and a different SSE-C key for each object store",
+			s3SSECReplicaClusterFactory{},
 		),
 		Entry(
 			"with Azurite",
