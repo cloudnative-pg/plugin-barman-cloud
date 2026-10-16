@@ -228,6 +228,35 @@ When a backup fails, follow these steps in order:
      - Typos in configuration parameters
      - Missing required environment variables in secrets
 
+3. **"cannot proceed with the backup as the cluster has no backup section"
+   errors**
+
+   **Cause:** The `Backup` or `ScheduledBackup` resource does not set
+   `method: plugin`. The `method` field defaults to `barmanObjectStore`, the
+   in-tree method, which requires a `.spec.backup` section in the `Cluster`.
+   A `Cluster` that uses the plugin usually has no such section (see
+   [Migrating from Built-in CloudNativePG Backup](migration.md)), so the
+   backup fails before the plugin is called.
+
+   **Solution:** Set the method and the plugin name in the `Backup` or
+   `ScheduledBackup`, as shown in
+   [Performing a base backup](usage.md#performing-a-base-backup):
+
+   ```yaml
+   spec:
+     method: plugin
+     pluginConfiguration:
+       name: barman-cloud.cloudnative-pg.io
+   ```
+
+   The same applies to on-demand backups started with the `cnpg` plugin for
+   `kubectl`:
+
+   ```sh
+   kubectl cnpg backup -n <namespace> <cluster-name> \
+     -m plugin --plugin-name barman-cloud.cloudnative-pg.io
+   ```
+
 #### Backup performance issues
 
 **Symptoms:**
