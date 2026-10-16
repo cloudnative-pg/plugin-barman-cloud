@@ -54,8 +54,9 @@ const (
 	// pgWalPath is PgDataPath + "/pg_wal" in the CloudNativePG operand image.
 	pgWalPath = "/var/lib/postgresql/data/pgdata/pg_wal"
 	// endOfWALStreamFlag is the sentinel file the barman-cloud restorer writes in
-	// the spool to record that the archive ran out of segments.
-	endOfWALStreamFlag = "end-of-wal-stream"
+	// the spool to record that the archive ran out of segments. It is scoped by
+	// the WAL timeline, and the segments of this test are all on timeline 1.
+	endOfWALStreamFlag = "end-of-wal-stream-00000001"
 	// managerExecutable is the CloudNativePG instance manager. Its wal-restore
 	// subcommand delegates to the plugin when the cluster uses it as WAL archiver.
 	managerExecutable = "/controller/manager"

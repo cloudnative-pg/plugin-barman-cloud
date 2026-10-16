@@ -143,12 +143,13 @@ spec:
                         description: |-
                           Compress a backup file (a tar file per tablespace) while streaming it
                           to the object store. Available options are empty string (no
-                          compression, default), `gzip`, `bzip2`, `lz4`, and `snappy`.
+                          compression, default), `gzip`, `bzip2`, `lz4`, `snappy`, and `zstd`.
                         enum:
                         - bzip2
                         - gzip
                         - lz4
                         - snappy
+                        - zstd
                         type: string
                       encryption:
                         description: |-
@@ -254,6 +255,16 @@ spec:
                       HistoryTags is a list of key value pairs that will be passed to the
                       Barman --history-tags option.
                     type: object
+                  s3AddressingStyle:
+                    description: |-
+                      How bucket names appear in S3 requests: `virtual` (bucket.endpoint/key),
+                      `path` (endpoint/bucket/key) or `auto` (boto3 decides, same as unset).
+                      Requires s3Credentials and Barman 3.18 or later.
+                    enum:
+                    - auto
+                    - virtual
+                    - path
+                    type: string
                   s3Credentials:
                     description: The credentials to use to upload data to S3
                     properties:
@@ -411,6 +422,10 @@ spec:
                   message: use the 'serverName' plugin parameter in the Cluster resource
                   reason: FieldValueForbidden
                   rule: '!has(self.serverName)'
+                - fieldPath: .s3AddressingStyle
+                  message: s3AddressingStyle requires s3Credentials
+                  reason: FieldValueForbidden
+                  rule: '!has(self.s3AddressingStyle) || has(self.s3Credentials)'
               instanceSidecarConfiguration:
                 description: The configuration for the sidecar that runs in the instance
                   pods
