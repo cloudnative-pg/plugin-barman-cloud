@@ -5,7 +5,7 @@ go 1.26.6
 require (
 	github.com/cert-manager/cert-manager v1.21.2
 	github.com/cloudnative-pg/api v1.30.0
-	github.com/cloudnative-pg/barman-cloud v0.6.0
+	github.com/cloudnative-pg/barman-cloud v0.6.1-0.20261002081136-603c4849d2d9
 	github.com/cloudnative-pg/cloudnative-pg v1.30.1
 	github.com/cloudnative-pg/cnpg-i v0.6.0
 	github.com/cloudnative-pg/cnpg-i-machinery v0.4.2
