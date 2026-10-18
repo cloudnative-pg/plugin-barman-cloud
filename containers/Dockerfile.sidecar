@@ -37,7 +37,7 @@ WORKDIR /build
 
 # Install postgresql-common and setup pgdg repository first
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends postgresql-common && \
+    apt-get install -y --no-install-recommends ca-certificates postgresql-common && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
 # Install build dependencies
