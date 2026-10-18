@@ -22,6 +22,7 @@ package instance
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"slices"
 	"time"
@@ -45,6 +46,16 @@ import (
 // be read or when the enforcement process failed
 const defaultRetentionPolicyInterval = time.Minute * 5
 
+// maxInitialMaintenanceDelay caps the random delay before the first
+// maintenance cycle. Sidecars started together (e.g. after an operator
+// upgrade) would otherwise query the object store at the same moment,
+// and keep doing so at every interval.
+const maxInitialMaintenanceDelay = time.Minute * 10
+
+// maxMaintenanceJitter caps the random time added to each wait between
+// maintenance cycles, which is otherwise 10% of the period
+const maxMaintenanceJitter = time.Minute * 5
+
 // CatalogMaintenanceRunnable executes all the barman catalog maintenance operations
 type CatalogMaintenanceRunnable struct {
 	Client         client.Client
@@ -57,7 +68,22 @@ type CatalogMaintenanceRunnable struct {
 // period specified in the BarmanObjectStore object
 func (c *CatalogMaintenanceRunnable) Start(ctx context.Context) error {
 	contextLogger := log.FromContext(ctx)
-	contextLogger.Info("Starting retention policy runnable")
+
+	interval, err := c.interval(ctx)
+	if err != nil {
+		contextLogger.Error(err, "Cannot read the retention policy interval, "+
+			"using the default one to compute the initial delay")
+		interval = defaultRetentionPolicyInterval
+	}
+
+	initialDelay := initialMaintenanceDelay(interval, rand.Float64)
+	contextLogger.Info("Starting retention policy runnable", "initialDelay", initialDelay)
+
+	select {
+	case <-time.After(initialDelay):
+	case <-ctx.Done():
+		return nil
+	}
 
 	for {
 		// Enforce the retention policies
@@ -71,11 +97,60 @@ func (c *CatalogMaintenanceRunnable) Start(ctx context.Context) error {
 		}
 
 		select {
-		case <-time.After(period):
+		case <-time.After(jitterMaintenancePeriod(period, rand.Float64)):
 		case <-ctx.Done():
 			return nil
 		}
 	}
+}
+
+// initialMaintenanceDelay returns a random delay in
+// [0, min(interval, maxInitialMaintenanceDelay)). randFloat must
+// return a value in [0, 1).
+func initialMaintenanceDelay(interval time.Duration, randFloat func() float64) time.Duration {
+	return time.Duration(randFloat() * float64(min(interval, maxInitialMaintenanceDelay)))
+}
+
+// jitterMaintenancePeriod adds to period a random amount of time in
+// [0, min(period/10, maxMaintenanceJitter)). randFloat must
+// return a value in [0, 1).
+func jitterMaintenancePeriod(period time.Duration, randFloat func() float64) time.Duration {
+	return period + time.Duration(randFloat()*float64(min(period/10, maxMaintenanceJitter)))
+}
+
+// interval reads the retention policy interval from the ObjectStore
+// used by the cluster
+func (c *CatalogMaintenanceRunnable) interval(ctx context.Context) (time.Duration, error) {
+	var cluster cnpgv1.Cluster
+	if err := c.Client.Get(ctx, c.ClusterKey, &cluster); err != nil {
+		return 0, err
+	}
+
+	barmanObjectStore, err := c.getObjectStore(ctx, &cluster)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Second * time.Duration(
+		barmanObjectStore.Spec.InstanceSidecarConfiguration.RetentionPolicyIntervalSeconds), nil
+}
+
+// getObjectStore reads the ObjectStore used by the cluster
+func (c *CatalogMaintenanceRunnable) getObjectStore(
+	ctx context.Context,
+	cluster *cnpgv1.Cluster,
+) (*barmancloudv1.ObjectStore, error) {
+	configuration := config.NewFromCluster(cluster)
+	if configuration == nil || len(configuration.BarmanObjectName) == 0 {
+		return nil, fmt.Errorf("invalid configuration, missing barman object store reference")
+	}
+
+	var barmanObjectStore barmancloudv1.ObjectStore
+	if err := c.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+		return nil, err
+	}
+
+	return &barmanObjectStore, nil
 }
 
 // cycle enforces the retention policies. On success, it returns the amount
@@ -84,7 +159,6 @@ func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, 
 	contextLogger := log.FromContext(ctx)
 
 	var cluster cnpgv1.Cluster
-	var barmanObjectStore barmancloudv1.ObjectStore
 
 	if err := c.Client.Get(ctx, c.ClusterKey, &cluster); err != nil {
 		return 0, err
@@ -96,16 +170,12 @@ func (c *CatalogMaintenanceRunnable) cycle(ctx context.Context) (time.Duration, 
 		return 0, nil
 	}
 
-	configuration := config.NewFromCluster(&cluster)
-	if configuration == nil || len(configuration.BarmanObjectName) == 0 {
-		return 0, fmt.Errorf("invalid configuration, missing barman object store reference")
-	}
-
-	if err := c.Client.Get(ctx, configuration.GetBarmanObjectKey(), &barmanObjectStore); err != nil {
+	barmanObjectStore, err := c.getObjectStore(ctx, &cluster)
+	if err != nil {
 		return 0, err
 	}
 
-	if err := c.maintenance(ctx, &cluster, &barmanObjectStore); err != nil {
+	if err := c.maintenance(ctx, &cluster, barmanObjectStore); err != nil {
 		return 0, err
 	}
 
