@@ -55,15 +55,19 @@ const (
 	pgWalPath = "/var/lib/postgresql/data/pgdata/pg_wal"
 	// endOfWALStreamFlag is the sentinel file the barman-cloud restorer writes in
 	// the spool to record that the archive ran out of segments. It is scoped by
-	// the WAL timeline, and the segments of this test are all on timeline 1.
+	// the WAL timeline: this one belongs to timeline 1, where walFile forges.
 	endOfWALStreamFlag = "end-of-wal-stream-00000001"
+	// childWALFile is a forged segment on timeline 2, the child of timeline 1,
+	// and childEndOfWALStreamFlag the sentinel its timeline gets.
+	childWALFile            = "0000000200000000000000F7"
+	childEndOfWALStreamFlag = "end-of-wal-stream-00000002"
 	// managerExecutable is the CloudNativePG instance manager. Its wal-restore
 	// subcommand delegates to the plugin when the cluster uses it as WAL archiver.
 	managerExecutable = "/controller/manager"
 	// postgresContainer is the container we exec into on instance pods.
 	postgresContainer = "postgres"
-	// walLogDir is the WALs subdirectory (timeline + log id) the forged segments
-	// live under; a freshly bootstrapped, idle cluster stays within it.
+	// walLogDir is the timeline and log id of the WAL files a freshly
+	// bootstrapped, idle cluster archives.
 	walLogDir = "0000000100000000"
 	// bucket is the destination bucket of the S3 ObjectStore.
 	bucket = "backups"
@@ -76,9 +80,10 @@ func walFile(n int) string {
 	return fmt.Sprintf("0000000100000000%08X", 0xF0+n)
 }
 
-// walObjectURI returns the s3 URI of a wals object (by file name) in the store.
+// walObjectURI returns the s3 URI of a wals object (by file name) in the store,
+// which barman keeps in a subdirectory named after its timeline and log id.
 func walObjectURI(name string) string {
-	return fmt.Sprintf("s3://%s/%s/wals/%s/%s", bucket, clusterName, walLogDir, name)
+	return fmt.Sprintf("s3://%s/%s/wals/%s/%s", bucket, clusterName, name[:16], name)
 }
 
 // execInPod runs a command in the given container and returns stdout, stderr
@@ -308,6 +313,21 @@ var _ = Describe("Parallel WAL restore", func() {
 				g.Expect(existsIn(pgWalPath, walFile(6))).To(BeTrue(), "#6 in pg_wal")
 				g.Expect(spoolSegments()).To(Equal(0), "no WAL segments in spool")
 				g.Expect(flagSet()).To(BeTrue(), "end-of-wal-stream set (#7/#8 absent)")
+			}).WithTimeout(time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
+			// At the first segment of a new timeline PostgreSQL asks for the
+			// child-timeline file and, if that fails, falls back to the
+			// parent-timeline one, which holds WAL past the switch point. The
+			// parent-timeline flag must therefore not fail the child-timeline
+			// request (cloudnative-pg/barman-cloud#276).
+			By("requesting a child-timeline WAL: restored, the parent-timeline flag untouched")
+			forge(latestWAL+".gz", childWALFile)
+			Expect(restore(childWALFile)).To(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(existsIn(pgWalPath, childWALFile)).To(BeTrue(), "child-timeline WAL in pg_wal")
+				g.Expect(flagSet()).To(BeTrue(), "parent-timeline end-of-wal-stream untouched")
+				g.Expect(existsIn(spoolDirectory, childEndOfWALStreamFlag)).To(BeTrue(),
+					"child-timeline end-of-wal-stream set (its next segments absent)")
 			}).WithTimeout(time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 		})
 })
