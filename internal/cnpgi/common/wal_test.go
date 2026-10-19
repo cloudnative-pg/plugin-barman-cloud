@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package common
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -28,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
@@ -146,6 +148,48 @@ var _ = Describe("shouldUseEndOfWALStreamFlag", func() {
 		// must stay off even where a standby would use it
 		Entry("rewind mode wins over streaming availability", clusterWithPrimary("cluster-1"), "cluster-2", true, false),
 	)
+})
+
+var _ = Describe("restoreFromBarmanObjectStore in rewind mode", func() {
+	// A flag left over from a normal-recovery invocation that ran before this pod
+	// was demoted must not survive a pg_rewind restore, whatever its timeline,
+	// even when the requested WAL is already in the spool and no download runs.
+	It("clears every end-of-wal-stream flag before serving from the spool", func() {
+		const walName = "000000020000000000000005"
+		spoolDirectory := GinkgoT().TempDir()
+		for _, name := range []string{
+			"end-of-wal-stream",
+			"end-of-wal-stream-00000001",
+			"end-of-wal-stream-00000002",
+			walName,
+		} {
+			Expect(os.WriteFile(filepath.Join(spoolDirectory, name), nil, 0o600)).To(Succeed())
+		}
+		destinationPath := filepath.Join(GinkgoT().TempDir(), walName)
+
+		w := WALServiceImplementation{SpoolDirectory: spoolDirectory, InstanceName: "cluster-1"}
+		objectStore := &barmancloudv1.ObjectStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "store", Namespace: "test-ns"},
+			Spec: barmancloudv1.ObjectStoreSpec{
+				Configuration: barmanapi.BarmanObjectStoreConfiguration{
+					DestinationPath: "s3://bucket/",
+					BarmanCredentials: barmanapi.BarmanCredentials{
+						AWS: &barmanapi.S3Credentials{InheritFromIAMRole: true},
+					},
+				},
+			},
+		}
+		cluster := &cnpgv1.Cluster{Status: cnpgv1.ClusterStatus{CurrentPrimary: "cluster-1"}}
+
+		Expect(w.restoreFromBarmanObjectStore(
+			context.Background(), cluster, objectStore, "cluster", walName, destinationPath, true,
+		)).To(Succeed())
+
+		Expect(destinationPath).To(BeAnExistingFile())
+		entries, err := os.ReadDir(spoolDirectory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(entries).To(BeEmpty())
+	})
 })
 
 var _ = Describe("resolveArchiveEmptyWalArchiveCheck", func() {
