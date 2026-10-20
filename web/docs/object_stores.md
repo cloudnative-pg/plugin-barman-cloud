@@ -134,6 +134,15 @@ overhead.
 You can use S3-compatible services like **RustFS**, **Linode (Akamai) Object Storage**,
 or **DigitalOcean Spaces** by specifying a custom `endpointURL`.
 
+:::warning
+Barman Cloud uses the Boto3 SDK and takes AWS S3 as its reference
+implementation. Issues you can reproduce on AWS S3 are treated as Barman Cloud
+defects. Issues that happen only on a third-party object store are API
+incompatibilities, and you must resolve them with your storage vendor. See the
+[Barman Cloud documentation](https://docs.pgbarman.org/release/latest/) for
+known workarounds.
+:::
+
 Example with Linode (Akamai) Object Storage (`us-east1`):
 
 ```yaml
