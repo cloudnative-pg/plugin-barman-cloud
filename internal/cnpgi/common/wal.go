@@ -424,7 +424,7 @@ func (w WALServiceImplementation) restoreFromBarmanObjectStore(
 		contextLogger.Info(
 			"Set end-of-wal-stream flag as one of the WAL files to be prefetched was not found")
 
-		err = walRestorer.SetEndOfWALStream()
+		err = walRestorer.SetEndOfWALStream() //nolint:staticcheck // remove when #993 merges
 		if err != nil {
 			return err
 		}
@@ -560,13 +560,13 @@ func gatherWALFilesToRestore(walName string, parallel int) (walList []string, er
 
 // checkEndOfWALStreamFlag returns ErrEndOfWALStreamReached if the flag is set in the restorer.
 func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
-	contain, err := walRestorer.IsEndOfWALStream()
+	contain, err := walRestorer.IsEndOfWALStream() //nolint:staticcheck // remove when #993 merges
 	if err != nil {
 		return err
 	}
 
 	if contain {
-		err := walRestorer.ResetEndOfWalStream()
+		err := walRestorer.ResetEndOfWalStream() //nolint:staticcheck // remove when #993 merges
 		if err != nil {
 			return err
 		}
@@ -581,13 +581,13 @@ func checkEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
 // restoring on behalf of pg_rewind, which must not abort on a flag it did not
 // set itself.
 func clearEndOfWALStreamFlag(walRestorer *barmanRestorer.WALRestorer) error {
-	contain, err := walRestorer.IsEndOfWALStream()
+	contain, err := walRestorer.IsEndOfWALStream() //nolint:staticcheck // remove when #993 merges
 	if err != nil {
 		return err
 	}
 
 	if contain {
-		return walRestorer.ResetEndOfWalStream()
+		return walRestorer.ResetEndOfWalStream() //nolint:staticcheck // remove when #993 merges
 	}
 	return nil
 }
