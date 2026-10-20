@@ -55,7 +55,7 @@ func BuildRoleRules(barmanObjects []barmancloudv1.ObjectStore) []rbacv1.PolicyRu
 
 	for _, barmanObject := range barmanObjects {
 		barmanObjectsSet.Put(barmanObject.Name)
-		for _, secret := range CollectSecretNamesFromCredentials(&barmanObject.Spec.Configuration.BarmanCredentials) {
+		for _, secret := range barmanObject.Spec.Configuration.SecretNames() {
 			secretsSet.Put(secret)
 		}
 	}
