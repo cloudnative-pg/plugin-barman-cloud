@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	barmanapi "github.com/cloudnative-pg/barman-cloud/pkg/api"
+	barmanRestorer "github.com/cloudnative-pg/barman-cloud/pkg/restorer"
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -148,6 +149,36 @@ var _ = Describe("shouldUseEndOfWALStreamFlag", func() {
 		// must stay off even where a standby would use it
 		Entry("rewind mode wins over streaming availability", clusterWithPrimary("cluster-1"), "cluster-2", true, false),
 	)
+})
+
+var _ = Describe("checkEndOfWALStreamFlag", func() {
+	var spoolDirectory string
+	var walRestorer *barmanRestorer.WALRestorer
+
+	BeforeEach(func(ctx SpecContext) {
+		spoolDirectory = GinkgoT().TempDir()
+		var err error
+		walRestorer, err = barmanRestorer.New(ctx, nil, spoolDirectory)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = walRestorer.SetEndOfWALStreamFromResults([]barmanRestorer.Result{
+			{WalName: "000000010000000000000002", Err: barmanRestorer.ErrWALNotFound},
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("ignores the flag of another timeline", func() {
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000020000000000000003")).To(Succeed())
+		Expect(filepath.Join(spoolDirectory, "end-of-wal-stream-00000001")).To(BeAnExistingFile())
+	})
+
+	It("fails once and removes the flag of the requested timeline", func() {
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000010000000000000003")).
+			To(MatchError(ErrEndOfWALStreamReached))
+		Expect(filepath.Join(spoolDirectory, "end-of-wal-stream-00000001")).ToNot(BeAnExistingFile())
+
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000010000000000000003")).To(Succeed())
+	})
 })
 
 var _ = Describe("restoreFromBarmanObjectStore in rewind mode", func() {
