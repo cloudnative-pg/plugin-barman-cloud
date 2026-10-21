@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/metadata"
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/config"
 
@@ -150,36 +151,75 @@ var _ = Describe("shouldUseEndOfWALStreamFlag", func() {
 	)
 })
 
-var _ = Describe("clearEndOfWALStreamFlag", func() {
-	newRestorer := func() *barmanRestorer.WALRestorer {
-		restorer, err := barmanRestorer.New(context.Background(), nil, GinkgoT().TempDir())
+var _ = Describe("checkEndOfWALStreamFlag", func() {
+	var spoolDirectory string
+	var walRestorer *barmanRestorer.WALRestorer
+
+	BeforeEach(func(ctx SpecContext) {
+		spoolDirectory = GinkgoT().TempDir()
+		var err error
+		walRestorer, err = barmanRestorer.New(ctx, nil, spoolDirectory)
 		Expect(err).ToNot(HaveOccurred())
-		return restorer
-	}
 
-	It("is a no-op when the flag is not set", func() {
-		restorer := newRestorer()
-
-		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
-
-		isEOS, err := restorer.IsEndOfWALStream()
+		_, err = walRestorer.SetEndOfWALStreamFromResults([]barmanRestorer.Result{
+			{WalName: "000000010000000000000002", Err: barmanRestorer.ErrWALNotFound},
+		})
 		Expect(err).ToNot(HaveOccurred())
-		Expect(isEOS).To(BeFalse())
 	})
 
-	// Regression guard: a flag left over from a normal-recovery invocation that
-	// ran before this pod was demoted must not survive a pg_rewind restore, or
-	// it would resurface and wrongly abort the first normal-recovery invocation
-	// that runs once the rewind is done.
-	It("removes a pre-existing flag without returning an error", func() {
-		restorer := newRestorer()
-		Expect(restorer.SetEndOfWALStream()).To(Succeed())
+	It("ignores the flag of another timeline", func() {
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000020000000000000003")).To(Succeed())
+		Expect(filepath.Join(spoolDirectory, "end-of-wal-stream-00000001")).To(BeAnExistingFile())
+	})
 
-		Expect(clearEndOfWALStreamFlag(restorer)).To(Succeed())
+	It("fails once and removes the flag of the requested timeline", func() {
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000010000000000000003")).
+			To(MatchError(ErrEndOfWALStreamReached))
+		Expect(filepath.Join(spoolDirectory, "end-of-wal-stream-00000001")).ToNot(BeAnExistingFile())
 
-		isEOS, err := restorer.IsEndOfWALStream()
+		Expect(checkEndOfWALStreamFlag(walRestorer, "000000010000000000000003")).To(Succeed())
+	})
+})
+
+var _ = Describe("restoreFromBarmanObjectStore in rewind mode", func() {
+	// A flag left over from a normal-recovery invocation that ran before this pod
+	// was demoted must not survive a pg_rewind restore, whatever its timeline,
+	// even when the requested WAL is already in the spool and no download runs.
+	It("clears every end-of-wal-stream flag before serving from the spool", func() {
+		const walName = "000000020000000000000005"
+		spoolDirectory := GinkgoT().TempDir()
+		for _, name := range []string{
+			"end-of-wal-stream",
+			"end-of-wal-stream-00000001",
+			"end-of-wal-stream-00000002",
+			walName,
+		} {
+			Expect(os.WriteFile(filepath.Join(spoolDirectory, name), nil, 0o600)).To(Succeed())
+		}
+		destinationPath := filepath.Join(GinkgoT().TempDir(), walName)
+
+		w := WALServiceImplementation{SpoolDirectory: spoolDirectory, InstanceName: "cluster-1"}
+		objectStore := &barmancloudv1.ObjectStore{
+			ObjectMeta: metav1.ObjectMeta{Name: "store", Namespace: "test-ns"},
+			Spec: barmancloudv1.ObjectStoreSpec{
+				Configuration: barmanapi.BarmanObjectStoreConfiguration{
+					DestinationPath: "s3://bucket/",
+					BarmanCredentials: barmanapi.BarmanCredentials{
+						AWS: &barmanapi.S3Credentials{InheritFromIAMRole: true},
+					},
+				},
+			},
+		}
+		cluster := &cnpgv1.Cluster{Status: cnpgv1.ClusterStatus{CurrentPrimary: "cluster-1"}}
+
+		Expect(w.restoreFromBarmanObjectStore(
+			context.Background(), cluster, objectStore, "cluster", walName, destinationPath, true,
+		)).To(Succeed())
+
+		Expect(destinationPath).To(BeAnExistingFile())
+		entries, err := os.ReadDir(spoolDirectory)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(isEOS).To(BeFalse())
+		Expect(entries).To(BeEmpty())
 	})
 })
 
