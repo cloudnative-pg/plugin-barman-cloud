@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 var _ = Describe("Metrics Collect method", func() {
@@ -138,5 +139,34 @@ var _ = Describe("Metrics Collect method", func() {
 		m.Client = fake.NewClientBuilder().Build()
 		_, err := m.Collect(ctx, req)
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("should return an error instead of hanging when the object store cannot be read", func() {
+		// Use a client whose requests never complete until the context is done
+		m.Client = fake.NewClientBuilder().
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(
+					ctx context.Context,
+					_ client.WithWatch,
+					_ client.ObjectKey,
+					_ client.Object,
+					_ ...client.GetOption,
+				) error {
+					<-ctx.Done()
+					return ctx.Err()
+				},
+			}).Build()
+		m.collectTimeout = 100 * time.Millisecond
+
+		result := make(chan error, 1)
+		go func() {
+			// the instance manager calls Collect without a deadline
+			_, err := m.Collect(context.Background(), req)
+			result <- err
+		}()
+
+		var err error
+		Eventually(result).WithTimeout(2 * time.Second).Should(Receive(&err))
+		Expect(err).To(MatchError(context.DeadlineExceeded))
 	})
 })
