@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package client
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	barmancloudv1 "github.com/cloudnative-pg/plugin-barman-cloud/api/v1"
 
@@ -163,4 +165,71 @@ var _ = Describe("ExtendedClient Get", func() {
 			Expect(secretInClient.GetResourceVersion()).To(Equal("from cache"))
 			Expect(objectStore.GetResourceVersion()).To(Equal("from cache"))
 		})
+
+	It("does not block other lookups while a request to the API server is in flight", func(ctx SpecContext) {
+		requestStarted := make(chan struct{})
+		releaseRequest := make(chan struct{})
+		DeferCleanup(func() { close(releaseRequest) })
+
+		baseClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secretInClient, objectStore).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(
+					ctx context.Context,
+					c client.WithWatch,
+					key client.ObjectKey,
+					obj client.Object,
+					opts ...client.GetOption,
+				) error {
+					if _, isSecret := obj.(*corev1.Secret); isSecret {
+						// simulate a stuck request to the API server
+						close(requestStarted)
+						<-releaseRequest
+					}
+					return c.Get(ctx, key, obj, opts...)
+				},
+			}).Build()
+		extendedClient = NewExtendedClient(baseClient).(*ExtendedClient)
+
+		go func() {
+			defer GinkgoRecover()
+			_ = extendedClient.Get(context.Background(), client.ObjectKeyFromObject(secretInClient), &corev1.Secret{})
+		}()
+		Eventually(requestStarted).Should(BeClosed())
+
+		result := make(chan error, 1)
+		go func() {
+			result <- extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &barmancloudv1.ObjectStore{})
+		}()
+		Eventually(result).WithTimeout(2 * time.Second).Should(Receive(BeNil()))
+	})
+
+	It("keeps a newer cached entry when an older request returns", func(ctx SpecContext) {
+		baseClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(objectStore).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(
+					ctx context.Context,
+					c client.WithWatch,
+					key client.ObjectKey,
+					obj client.Object,
+					opts ...client.GetOption,
+				) error {
+					// a request sent later caches its result while this one is in flight
+					addToCache(extendedClient, objectStore, time.Now().Unix()+1)
+					return c.Get(ctx, key, obj, opts...)
+				},
+			}).Build()
+		extendedClient = NewExtendedClient(baseClient).(*ExtendedClient)
+
+		err := extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &barmancloudv1.ObjectStore{})
+		Expect(err).NotTo(HaveOccurred())
+
+		var cached barmancloudv1.ObjectStore
+		err = extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &cached)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cached.GetResourceVersion()).To(Equal("from cache"))
+	})
 })
