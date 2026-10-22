@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.16.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.1...v0.16.0) (2026-10-22)
+
+
+### Features
+
+* **sidecar:** Add `sidecarImage` plugin parameter ([#1147](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1147)) ([09fcd95](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/09fcd95fbc85ea46fc51ea6f3982ef55525ee58e))
+* Support running the plugin with multiple replicas ([#1105](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1105)) ([3b9eff4](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3b9eff44387eee04b2ea226c404ab925e3519fb9))
+
+
+### Bug Fixes
+
+* **deps:** Update all non-major go dependencies ([#1158](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1158)) ([73ef874](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/73ef874eaa347821c06e8691152f31cafc2b277d))
+* **deps:** Update module github.com/cloudnative-pg/barman-cloud to v0.7.0 ([#1174](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1174)) ([2cd1826](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2cd1826e0194f7c4f78fa02e4841f91ccf7c8588))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.25.2 ([#1155](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1155)) ([74d3760](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/74d3760cb5bb82acef1fa700678ec57b8bd14163))
+* **walrestore:** Use timeline-aware barman-cloud end-of-WAL markers ([#993](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/993)) ([f46d2fc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f46d2fcbc26c21615955800650dde2ca9077325e))
+
 ## [0.15.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.0...v0.15.1) (2026-09-30)
 
 
