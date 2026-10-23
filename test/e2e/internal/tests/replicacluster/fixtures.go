@@ -222,6 +222,10 @@ func newReplicaBackup(namespace string) *cloudnativepgv1.Backup {
 			PluginConfiguration: &cloudnativepgv1.BackupPluginConfiguration{
 				Name: "barman-cloud.cloudnative-pg.io",
 			},
+			// Right after the promotion the operator recreates the standby to
+			// apply configuration changes that need a restart: a backup taken
+			// there would die with the pod.
+			Target: "primary",
 		},
 	}
 }
