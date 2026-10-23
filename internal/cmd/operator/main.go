@@ -102,6 +102,7 @@ func NewCmd() *cobra.Command {
 	_ = viper.BindPFlag("server-address", cmd.Flags().Lookup("server-address"))
 
 	_ = viper.BindEnv("sidecar-image", "SIDECAR_IMAGE")
+	_ = viper.BindEnv("watch-namespace", "WATCH_NAMESPACE")
 
 	return cmd
 }
