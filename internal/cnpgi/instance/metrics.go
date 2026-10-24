@@ -116,7 +116,7 @@ func (m metricsImpl) Collect(
 
 	var objectStore barmancloudv1.ObjectStore
 	if err := m.Client.Get(ctx, configuration.GetBarmanObjectKey(), &objectStore); err != nil {
-		contextLogger.Error(err, "while getting object store", "key", configuration.GetRecoveryBarmanObjectKey())
+		contextLogger.Error(err, "while getting object store", "key", configuration.GetBarmanObjectKey())
 		return nil, err
 	}
 
