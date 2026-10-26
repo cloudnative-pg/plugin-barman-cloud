@@ -28,13 +28,17 @@ import (
 func CollectSecretNamesFromCredentials(barmanCredentials *barmanapi.BarmanCredentials) []string {
 	var references []*machineryapi.SecretKeySelector
 	if barmanCredentials.AWS != nil {
-		references = append(
-			references,
-			barmanCredentials.AWS.AccessKeyIDReference,
-			barmanCredentials.AWS.SecretAccessKeyReference,
-			barmanCredentials.AWS.RegionReference,
-			barmanCredentials.AWS.SessionToken,
-		)
+		// When using IAM role inheritance, barman-cloud uses the pod
+		// environment credential chain and does not read credential Secrets.
+		if !barmanCredentials.AWS.InheritFromIAMRole {
+			references = append(
+				references,
+				barmanCredentials.AWS.AccessKeyIDReference,
+				barmanCredentials.AWS.SecretAccessKeyReference,
+				barmanCredentials.AWS.RegionReference,
+				barmanCredentials.AWS.SessionToken,
+			)
+		}
 	}
 	if barmanCredentials.Azure != nil {
 		// When using default Azure credentials or managed identity, no secrets are required
