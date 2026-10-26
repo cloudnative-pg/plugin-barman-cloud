@@ -190,7 +190,12 @@ func (b BackupServiceImplementation) Backup(
 		EndLsn:     executedBackupInfo.EndLSN,
 		InstanceId: b.InstanceName,
 		Online:     true,
-		Metadata:   newBackupResultMetadata(configuration.Cluster.ObjectMeta.UID, executedBackupInfo.TimeLine).toMap(),
+		Metadata: newBackupResultMetadata(
+			configuration.Cluster.ObjectMeta.UID,
+			executedBackupInfo.TimeLine,
+			&objectStore,
+			configuration.ServerName,
+		).toMap(),
 	}, nil
 }
 
