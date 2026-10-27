@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: Database
-    containerImage: ghcr.io/cloudnative-pg/plugin-barman-cloud:latest
+    containerImage: $(OPERATOR_IMAGE_NAME)
     createdAt: ""
     description: Online continuous physical backups of CloudNativePG PostgreSQL
       clusters to object storage, using the barman-cloud suite.
