@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - bases/plugin-barman-cloud.clusterserviceversion.yaml
+  - ../../kubernetes
+  - ../samples
+  - ../scorecard
+
+patches:
+  - path: patches/plugin_certs_optional.yaml
+  - path: patches/remove_cert_manager.yaml
+  - path: patches/remove_sidecar_secret.yaml
+  - path: generated/plugin_image.yaml
+    target:
+      kind: Deployment
+      name: barman-cloud
+  - path: generated/sidecar_image.yaml
+    target:
+      kind: Deployment
+      name: barman-cloud
+
+replacements:
+  - source:
+      kind: Deployment
+      name: barman-cloud
+      fieldPath: spec.template.spec.containers.[name=barman-cloud].image
+    targets:
+      - select:
+          kind: ClusterServiceVersion
+        fieldPaths:
+          - metadata.annotations.containerImage
