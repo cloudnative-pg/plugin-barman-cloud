@@ -1,0 +1,10 @@
+- op: replace
+  path: /spec/template/spec/containers/0/env
+  value:
+  # Not read by the plugin: operator-sdk lists RELATED_IMAGE_* env vars in
+  # the CSV relatedImages, so the sidecar image, which the plugin injects at
+  # runtime and is otherwise invisible to OLM, gets mirrored and pinned.
+  - name: RELATED_IMAGE_SIDECAR
+    value: ${SIDECAR_IMAGE}
+  - name: SIDECAR_IMAGE
+    value: ${SIDECAR_IMAGE}
