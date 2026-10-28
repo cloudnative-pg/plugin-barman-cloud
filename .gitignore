@@ -41,8 +41,10 @@ test/e2e/kustomization.yaml
 
 # Test registry certificates
 certs/
+
 # Utility dir for manifest build
 manifest-build/
+
 # OLM rendered files
 config/olm/generated/
 olm-bundle/
