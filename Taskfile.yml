@@ -1,8 +1,15 @@
-version: 3
+version: 3.54.0
 
 # We have multiple parallel tasks that run for a long time. Prefix their output with the task name so we can understand
 # what task is writing.
 output: prefixed
+
+includes:
+  ci-machinery-infra:
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/ac372dfbb7decf3d092534d2e7a866f5bec05d30/taskfiles/taskfile.infra.yaml
+    vars:
+      REGISTRY_HOST_PORT: 5050
+  ci-machinery-olm:  https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/dev/68/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
