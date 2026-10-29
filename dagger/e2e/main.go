@@ -105,7 +105,17 @@ configs:
 	if err != nil {
 		return "", err
 	}
-	kServer := k3s.WithContainer(ctr).Server()
+	// Replicates K3S.Server() without --debug and with the k3s logs
+	// redirected to a file, as they would otherwise flood the output.
+	kServer := ctr.AsService(dagger.ContainerAsServiceOpts{
+		Args: []string{
+			"sh", "-c",
+			"k3s server --log /var/log/k3s.log --bind-address $(ip route | grep src | awk '{print $NF}') " +
+				"--disable traefik --disable metrics-server --egress-selector-mode=disabled",
+		},
+		InsecureRootCapabilities: true,
+		UseEntrypoint:            true,
+	})
 
 	kServer, err = kServer.Start(ctx)
 	if err != nil {
