@@ -3,12 +3,12 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: '[]'
-    capabilities: Basic Install
+    capabilities: Full Lifecycle
     categories: Database
     containerImage: $(OPERATOR_IMAGE_NAME)
     createdAt: ""
-    description: Online continuous physical backups of CloudNativePG PostgreSQL
-      clusters to object storage, using the barman-cloud suite.
+    description: Backup and recovery plugin for CloudNativePG, enabling online
+      continuous physical backups of PostgreSQL clusters to object storage.
     repository: https://github.com/cloudnative-pg/plugin-barman-cloud
     support: Community
   labels:
@@ -46,6 +46,19 @@ spec:
         displayName: Server Recovery Window
         path: serverRecoveryWindow
       version: v1
+    required:
+    - description: Provided by CloudNativePG. A PostgreSQL cluster whose backups
+        and recovery are handled by the plugin.
+      displayName: Cluster
+      kind: Cluster
+      name: clusters.postgresql.cnpg.io
+      version: v1
+    - description: Provided by CloudNativePG. A backup of a cluster, executed by
+        the plugin through the barman-cloud suite.
+      displayName: Backup
+      kind: Backup
+      name: backups.postgresql.cnpg.io
+      version: v1
   description: |
     The Barman Cloud Plugin for [CloudNativePG](https://cloudnative-pg.io/)
     enables online continuous physical backups of PostgreSQL clusters to object
@@ -68,7 +81,7 @@ spec:
 
     ## Requirements
 
-    - CloudNativePG 1.26 or later (1.27 or later recommended).
+    - The CloudNativePG operator, version 1.30 or later.
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
 
