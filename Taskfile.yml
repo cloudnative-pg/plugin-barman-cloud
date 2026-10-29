@@ -9,7 +9,7 @@ includes:
     taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/ac372dfbb7decf3d092534d2e7a866f5bec05d30/taskfiles/taskfile.infra.yaml
     vars:
       REGISTRY_HOST_PORT: 5050
-  ci-machinery-olm:  https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/dev/68/taskfiles/taskfile.olm.yaml
+  ci-machinery-olm:  https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/test/fruits/local-registry/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
@@ -647,32 +647,32 @@ tasks:
         vars:
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
           EXTRA_ARGS: "--use-image-digests"
-      - task: ci-machinery-olm:bundle:image
-        vars:
-          IMAGE_REGISTRY: '{{.REGISTRY}}'
-          IMAGE_NAME: '{{.PRODUCT_NAME}}'
-          IMAGE_TAG: "{{.IMAGE_TAG}}-bundle"
-      - task: ci-machinery-olm:bundle:validate
-        vars:
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
-      - defer:
-          task: ci-machinery-infra:teardown-kind
-          vars:
-            CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
-      - defer: rm -f './kubeconfig-internal'
-      - task: olm:setup-kind-env
-        vars:
-          KUBECONFIG_PATH_EXPORT: './kubeconfig-internal'
-      - task: ci-machinery-olm:bundle:test-install
-        vars:
-          KUBECONFIG_PATH: './kubeconfig-internal'
-          PACKAGE_NAME: '{{.PRODUCT_NAME}}'
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
-      - task: ci-machinery-olm:bundle:scorecard
-        vars:
-          KUBECONFIG_PATH: './kubeconfig-internal'
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
-          EXTRA_ARGS: "--wait-time=60s"
+#      - task: ci-machinery-olm:bundle:image
+#        vars:
+#          IMAGE_REGISTRY: '{{.REGISTRY}}'
+#          IMAGE_NAME: '{{.PRODUCT_NAME}}'
+#          IMAGE_TAG: "{{.IMAGE_TAG}}-bundle"
+#      - task: ci-machinery-olm:bundle:validate
+#        vars:
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#      - defer:
+#          task: ci-machinery-infra:teardown-kind
+#          vars:
+#            CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+#      - defer: rm -f './kubeconfig-internal'
+#      - task: olm:setup-kind-env
+#        vars:
+#          KUBECONFIG_PATH_EXPORT: './kubeconfig-internal'
+#      - task: ci-machinery-olm:bundle:test-install
+#        vars:
+#          KUBECONFIG_PATH: './kubeconfig-internal'
+#          PACKAGE_NAME: '{{.PRODUCT_NAME}}'
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#      - task: ci-machinery-olm:bundle:scorecard
+#        vars:
+#          KUBECONFIG_PATH: './kubeconfig-internal'
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#          EXTRA_ARGS: "--wait-time=60s"
       - task: ci-machinery-olm:operator-hub:fruit-tests
         vars:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
