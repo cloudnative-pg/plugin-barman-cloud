@@ -59,26 +59,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Cleanup Disk
-        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
-        uses: jlumbroso/free-disk-space@v2.0.0
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          preinstalled-runtimes: true
-          large-packages: false
-          swap-storage: false
-      - name: Cleanup docker cache
-        if: vars.CI_RUNNERS == '' || vars.CI_RUNNERS == 'ubuntu-latest'
-        run: |
-          echo "-------------Disk info before cleanup----------------"
-          df -h
-          echo "-----------------------------------------------------"
-          docker system prune -a -f
-          echo "-------------Disk info after cleanup----------------"
-          df -h
-          echo "-----------------------------------------------------"
       - name: Checkout
         uses: actions/checkout@v7.0.1
         # We need the full history for the commitlint task
