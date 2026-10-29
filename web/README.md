@@ -6,20 +6,20 @@ static website generator.
 ### Requirements
 
 - Docker
-- [Yarn](https://yarnpkg.com/)
+- [Node.js](https://nodejs.org/) (includes npm)
 - [Dagger](https://dagger.io/)
 - [Task](https://taskfile.dev/)
 
 ### Installation
 
 ```shell
-$ yarn
+$ npm install
 ```
 
 ### Local Development
 
 ```shell
-$ yarn start
+$ npm run start
 ```
 
 This command starts a local development server and opens up a browser window.
@@ -28,7 +28,7 @@ Most changes are reflected live without having to restart the server.
 ### Build
 
 ```shell
-$ yarn build
+$ npm run build
 ```
 
 This command generates static content into the `build` directory and can be
@@ -37,7 +37,7 @@ served using any static contents hosting service.
 ### Test the build
 
 ```shell
-$ yarn serve
+$ npm run serve
 ```
 
 By default, this will load your site at http://localhost:3000/.
@@ -58,5 +58,5 @@ documentation for different software versions.
 To create a new documentation version:
 
 ```shell
-$ yarn docusaurus docs:version X.Y.Z
+$ npm run docusaurus docs:version X.Y.Z
 ```

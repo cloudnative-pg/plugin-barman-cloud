@@ -136,7 +136,7 @@ tasks:
       DAGGER_DOCUSAURUS_SHA: 93f57fccbd5afd22fa917107ab7697f3e7db0e5a
     cmds:
       - GITHUB_REF= dagger -s call -m github.com/levlaz/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
-        --src web --yarn build
+        --src web --disable-cache build
     src:
       - ./web/**/*
 
