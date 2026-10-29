@@ -132,11 +132,27 @@ tasks:
     deps:
     - apidoc
     env:
-      # renovate: datasource=git-refs depName=docusaurus lookupName=https://github.com/levlaz/daggerverse currentValue=main
-      DAGGER_DOCUSAURUS_SHA: 93f57fccbd5afd22fa917107ab7697f3e7db0e5a
+      # renovate: datasource=git-refs depName=docusaurus lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_DOCUSAURUS_SHA: 6eb7568d0d32167a0b571856b3f190051240744a
     cmds:
-      - GITHUB_REF= dagger -s call -m github.com/levlaz/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
-        --src web --yarn build
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
+        build --src web sync
+    src:
+      - ./web/**/*
+
+  docusaurus-dev-serve:
+    desc: Build and serve the documentation on http://localhost:3000
+    deps:
+    - apidoc
+    env:
+      # renovate: datasource=git-refs depName=docusaurus lookupName=https://github.com/cloudnative-pg/daggerverse currentValue=main
+      DAGGER_DOCUSAURUS_SHA: 6eb7568d0d32167a0b571856b3f190051240744a
+    cmds:
+      # Ctrl-C to terminate
+      - >
+        GITHUB_REF= dagger -s call -m github.com/cloudnative-pg/daggerverse/docusaurus@${DAGGER_DOCUSAURUS_SHA}
+        dev --src web up
     src:
       - ./web/**/*
 
