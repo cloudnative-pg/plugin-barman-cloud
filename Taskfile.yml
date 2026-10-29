@@ -598,8 +598,10 @@ tasks:
     desc: Setup a kind cluster for OLM testing
     vars:
       KUBECONFIG_PATH_EXPORT: '{{.KUBECONFIG_PATH_EXPORT | default "./kubeconfig-internal"}}'
-      CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
     internal: true
+    required:
+      vars:
+        CLUSTER_NAME
     cmds:
       - task: ci-machinery-infra:setup-kind
         vars:
@@ -622,7 +624,8 @@ tasks:
       PLUGIN_IMAGE: '{{.PLUGIN_IMAGE | default (print .REGISTRY "/plugin-barman-cloud:" .IMAGE_TAG)}}'
       SIDECAR_IMAGE: '{{.SIDECAR_IMAGE | default (print .REGISTRY "/plugin-barman-cloud-sidecar:" .IMAGE_TAG)}}'
       PRODUCT_NAME: 'plugin-barman-cloud'
-      SKIP_BUILD: '{{.SKIP_BUILD | default "false"}}'
+      CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+      SKIP_CONTAINERS_BUILD: '{{.SKIP_CONTAINERS_BUILD | default "false"}}'
     cmds:
       - defer:
           task: ci-machinery-infra:teardown-container-registry
@@ -631,7 +634,7 @@ tasks:
       - defer:
           task: ci-machinery-infra:teardown-dagger-engine
       - task: olm:build-containers
-        if: '[ "{{ .SKIP_BUILD }}" != "true" ]'
+        if: '[ "{{ .SKIP_CONTAINERS_BUILD }}" != "true" ]'
         vars:
           PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
@@ -658,11 +661,12 @@ tasks:
       - defer:
           task: ci-machinery-infra:teardown-kind
           vars:
-            CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+            CLUSTER_NAME: '{{.CLUSTER_NAME}}'
       - defer: rm -f './kubeconfig-internal'
       - task: olm:setup-kind-env
         vars:
           KUBECONFIG_PATH_EXPORT: './kubeconfig-internal'
+          CLUSTER_NAME: '{{.CLUSTER_NAME}}'
       - task: ci-machinery-olm:bundle:test-install
         vars:
           KUBECONFIG_PATH: './kubeconfig-internal'
