@@ -1,0 +1,19 @@
+# On the OLM install path cert-manager is unavailable, so the plugin cert
+# secrets are absent at pod start. Marking the volumes optional lets the pod
+# start; the plugin loads the certificates on each TLS handshake, so it starts
+# serving as soon as the barman-cloud-server-tls and barman-cloud-client-tls
+# secrets are created. Until then, CNPG fails registering the plugin.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barman-cloud
+spec:
+  template:
+    spec:
+      volumes:
+        - name: server
+          secret:
+            optional: true
+        - name: client
+          secret:
+            optional: true

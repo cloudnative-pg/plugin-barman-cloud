@@ -1,8 +1,15 @@
-version: 3
+version: 3.54.0
 
 # We have multiple parallel tasks that run for a long time. Prefix their output with the task name so we can understand
 # what task is writing.
 output: prefixed
+
+includes:
+  ci-machinery-infra:
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/ac372dfbb7decf3d092534d2e7a866f5bec05d30/taskfiles/taskfile.infra.yaml
+    vars:
+      REGISTRY_HOST_PORT: 5050
+  ci-machinery-olm:  https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/test/fruits/local-registry/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
@@ -519,7 +526,160 @@ tasks:
             run --repo {{.GITHUB_REPOSITORY}} --token env:GITHUB_TOKEN
             --cmd "release upload {{.GITHUB_REF_NAME}} manifest.yaml"
 
+  olm:kustomization-patches:
+    desc: Render the OLM kustomize patches with the plugin and sidecar images
+    requires:
+      vars:
+        - PLUGIN_IMAGE
+        - SIDECAR_IMAGE
+    env:
+      PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
+      SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
+    cmds:
+      - mkdir -p config/olm/generated
+      - >
+        for f in config/olm/templates/*.yaml.tmpl; do
+        envsubst '${PLUGIN_IMAGE} ${SIDECAR_IMAGE}' < "$f" > "config/olm/generated/$(basename "$f" .tmpl)" || exit 1;
+        done
+
+  olm:kustomization:
+    desc: Build the OLM kustomization into olm-manifests/manifest.yaml
+    vars:
+      OUTPUT_DIR: '{{.OUTPUT_DIR | default "olm-manifests"}}'
+    env:
+      # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
+      DAGGER_KUSTOMIZE_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
+      KUSTOMIZE_VERSION: v5.8.1
+    preconditions:
+      - sh: test -d config/olm/generated
+        msg: "config/olm/generated is missing, run olm:kustomization-patches first"
+    cmds:
+      - >
+        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        --version ${KUSTOMIZE_VERSION}
+        build --source . --dir config/olm export --path '{{.OUTPUT_DIR}}/manifest.yaml'
+
+  olm:build-containers:
+    desc: Build the plugin and sidecar images and push them
+    internal: true
+    requires:
+      vars:
+        - PLUGIN_IMAGE
+        - SIDECAR_IMAGE
+    deps:
+      - task: olm:build-container
+        vars:
+          DOCKERFILE: containers/Dockerfile.plugin
+          IMAGE: '{{.PLUGIN_IMAGE}}'
+      - task: olm:build-container
+        vars:
+          DOCKERFILE: containers/Dockerfile.sidecar
+          IMAGE: '{{.SIDECAR_IMAGE}}'
+
+  olm:build-container:
+    internal: true
+    deps:
+      - ci-machinery-infra:setup-docker-builder
+      - ci-machinery-infra:setup-container-registry
+    requires:
+      vars:
+        - DOCKERFILE
+        - IMAGE
+    vars:
+      DOCKER_BUILDER: cnpg
+    cmds:
+      - >
+        docker buildx build --builder {{.DOCKER_BUILDER}} --push
+        --file {{.DOCKERFILE}} --build-arg GO_VERSION={{.GO_VERSION}}
+        --tag {{.IMAGE}}
+        .
+
+  olm:setup-kind-env:
+    desc: Setup a kind cluster for OLM testing
+    vars:
+      KUBECONFIG_PATH_EXPORT: '{{.KUBECONFIG_PATH_EXPORT | default "./kubeconfig-internal"}}'
+      CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+    internal: true
+    cmds:
+      - task: ci-machinery-infra:setup-kind
+        vars:
+          CLUSTER_NAME: '{{.CLUSTER_NAME}}'
+      - task: ci-machinery-infra:export-kubeconfig
+        vars:
+          CLUSTER_NAME: '{{.CLUSTER_NAME}}'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH_EXPORT}}'
+          INTERNAL: 'true'
+      - task: ci-machinery-olm:olm-operator:setup
+        vars:
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH_EXPORT}}'
+
+  olm:test:
+    desc: Run the OLM CI pipeline
+    vars:
+      IMAGE_TAG:
+        sh: set -o pipefail && git describe --tags --match 'v*' | sed -e 's/^v//; s/-g[0-9a-f]\+$//; s/-\([0-9]\+\)$/-dev\1/'
+      REGISTRY: 'registry.cnpg:5000'
+      PLUGIN_IMAGE: '{{.PLUGIN_IMAGE | default (print .REGISTRY "/plugin-barman-cloud:" .IMAGE_TAG)}}'
+      SIDECAR_IMAGE: '{{.SIDECAR_IMAGE | default (print .REGISTRY "/plugin-barman-cloud-sidecar:" .IMAGE_TAG)}}'
+      PRODUCT_NAME: 'plugin-barman-cloud'
+      SKIP_BUILD: '{{.SKIP_BUILD | default "false"}}'
+    cmds:
+      - defer:
+          task: ci-machinery-infra:teardown-container-registry
+      - defer:
+          task: ci-machinery-infra:teardown-builder
+      - defer:
+          task: ci-machinery-infra:teardown-dagger-engine
+      - task: olm:build-containers
+        if: '[ "{{ .SKIP_BUILD }}" != "true" ]'
+        vars:
+          PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
+          SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
+      - defer: rm -rf config/olm/generated
+      - task: olm:kustomization-patches
+        vars:
+          PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
+          SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
+      - defer: rm -rf olm-manifests
+      - task: olm:kustomization
+      - defer: rm -rf olm-bundle
+      - task: ci-machinery-olm:bundle:generate
+        vars:
+          PACKAGE_NAME: '{{.PRODUCT_NAME}}'
+          EXTRA_ARGS: "--use-image-digests"
+#      - task: ci-machinery-olm:bundle:image
+#        vars:
+#          IMAGE_REGISTRY: '{{.REGISTRY}}'
+#          IMAGE_NAME: '{{.PRODUCT_NAME}}'
+#          IMAGE_TAG: "{{.IMAGE_TAG}}-bundle"
+#      - task: ci-machinery-olm:bundle:validate
+#        vars:
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#      - defer:
+#          task: ci-machinery-infra:teardown-kind
+#          vars:
+#            CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+#      - defer: rm -f './kubeconfig-internal'
+#      - task: olm:setup-kind-env
+#        vars:
+#          KUBECONFIG_PATH_EXPORT: './kubeconfig-internal'
+#      - task: ci-machinery-olm:bundle:test-install
+#        vars:
+#          KUBECONFIG_PATH: './kubeconfig-internal'
+#          PACKAGE_NAME: '{{.PRODUCT_NAME}}'
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#      - task: ci-machinery-olm:bundle:scorecard
+#        vars:
+#          KUBECONFIG_PATH: './kubeconfig-internal'
+#          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+#          EXTRA_ARGS: "--wait-time=60s"
+      - task: ci-machinery-olm:operator-hub:fruit-tests
+        vars:
+          OPERATOR_NAME: '{{.PRODUCT_NAME}}'
+          VERSION: '{{.IMAGE_TAG}}'
+
   clean:
     desc: Remove autogenerated artifacts
     cmds:
       - rm -rf .task/
+      - rm -rf config/olm/generated/

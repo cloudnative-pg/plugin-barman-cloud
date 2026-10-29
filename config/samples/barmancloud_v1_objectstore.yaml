@@ -1,0 +1,17 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: objectstore-sample
+spec:
+  configuration:
+    destinationPath: s3://my-bucket/backups/
+    s3Credentials:
+      accessKeyId:
+        name: aws-credentials
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: aws-credentials
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+  retentionPolicy: 30d
