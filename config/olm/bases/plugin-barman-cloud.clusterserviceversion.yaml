@@ -84,62 +84,10 @@ spec:
     - The CloudNativePG operator, version 1.30 or later.
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
-
-    ## Post-installation: TLS certificates
-
-    The plugin and the CloudNativePG operator communicate over mutual TLS.
-    After installing the plugin, create the following secrets in the
-    plugin's namespace:
-
-    - `barman-cloud-server-tls`: server certificate, valid for the
-      `barman-cloud` DNS name
-    - `barman-cloud-client-tls`: client certificate used by the
-      CloudNativePG operator
-
-    The plugin starts serving requests as soon as both secrets exist; no
-    restart is needed. The recommended way to create and renew them is
-    [cert-manager](https://cert-manager.io/):
-
-    ```yaml
-    apiVersion: cert-manager.io/v1
-    kind: Issuer
-    metadata:
-      name: selfsigned-issuer
-    spec:
-      selfSigned: {}
-    ---
-    apiVersion: cert-manager.io/v1
-    kind: Certificate
-    metadata:
-      name: barman-cloud-server
-    spec:
-      secretName: barman-cloud-server-tls
-      commonName: barman-cloud
-      dnsNames:
-        - barman-cloud
-      usages:
-        - server auth
-      issuerRef:
-        name: selfsigned-issuer
-        kind: Issuer
-        group: cert-manager.io
-    ---
-    apiVersion: cert-manager.io/v1
-    kind: Certificate
-    metadata:
-      name: barman-cloud-client
-    spec:
-      secretName: barman-cloud-client-tls
-      commonName: barman-cloud-client
-      usages:
-        - client auth
-      issuerRef:
-        name: selfsigned-issuer
-        kind: Issuer
-        group: cert-manager.io
-    ```
-
-    Apply it with `kubectl apply -n <plugin namespace> -f <file>`.
+    - [cert-manager](https://cert-manager.io/), installed **before** the
+      plugin. The plugin relies on its `Issuer` and `Certificate` APIs to
+      create the TLS certificates used for the mutual TLS (mTLS)
+      communication with the CloudNativePG operator.
 
     ## Documentation
 
