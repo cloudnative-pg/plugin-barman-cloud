@@ -54,10 +54,8 @@ RUN apt-get update && \
 
 COPY containers/sidecar-requirements.txt .
 
-# Create the virtualenv without pip and install the dependencies with the
-# builder's pip. Nothing installs packages at runtime, and a pip copy inside
-# /venv would ship its vendored libraries (setuptools, msgpack, urllib3,
-# certifi, ...) into the final image, where scanners report them.
+# No pip in the venv: its vendored libraries would ship in the final image
+# and show up in vulnerability scans. Install with the builder's pip instead.
 RUN python3 -m venv --without-pip /venv && \
     python3 -m pip --python /venv/bin/python install --no-cache-dir -r sidecar-requirements.txt
 
