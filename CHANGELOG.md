@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.16.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.1...v0.16.0) (2026-10-30)
+
+
+### Features
+
+* **olm:** Add ClusterServiceVersion manifest  ([#1198](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1198)) ([3bc7d98](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3bc7d98e221279472ecc4cf185e9fe37177ab572))
+* **s3:** Support SSE-C customer-provided keys ([#1017](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1017)) ([c013267](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c0132679d76bd587d3ae5023cbb273ea5590cd41)), refs [#646](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/646)
+* **sidecar:** Add `sidecarImage` plugin parameter ([#1147](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1147)) ([09fcd95](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/09fcd95fbc85ea46fc51ea6f3982ef55525ee58e))
+* Support running the plugin with multiple replicas ([#1105](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1105)) ([3b9eff4](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3b9eff44387eee04b2ea226c404ab925e3519fb9))
+
+
+### Bug Fixes
+
+* **deps:** Resolve tinypool to 2.1.2 or later ([#1201](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1201)) ([2e98d51](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2e98d51e61e9e87279a946a725860128cce16967))
+* **deps:** Update all non-major go dependencies ([#1158](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1158)) ([73ef874](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/73ef874eaa347821c06e8691152f31cafc2b277d))
+* **deps:** Update k8s.io/utils digest to ca04ba5 ([3abd5d9](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3abd5d9728fc0a52cc19a9052f2c941271003b6c))
+* **deps:** Update kubernetes monorepo to v0.37.2 ([3291ac8](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/3291ac822adbcebfb891079356bbefa32d19c651))
+* **deps:** Update module github.com/cert-manager/cert-manager to v1.21.3 ([0b31a78](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/0b31a78409e883e1bf61ea7a19b023d639b61309))
+* **deps:** Update module github.com/cloudnative-pg/barman-cloud to v0.7.0 ([#1174](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1174)) ([2cd1826](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/2cd1826e0194f7c4f78fa02e4841f91ccf7c8588))
+* **deps:** Update module google.golang.org/grpc to v1.85.0 ([8ecbb51](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/8ecbb51d99d0b3fce92a6d7e812cd7ad640dbd98))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.25.2 ([#1155](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1155)) ([74d3760](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/74d3760cb5bb82acef1fa700678ec57b8bd14163))
+* **sidecar:** Keep pip out of the runtime venv ([#1211](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1211)) ([c98aaf6](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/c98aaf6764b4af1ee05f2753b61e475c56337b7e)), refs [#1187](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1187)
+* **walrestore:** Use timeline-aware barman-cloud end-of-WAL markers ([#993](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/993)) ([f46d2fc](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/f46d2fcbc26c21615955800650dde2ca9077325e))
+
 ## [0.15.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.0...v0.15.1) (2026-09-30)
 
 
