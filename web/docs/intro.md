@@ -24,10 +24,8 @@ for detailed instructions.
 Before using the Barman Cloud Plugin, ensure that the following components are
 installed and properly configured:
 
-- [CloudNativePG](https://cloudnative-pg.io) version 1.26 or later
+- [CloudNativePG](https://cloudnative-pg.io) version 1.30 or later
 
-  - We strongly recommend version 1.27.0 or later, which includes improved
-    error handling and status reporting for the plugin.
   - If you are running an earlier release, refer to the
     [upgrade guide](https://cloudnative-pg.io/documentation/current/installation_upgrade).
 

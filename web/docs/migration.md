@@ -7,7 +7,7 @@ sidebar_position: 40
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
 The in-tree support for Barman Cloud in CloudNativePG is **deprecated starting
-from version 1.26** and will be removed in a future release.
+from version 1.26** and will be **removed in version 1.32.0**.
 
 If you're currently relying on the built-in Barman Cloud integration, you can
 migrate seamlessly to the new **plugin-based architecture** using the Barman
