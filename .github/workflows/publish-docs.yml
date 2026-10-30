@@ -30,22 +30,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          # Use the latest LTS version of Node.js already installed on the runner.
-          node-version: latest
-          check-latest: 'false'
-          cache: yarn
-          cache-dependency-path: web/yarn.lock
+          # Use the latest Node.js LTS release.
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
       - name: Install dependencies
         working-directory: web
-        run: yarn install --frozen-lockfile --non-interactive
+        run: npm ci
 
       - name: Build website
         working-directory: web
-        run: yarn build
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

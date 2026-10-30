@@ -141,7 +141,7 @@
     {
       matchFileNames: [
         'web/package.json',
-        'web/yarn.lock',
+        'web/package-lock.json',
       ],
       groupName: 'documentation dependencies',
     },
