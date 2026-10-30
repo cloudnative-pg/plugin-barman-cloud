@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          # Use the latest LTS version of Node.js already installed on the runner.
+          # Use the latest Node.js LTS release.
           node-version: lts/*
           cache: npm
           cache-dependency-path: web/package-lock.json
