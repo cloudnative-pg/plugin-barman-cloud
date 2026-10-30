@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudnative-pg/cnpg-i/pkg/metrics"
 	"github.com/cloudnative-pg/machinery/pkg/log"
@@ -36,10 +37,26 @@ import (
 // Sanitize the plugin name to be a valid Prometheus metric namespace
 var metricsDomain = strings.NewReplacer(".", "_", "-", "_").Replace(metadata.PluginName)
 
+// defaultMetricsCollectTimeout bounds a single Collect call. The instance
+// manager calls Collect while serving the /metrics endpoint of the
+// instance, so a Collect call that never returns would hang the whole
+// endpoint, not only the metrics of this plugin.
+const defaultMetricsCollectTimeout = 5 * time.Second
+
 type metricsImpl struct {
 	// important the client should be one with a underlying cache
 	Client client.Client
 	metrics.UnimplementedMetricsServer
+
+	// collectTimeout overrides defaultMetricsCollectTimeout when set
+	collectTimeout time.Duration
+}
+
+func (m metricsImpl) getCollectTimeout() time.Duration {
+	if m.collectTimeout > 0 {
+		return m.collectTimeout
+	}
+	return defaultMetricsCollectTimeout
 }
 
 func buildFqName(name string) string {
@@ -107,6 +124,9 @@ func (m metricsImpl) Collect(
 ) (*metrics.CollectMetricsResult, error) {
 	contextLogger := log.FromContext(ctx)
 	contextLogger.Trace("metrics collect call received")
+
+	ctx, cancel := context.WithTimeout(ctx, m.getCollectTimeout())
+	defer cancel()
 
 	configuration, err := config.NewFromClusterJSON(req.ClusterDefinition)
 	if err != nil {
