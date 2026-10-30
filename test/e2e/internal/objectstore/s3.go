@@ -96,7 +96,7 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 							Name: "init-permissions",
 							// renovate: datasource=docker depName=busybox versioning=docker
 							// Version: 1.38.0
-							Image: "docker.io/library/busybox@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e",
+							Image: "docker.io/library/busybox@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4",
 							Command: []string{
 								"sh", "-c",
 								fmt.Sprintf("mkdir -p %[1]s %[2]s && chmod 0777 %[1]s %[2]s", s3DataDir, s3LogDir),
