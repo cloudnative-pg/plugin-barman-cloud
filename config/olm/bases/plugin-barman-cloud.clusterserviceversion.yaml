@@ -84,10 +84,54 @@ spec:
     - The CloudNativePG operator, version 1.30 or later.
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
-    - [cert-manager](https://cert-manager.io/), installed **before** the
-      plugin. The plugin relies on its `Issuer` and `Certificate` APIs to
-      create the TLS certificates used for the mutual TLS (mTLS)
-      communication with the CloudNativePG operator.
+
+    ## TLS certificates
+
+    The CloudNativePG operator and the plugin communicate over mutual TLS
+    (mTLS). The bundle doesn't generate the certificates: you provide them
+    before the plugin can be used, with the tool of your choice (for example
+    cert-manager or your own PKI).
+
+    Only certificates stored in Kubernetes TLS Secrets (`kubernetes.io/tls`)
+    are currently supported. The Secrets must be created in the namespace of
+    the CloudNativePG operator, with these exact names, which are referenced
+    by the annotations of the plugin `Service` installed by the bundle:
+
+    - `barman-cloud-server-tls`: the certificate the plugin serves. It must be
+      valid for the `barman-cloud` DNS name and the server auth usage.
+    - `barman-cloud-client-tls`: the certificate the operator uses to
+      authenticate to the plugin, with the client auth usage.
+
+    The operator reads both Secrets directly. The plugin reads the
+    certificates from its file system, so you must also mount the Secrets in
+    the plugin pod through the `spec.config` section of the plugin
+    `Subscription`:
+
+    ```yaml
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: plugin-barman-cloud
+      namespace: <cloudnative-pg-namespace>
+    spec:
+      # ...
+      config:
+        volumes:
+          - name: server
+            secret:
+              secretName: barman-cloud-server-tls
+          - name: client
+            secret:
+              secretName: barman-cloud-client-tls
+        volumeMounts:
+          - name: server
+            mountPath: /server
+          - name: client
+            mountPath: /client
+    ```
+
+    Until the Secrets are available and mounted, CloudNativePG can't register
+    the plugin.
 
     ## Documentation
 
