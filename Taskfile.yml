@@ -645,6 +645,7 @@ tasks:
         vars:
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
           EXTRA_ARGS: "--use-image-digests"
+          METADATA_DIR: "config/olm/metadata"
       - task: ci-machinery-olm:bundle:image
         vars:
           IMAGE_REGISTRY: '{{.REGISTRY}}'
