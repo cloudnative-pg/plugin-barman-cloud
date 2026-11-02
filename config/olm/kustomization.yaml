@@ -8,9 +8,8 @@ resources:
   - ../scorecard
 
 patches:
-  - path: patches/plugin_certs_optional.yaml
-  - path: patches/remove_cert_manager.yaml
   - path: patches/remove_sidecar_secret.yaml
+  - path: patches/remove_volumes.yaml
   - path: generated/plugin_image.yaml
     target:
       kind: Deployment

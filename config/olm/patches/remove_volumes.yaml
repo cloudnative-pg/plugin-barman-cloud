@@ -1,0 +1,14 @@
+# We remove the TLS Certificate secret volume and volumeMounts from the Deployment because we let the user configure them
+# via Subscription. The volume carrying the Certificate secret might be of different nature (Secret, ConfigMap, CSI, Projected etc.)
+# and we don't want to force it to be of a specific type.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barman-cloud
+spec:
+  template:
+    spec:
+      containers:
+        - name: barman-cloud
+          volumeMounts: null
+      volumes: null
