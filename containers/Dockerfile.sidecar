@@ -35,8 +35,11 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 FROM debian:trixie-slim AS pythonbuilder
 WORKDIR /build
 
-# Install postgresql-common and setup pgdg repository first
-RUN apt-get update && \
+# Install postgresql-common and setup pgdg repository first.
+# apt only warns when an index fails to download, and the image would
+# silently ship Debian packages instead of PGDG ones. Fail instead.
+RUN echo 'APT::Update::Error-Mode "any";' > /etc/apt/apt.conf.d/99update-error-mode && \
+    apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates postgresql-common && \
     /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
