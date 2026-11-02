@@ -18,7 +18,7 @@ for space, speed, or a balance of both.
 - `lz4`
 - `snappy`
 - `xz` (WAL only)
-- `zstd` (WAL only)
+- `zstd`
 
 Compression settings for base backups and WAL archives are configured
 independently. For implementation details, refer to the corresponding API
@@ -42,4 +42,4 @@ network throughput.
 | gzip        | 116,281          | 3,077             | 395                    | 91                   | 4.3:1 |
 | snappy      | 8,134            | 8,341             | 395                    | 166                  | 2.4:1 |
 
-Numbers come from a 2021 Barman proof of concept ([EnterpriseDB/barman#344](https://github.com/EnterpriseDB/barman/issues/344#issuecomment-992547396)), which predates `lz4` support for base backups. `lz4` is not yet benchmarked.
+Numbers come from a 2021 Barman proof of concept ([EnterpriseDB/barman#344](https://github.com/EnterpriseDB/barman/issues/344#issuecomment-992547396)), which predates `lz4` and `zstd` support for base backups. `lz4` and `zstd` are not yet benchmarked.
