@@ -9,7 +9,7 @@ resources:
 
 patches:
   - path: patches/remove_sidecar_secret.yaml
-  - path: patches/remove_volumes.yaml
+  - path: patches/plugin_certs_optional.yaml
   - path: generated/plugin_image.yaml
     target:
       kind: Deployment

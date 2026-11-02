@@ -85,53 +85,61 @@ spec:
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
 
-    ## TLS certificates
+    ## Post-installation: TLS certificates
 
-    The CloudNativePG operator and the plugin communicate over mutual TLS
-    (mTLS). The bundle doesn't generate the certificates: you provide them
-    before the plugin can be used, with the tool of your choice (for example
-    cert-manager or your own PKI).
+    The plugin and the CloudNativePG operator communicate over mutual TLS.
+    After installing the plugin, create the following secrets in the
+    plugin's namespace:
 
-    Only certificates stored in Kubernetes TLS Secrets (`kubernetes.io/tls`)
-    are currently supported. The Secrets must be created in the namespace of
-    the CloudNativePG operator, with these exact names, which are referenced
-    by the annotations of the plugin `Service` installed by the bundle:
+    - `barman-cloud-server-tls`: server certificate, valid for the
+      `barman-cloud` DNS name
+    - `barman-cloud-client-tls`: client certificate used by the
+      CloudNativePG operator
 
-    - `barman-cloud-server-tls`: the certificate the plugin serves. It must be
-      valid for the `barman-cloud` DNS name and the server auth usage.
-    - `barman-cloud-client-tls`: the certificate the operator uses to
-      authenticate to the plugin, with the client auth usage.
-
-    The operator reads both Secrets directly. The plugin reads the
-    certificates from its file system, so you must also mount the Secrets in
-    the plugin pod through the `spec.config` section of the plugin
-    `Subscription`:
+    The plugin starts serving requests as soon as both secrets exist; no
+    restart is needed. The recommended way to create and renew them is
+    [cert-manager](https://cert-manager.io/):
 
     ```yaml
-    apiVersion: operators.coreos.com/v1alpha1
-    kind: Subscription
+    apiVersion: cert-manager.io/v1
+    kind: Issuer
     metadata:
-      name: plugin-barman-cloud
-      namespace: <cloudnative-pg-namespace>
+      name: selfsigned-issuer
     spec:
-      # ...
-      config:
-        volumes:
-          - name: server
-            secret:
-              secretName: barman-cloud-server-tls
-          - name: client
-            secret:
-              secretName: barman-cloud-client-tls
-        volumeMounts:
-          - name: server
-            mountPath: /server
-          - name: client
-            mountPath: /client
+      selfSigned: {}
+    ---
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: barman-cloud-server
+    spec:
+      secretName: barman-cloud-server-tls
+      commonName: barman-cloud
+      dnsNames:
+        - barman-cloud
+      usages:
+        - server auth
+      issuerRef:
+        name: selfsigned-issuer
+        kind: Issuer
+        group: cert-manager.io
+    ---
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: barman-cloud-client
+    spec:
+      secretName: barman-cloud-client-tls
+      commonName: barman-cloud-client
+      usages:
+        - client auth
+      issuerRef:
+        name: selfsigned-issuer
+        kind: Issuer
+        group: cert-manager.io
     ```
 
-    Until the Secrets are available and mounted, CloudNativePG can't register
-    the plugin.
+    Apply it with `kubectl apply -n <plugin namespace> -f <file>`.
 
     ## Documentation
 
