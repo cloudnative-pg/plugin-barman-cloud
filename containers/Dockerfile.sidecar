@@ -45,6 +45,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
         python3-venv \
+        python3-pip \
         python3-dev \
         build-essential \
         libpq-dev \
@@ -53,10 +54,10 @@ RUN apt-get update && \
 
 COPY containers/sidecar-requirements.txt .
 
-# Create virtualenv and install dependencies
-RUN python3 -m venv /venv && \
-    /venv/bin/pip install --upgrade pip wheel && \
-    /venv/bin/pip install --no-cache-dir -r sidecar-requirements.txt
+# No pip in the venv: its vendored libraries would ship in the final image
+# and show up in vulnerability scans. Install with the builder's pip instead.
+RUN python3 -m venv --without-pip /venv && \
+    python3 -m pip --python /venv/bin/python install --no-cache-dir -r sidecar-requirements.txt
 
 # Download and extract runtime library packages and their dependencies
 # Using apt-cache to automatically resolve dependencies, filtering out packages

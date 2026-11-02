@@ -20,6 +20,8 @@ SPDX-License-Identifier: Apache-2.0
 package objectstore
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net"
 
@@ -94,7 +96,7 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 							Name: "init-permissions",
 							// renovate: datasource=docker depName=busybox versioning=docker
 							// Version: 1.38.0
-							Image: "docker.io/library/busybox@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e",
+							Image: "docker.io/library/busybox@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4",
 							Command: []string{
 								"sh", "-c",
 								fmt.Sprintf("mkdir -p %[1]s %[2]s && chmod 0777 %[1]s %[2]s", s3DataDir, s3LogDir),
@@ -115,8 +117,8 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 							// The glibc build is used because the musl default is
 							// noticeably slower (rustfs/rustfs#1662).
 							// renovate: datasource=docker depName=rustfs/rustfs versioning=docker
-							// Version: 1.0.0-glibc
-							Image:   "docker.io/rustfs/rustfs@sha256:bffcab0c9d647aab0055d1c69d340b202d0909966b385932d4ead1aeb7602858",
+							// Version: 1.0.4-glibc
+							Image:   "docker.io/rustfs/rustfs@sha256:a9b705b9256be756802a60f3498abdc543918b5b5a4437a57a541e89e733c74d",
 							Command: []string{"/usr/bin/rustfs"},
 							Ports: []corev1.ContainerPort{
 								{
@@ -243,8 +245,8 @@ func newS3Secret(namespace, name string) *corev1.Secret {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"ACCESS_KEY_ID":     []byte("s3accesskey"),
-			"ACCESS_SECRET_KEY": []byte("s3secretkey123"),
+			"ACCESS_KEY_ID":     []byte(S3AccessKeyID),
+			"ACCESS_SECRET_KEY": []byte(S3SecretAccessKey),
 		},
 	}
 }
@@ -270,6 +272,39 @@ func newS3PVC(namespace, name string) *corev1.PersistentVolumeClaim {
 			},
 		},
 	}
+}
+
+// S3AccessKeyID and S3SecretAccessKey are the credentials of the S3-compatible
+// object store created by NewS3ObjectStoreResources.
+const (
+	S3AccessKeyID     = "s3accesskey"
+	S3SecretAccessKey = "s3secretkey123"
+)
+
+// SSECustomerKeySecretKey is the key of the SSE-C key in the secret created by
+// NewSSECustomerKeySecret.
+const SSECustomerKeySecretKey = "key"
+
+// NewSSECustomerKeySecret creates a secret holding a random base64-encoded
+// 256-bit SSE-C key, and returns it together with the encoded key.
+func NewSSECustomerKeySecret(namespace, name string) (*corev1.Secret, string) {
+	raw := make([]byte, 32)
+	_, _ = rand.Read(raw)
+	key := base64.StdEncoding.EncodeToString(raw)
+
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			SSECustomerKeySecretKey: []byte(key),
+		},
+	}, key
 }
 
 // NewS3ObjectStore creates a new ObjectStore pointing at the S3-compatible

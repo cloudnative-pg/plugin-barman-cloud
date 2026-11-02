@@ -87,6 +87,16 @@ var _ = Describe("BuildRoleRules", func() {
 		Expect(rules[2].ResourceNames).To(BeEmpty())
 	})
 
+	It("should grant access to the SSE-C customer key secret", func() {
+		store := newTestObjectStore("store-a", "secret-a")
+		store.Spec.Configuration.AWS.SSECustomerKey = &machineryapi.SecretKeySelector{
+			LocalObjectReference: machineryapi.LocalObjectReference{Name: "sse-c-key"},
+			Key:                  "key",
+		}
+		rules := BuildRoleRules([]barmancloudv1.ObjectStore{store})
+		Expect(rules[2].ResourceNames).To(ConsistOf("secret-a", "sse-c-key"))
+	})
+
 	It("should deduplicate secret names across ObjectStores", func() {
 		objects := []barmancloudv1.ObjectStore{
 			newTestObjectStore("store-a", "shared-secret"),

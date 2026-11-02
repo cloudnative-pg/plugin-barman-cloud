@@ -24,7 +24,7 @@ spec:
       - name: init-permissions
         # renovate: datasource=docker depName=busybox versioning=docker
         # Version: 1.38.0
-        image: docker.io/library/busybox@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+        image: docker.io/library/busybox@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
         command:
         - sh
         - -c
@@ -44,8 +44,8 @@ spec:
       containers:
       - name: object-store
         # renovate: datasource=docker depName=rustfs/rustfs versioning=docker
-        # Version: 1.0.0-glibc
-        image: docker.io/rustfs/rustfs@sha256:bffcab0c9d647aab0055d1c69d340b202d0909966b385932d4ead1aeb7602858
+        # Version: 1.0.4-glibc
+        image: docker.io/rustfs/rustfs@sha256:a9b705b9256be756802a60f3498abdc543918b5b5a4437a57a541e89e733c74d
         command:
         - /usr/bin/rustfs
         ports:
@@ -82,6 +82,8 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
+          runAsUser: 10001  # rustfs user ID
+          runAsGroup: 10001  # rustfs group ID
           seccompProfile:
             type: RuntimeDefault
         livenessProbe:

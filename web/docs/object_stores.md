@@ -134,6 +134,15 @@ overhead.
 You can use S3-compatible services like **RustFS**, **Linode (Akamai) Object Storage**,
 or **DigitalOcean Spaces** by specifying a custom `endpointURL`.
 
+:::warning
+Barman Cloud uses the Boto3 SDK and takes AWS S3 as its reference
+implementation. Issues you can reproduce on AWS S3 are treated as Barman Cloud
+defects. Issues that happen only on a third-party object store are API
+incompatibilities, and you must resolve them with your storage vendor. See the
+[Barman Cloud documentation](https://docs.pgbarman.org/release/latest/) for
+known workarounds.
+:::
+
 Example with Linode (Akamai) Object Storage (`us-east1`):
 
 ```yaml
@@ -203,6 +212,68 @@ spec:
     [...]
   [...]
 ```
+
+### Server-Side Encryption with Customer Keys (SSE-C)
+
+Some S3-compatible providers, most notably **Hetzner Object Storage**, do
+not offer bucket-managed server-side encryption (SSE-S3 / SSE-KMS) and instead
+only support **Server-Side Encryption with Customer-provided keys (SSE-C)**.
+With SSE-C the encryption key never leaves your control: it is supplied with
+every request, and the provider uses it to encrypt and decrypt objects without
+storing it.
+
+To enable SSE-C, set the `sseCustomerKey` field in the `s3Credentials` block to
+a secret reference holding a **base64-encoded 256-bit (32-byte) AES key**.
+
+Generate the key and store it in a Kubernetes secret:
+
+```sh
+# Generate a random 256-bit key, base64-encoded
+openssl rand 32 | base64 > encryption.key
+
+kubectl create secret generic aws-sse-c \
+  --from-file=key=encryption.key
+```
+
+:::warning
+Keep this key safe and backed up **outside** the object store. If you lose
+it, your backups and WAL files become permanently unrecoverable. The
+provider cannot decrypt them for you.
+:::
+
+Reference it in your `ObjectStore` definition:
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: hetzner-store
+spec:
+  configuration:
+    destinationPath: "s3://BUCKET_NAME/path/to/folder"
+    endpointURL: "https://fsn1.your-objectstorage.com"
+    s3Credentials:
+      accessKeyId:
+        name: aws-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: aws-creds
+        key: ACCESS_SECRET_KEY
+      sseCustomerKey:
+        name: aws-sse-c
+        key: key
+  [...]
+```
+
+The same key is applied to **every** operation (base backups, WAL archiving,
+WAL restore, and data restore). It must remain unchanged and available for
+the whole lifetime of the backups it protects. To use a new key, use a new
+`destinationPath` or `serverName`.
+
+`sseCustomerKey` can be combined with any authentication method, including
+`inheritFromIAMRole`. It cannot be combined with the bucket-managed
+`encryption` setting (SSE-S3 / SSE-KMS) of the `data` and `wal` sections. An
+`ObjectStore` that sets both is rejected when it is created or updated.
 
 ### Using Object Storage with a Private CA
 
