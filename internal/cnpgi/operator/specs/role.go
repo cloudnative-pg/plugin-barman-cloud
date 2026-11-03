@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package specs
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 
@@ -126,10 +127,6 @@ func ObjectStoreNamesFromRole(role *rbacv1.Role) []string {
 func BuildRoleBinding(
 	cluster *cnpgv1.Cluster,
 ) *rbacv1.RoleBinding {
-	clusterServiceAccountName := cluster.Name
-	if cluster.Spec.ServiceAccountName != "" {
-		clusterServiceAccountName = cluster.Spec.ServiceAccountName
-	}
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
@@ -140,7 +137,7 @@ func BuildRoleBinding(
 			{
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
-				Name:      clusterServiceAccountName,
+				Name:      cmp.Or(cluster.Spec.ServiceAccountName, cluster.Name),
 				Namespace: cluster.Namespace,
 			},
 		},
