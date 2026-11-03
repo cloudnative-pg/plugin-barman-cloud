@@ -20,6 +20,7 @@ SPDX-License-Identifier: Apache-2.0
 package specs
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 
@@ -136,7 +137,7 @@ func BuildRoleBinding(
 			{
 				Kind:      "ServiceAccount",
 				APIGroup:  "",
-				Name:      cluster.Name,
+				Name:      cmp.Or(cluster.Spec.ServiceAccountName, cluster.Name),
 				Namespace: cluster.Namespace,
 			},
 		},
