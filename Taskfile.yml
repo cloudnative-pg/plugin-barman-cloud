@@ -6,10 +6,14 @@ output: prefixed
 
 includes:
   ci-machinery-infra:
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/main/taskfiles/taskfile.infra.yaml
+    # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/5447a7ecb13b90fe803843588f936daef5aa5197/taskfiles/taskfile.infra.yaml
     vars:
+      # Keep clear of the e2e registry, published on port 5000
       REGISTRY_HOST_PORT: 5050
-  ci-machinery-olm:  https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/refs/heads/main/taskfiles/taskfile.olm.yaml
+  ci-machinery-olm:
+    # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/5447a7ecb13b90fe803843588f936daef5aa5197/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
@@ -580,8 +584,6 @@ tasks:
       vars:
         - DOCKERFILE
         - IMAGE
-    vars:
-      DOCKER_BUILDER: cnpg
     cmds:
       - >
         docker buildx build --builder {{.DOCKER_BUILDER}} --push
@@ -592,11 +594,11 @@ tasks:
   olm:setup-kind-env:
     desc: Setup a kind cluster for OLM testing
     vars:
-      KUBECONFIG_PATH_EXPORT: '{{.KUBECONFIG_PATH_EXPORT | default "./kubeconfig-internal"}}'
+      KUBECONFIG_PATH: '{{.KUBECONFIG_PATH | default "./kubeconfig-internal"}}'
     internal: true
-    required:
+    requires:
       vars:
-        CLUSTER_NAME
+        - CLUSTER_NAME
     cmds:
       - task: ci-machinery-infra:setup-kind
         vars:
@@ -604,30 +606,30 @@ tasks:
       - task: ci-machinery-infra:export-kubeconfig
         vars:
           CLUSTER_NAME: '{{.CLUSTER_NAME}}'
-          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH_EXPORT}}'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
           INTERNAL: 'true'
       - task: ci-machinery-olm:olm-operator:setup
         vars:
-          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH_EXPORT}}'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
 
   olm:test:
     desc: Run the OLM CI pipeline
     vars:
       IMAGE_TAG:
         sh: set -o pipefail && git describe --tags --match 'v*' | sed -e 's/^v//; s/-g[0-9a-f]\+$//; s/-\([0-9]\+\)$/-dev\1/'
-      REGISTRY: 'registry.cnpg:5000'
+      REGISTRY: '{{.REGISTRY_NAME}}:{{.REGISTRY_INTERNAL_PORT}}'
       PLUGIN_IMAGE: '{{.PLUGIN_IMAGE | default (print .REGISTRY "/plugin-barman-cloud:" .IMAGE_TAG)}}'
       SIDECAR_IMAGE: '{{.SIDECAR_IMAGE | default (print .REGISTRY "/plugin-barman-cloud-sidecar:" .IMAGE_TAG)}}'
       PRODUCT_NAME: 'plugin-barman-cloud'
+      BUNDLE_TAG: '{{.IMAGE_TAG}}-bundle'
+      BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.BUNDLE_TAG}}'
       CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
+      KUBECONFIG_PATH: './kubeconfig-internal'
       SKIP_CONTAINERS_BUILD: '{{.SKIP_CONTAINERS_BUILD | default "false"}}'
     cmds:
       - defer:
-          task: ci-machinery-infra:teardown-container-registry
-      - defer:
-          task: ci-machinery-infra:teardown-builder
-      - defer:
-          task: ci-machinery-infra:teardown-dagger-engine
+          task: ci-machinery-infra:teardown
+      - task: ci-machinery-infra:setup-container-registry
       - task: olm:build-containers
         if: '[ "{{ .SKIP_CONTAINERS_BUILD }}" != "true" ]'
         vars:
@@ -650,28 +652,28 @@ tasks:
         vars:
           IMAGE_REGISTRY: '{{.REGISTRY}}'
           IMAGE_NAME: '{{.PRODUCT_NAME}}'
-          IMAGE_TAG: "{{.IMAGE_TAG}}-bundle"
+          IMAGE_TAG: '{{.BUNDLE_TAG}}'
       - task: ci-machinery-olm:bundle:validate
         vars:
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+          BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
       - defer:
           task: ci-machinery-infra:teardown-kind
           vars:
             CLUSTER_NAME: '{{.CLUSTER_NAME}}'
-      - defer: rm -f './kubeconfig-internal'
+      - defer: rm -f '{{.KUBECONFIG_PATH}}'
       - task: olm:setup-kind-env
         vars:
-          KUBECONFIG_PATH_EXPORT: './kubeconfig-internal'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
           CLUSTER_NAME: '{{.CLUSTER_NAME}}'
       - task: ci-machinery-olm:bundle:test-install
         vars:
-          KUBECONFIG_PATH: './kubeconfig-internal'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+          BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
       - task: ci-machinery-olm:bundle:scorecard
         vars:
-          KUBECONFIG_PATH: './kubeconfig-internal'
-          BUNDLE_IMAGE: '{{.REGISTRY}}/{{.PRODUCT_NAME}}:{{.IMAGE_TAG}}-bundle'
+          KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
+          BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
           EXTRA_ARGS: "--wait-time=60s"
       - task: ci-machinery-olm:operator-hub:fruit-tests
         vars:
@@ -682,3 +684,5 @@ tasks:
     desc: Remove autogenerated artifacts
     cmds:
       - rm -rf .task/
+      - rm -rf olm-manifests/ olm-bundle/
+      - rm -f kubeconfig-internal

@@ -56,6 +56,7 @@ jobs:
 
   olm:
     runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
@@ -72,7 +73,7 @@ jobs:
           DAGGER_VERSION: 0.21.11
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
-      - name: Run CI task
+      - name: Run OLM tests
         run: |
           task olm:test -y
 
