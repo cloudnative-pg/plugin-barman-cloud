@@ -495,21 +495,33 @@ tasks:
     generates:
       - ./manifest.yaml
 
-  olm:kustomization-patches:
-    desc: Render the OLM kustomize patches with the plugin and sidecar images
+  olm:kustomization:
+    desc: Build the OLM kustomization into OUTPUT_DIR/manifest.yaml (default OUTPUT_DIR is olm-manifests)
+    vars:
+      OUTPUT_DIR: '{{.OUTPUT_DIR | default "olm-manifests"}}'
+      PATCHES_DIR: "config/olm/generated"
     requires:
       vars:
         - PLUGIN_IMAGE
         - SIDECAR_IMAGE
     env:
+      # renovate: datasource=git-refs depName=kustomize lookupName=https://github.com/sagikazarmark/daggerverse currentValue=main
+      DAGGER_KUSTOMIZE_SHA: ff27cd50f6b4eed2e3753c520632cd6099e1ce52
+      # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize extractVersion=^kustomize/(?<version>.+)$
+      KUSTOMIZE_VERSION: v5.8.1
       PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
       SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
     cmds:
-      - mkdir -p config/olm/generated
+      - defer: rm -rf '{{.PATCHES_DIR}}'
+      - mkdir -p '{{.PATCHES_DIR}}'
       - >
         for f in config/olm/templates/*.yaml.tmpl; do
-        envsubst '${PLUGIN_IMAGE} ${SIDECAR_IMAGE}' < "$f" > "config/olm/generated/$(basename "$f" .tmpl)" || exit 1;
+        envsubst '${PLUGIN_IMAGE} ${SIDECAR_IMAGE}' < "$f" > "{{.PATCHES_DIR}}/$(basename "$f" .tmpl)" || exit 1;
         done
+      - >
+        GITHUB_REF= dagger -s call -m github.com/sagikazarmark/daggerverse/kustomize@${DAGGER_KUSTOMIZE_SHA}
+        --version ${KUSTOMIZE_VERSION}
+        build --source . --dir config/olm export --path '{{.OUTPUT_DIR}}/manifest.yaml'
 
   upload-manifest-to-release:
     desc: Upload the manifest to the release
