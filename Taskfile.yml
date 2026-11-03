@@ -7,13 +7,13 @@ output: prefixed
 includes:
   ci-machinery-infra:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/5447a7ecb13b90fe803843588f936daef5aa5197/taskfiles/taskfile.infra.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/dev/75/taskfiles/taskfile.infra.yaml
     vars:
       # Keep clear of the e2e registry, published on port 5000
       REGISTRY_HOST_PORT: 5050
   ci-machinery-olm:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/5447a7ecb13b90fe803843588f936daef5aa5197/taskfiles/taskfile.olm.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/dev/75/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
@@ -565,15 +565,18 @@ tasks:
       vars:
         - PLUGIN_IMAGE
         - SIDECAR_IMAGE
+        - PLATFORMS
     deps:
       - task: olm:build-container
         vars:
           DOCKERFILE: containers/Dockerfile.plugin
           IMAGE: '{{.PLUGIN_IMAGE}}'
+          PLATFORMS: '{{.PLATFORMS}}'
       - task: olm:build-container
         vars:
           DOCKERFILE: containers/Dockerfile.sidecar
           IMAGE: '{{.SIDECAR_IMAGE}}'
+          PLATFORMS: '{{.PLATFORMS}}'
 
   olm:build-container:
     internal: true
@@ -584,9 +587,11 @@ tasks:
       vars:
         - DOCKERFILE
         - IMAGE
+        - PLATFORMS
     cmds:
       - >
         docker buildx build --builder {{.DOCKER_BUILDER}} --push
+        --platform {{.PLATFORMS}}
         --file {{.DOCKERFILE}} --build-arg GO_VERSION={{.GO_VERSION}}
         --tag {{.IMAGE}}
         .
@@ -615,6 +620,7 @@ tasks:
   olm:test:
     desc: Run the OLM CI pipeline
     vars:
+      PLATFORMS: '{{.PLATFORMS | default (print "linux/" ARCH)}}'
       IMAGE_TAG:
         sh: set -o pipefail && git describe --tags --match 'v*' | sed -e 's/^v//; s/-g[0-9a-f]\+$//; s/-\([0-9]\+\)$/-dev\1/'
       REGISTRY: '{{.REGISTRY_NAME}}:{{.REGISTRY_INTERNAL_PORT}}'
@@ -626,6 +632,7 @@ tasks:
       CLUSTER_NAME: 'plugin-barman-cloud.olm-testing'
       KUBECONFIG_PATH: './kubeconfig-internal'
       SKIP_CONTAINERS_BUILD: '{{.SKIP_CONTAINERS_BUILD | default "false"}}'
+      SKIP_FRUIT_TESTS: '{{.SKIP_FRUIT_TESTS | default "false"}}'
     cmds:
       - defer:
           task: ci-machinery-infra:teardown
@@ -635,6 +642,7 @@ tasks:
         vars:
           PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
+          PLATFORMS: '{{.PLATFORMS}}'
       - defer: rm -rf config/olm/generated
       - task: olm:kustomization-patches
         vars:
@@ -653,6 +661,7 @@ tasks:
           IMAGE_REGISTRY: '{{.REGISTRY}}'
           IMAGE_NAME: '{{.PRODUCT_NAME}}'
           IMAGE_TAG: '{{.BUNDLE_TAG}}'
+          PLATFORMS: '{{.PLATFORMS}}'
       - task: ci-machinery-olm:bundle:validate
         vars:
           BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
@@ -670,12 +679,14 @@ tasks:
           KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
           BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
+          PLATFORMS: '{{.PLATFORMS}}'
       - task: ci-machinery-olm:bundle:scorecard
         vars:
           KUBECONFIG_PATH: '{{.KUBECONFIG_PATH}}'
           BUNDLE_IMAGE: '{{.BUNDLE_IMAGE}}'
           EXTRA_ARGS: "--wait-time=60s"
       - task: ci-machinery-olm:operator-hub:fruit-tests
+        if: '[ "{{ .SKIP_FRUIT_TESTS }}" != "true" ]'
         vars:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
           VERSION: '{{.IMAGE_TAG}}'
