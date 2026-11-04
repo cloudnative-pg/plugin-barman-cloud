@@ -644,12 +644,11 @@ tasks:
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
           PLATFORMS: '{{.PLATFORMS}}'
       - defer: rm -rf config/olm/generated
-      - task: olm:kustomization-patches
+      - defer: rm -rf olm-manifests
+      - task: olm:kustomization
         vars:
           PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
-      - defer: rm -rf olm-manifests
-      - task: olm:kustomization
       - defer: rm -rf olm-bundle
       - task: ci-machinery-olm:bundle:generate
         vars:
