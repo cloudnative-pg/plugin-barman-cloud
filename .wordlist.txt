@@ -104,6 +104,7 @@ desc
 devel
 env
 externalClusters
+gapped
 gcs
 gf
 github

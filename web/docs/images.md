@@ -44,3 +44,30 @@ This override is meant for debugging and testing. Running a sidecar whose
 version differs from the operator's is not recommended. Leave it unset in
 production.
 :::
+
+## Private Registries
+
+The sidecar runs inside the PostgreSQL pods, so it pulls its image with the
+same credentials as the other containers of the pod. Set them in the
+`Cluster`, as you would for the PostgreSQL image:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-example
+spec:
+  imagePullSecrets:
+    - name: my-registry-secret
+```
+
+There is no plugin-specific setting for this.
+
+:::note
+If the `Cluster` uses a custom `spec.serviceAccountName`, CloudNativePG does
+not manage the pull secrets of that service account. Add them to it yourself.
+:::
+
+For air-gapped environments, mirror the sidecar image to your registry and set
+the `SIDECAR_IMAGE` environment variable of the plugin deployment to the
+mirrored image.
