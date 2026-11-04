@@ -575,7 +575,6 @@ kubectl create secret generic s3-creds \
 
 Finally, create the Barman `ObjectStore`, pointing `endpointURL` at the Garage `Service`. 
 :::important
-Garage needs a path-style as destinationPath.
 Garage, by default, uses region `garage`.
 :::
 
@@ -586,7 +585,7 @@ metadata:
   name: s3-store
 spec:
   configuration:
-    destinationPath: s3://BUCKET_NAME/CLUSTER_NAME
+    destinationPath: s3://BUCKET_NAME/
     endpointURL: http://<garage-service>:3900
     s3Credentials:
       accessKeyId:
