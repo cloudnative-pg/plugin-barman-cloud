@@ -38,7 +38,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           task upload-manifest-to-release
-
       - name: Open the OperatorHub pull request
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_PAT }}
