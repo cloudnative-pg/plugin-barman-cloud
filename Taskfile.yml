@@ -415,11 +415,11 @@ tasks:
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
-      - cmd: >
+      - if: '[ -n "{{.OUTPUT_FILE}}" ]'
+        cmd: >
           printf '{"plugin": "%s", "sidecar": "%s"}\n'
           "$(head -n1 '{{.PUBLISH_DIR}}/plugin')" "$(head -n1 '{{.PUBLISH_DIR}}/sidecar')"
           > '{{.OUTPUT_FILE}}'
-        if: '[ -n "{{.OUTPUT_FILE}}" ]'
 
   controller-gen:
     desc: Run controller-gen
@@ -701,9 +701,10 @@ tasks:
           VERSION: '{{.IMAGE_TAG}}'
 
   olm:release:
-    desc: Build the OLM bundle and register it in the OperatorHub community repository
+    desc: Build the OLM bundle and release it in the OperatorHub community repository
     vars:
       PRODUCT_NAME: 'plugin-barman-cloud'
+      CHANNEL: 'stable-v0'
     requires:
       vars:
         - PLUGIN_IMAGE
@@ -717,6 +718,8 @@ tasks:
       - task: ci-machinery-olm:bundle:generate
         vars:
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
+          CHANNELS: '{{.CHANNEL}}'
+          DEFAULT_CHANNEL: '{{.CHANNEL}}'
           EXTRA_ARGS: "--use-image-digests"
           METADATA_DIR: "config/olm/metadata"
       - defer: rm -rf ./community-operators
