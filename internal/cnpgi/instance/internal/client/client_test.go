@@ -166,7 +166,7 @@ var _ = Describe("ExtendedClient Get", func() {
 			Expect(objectStore.GetResourceVersion()).To(Equal("from cache"))
 		})
 
-	It("does not block other lookups while a request to the API server is in flight", func(ctx SpecContext) {
+	It("serves cached lookups while a request to the API server is in flight", func(ctx SpecContext) {
 		requestStarted := make(chan struct{})
 		releaseRequest := make(chan struct{})
 		DeferCleanup(func() { close(releaseRequest) })
@@ -191,6 +191,7 @@ var _ = Describe("ExtendedClient Get", func() {
 				},
 			}).Build()
 		extendedClient = NewExtendedClient(baseClient).(*ExtendedClient)
+		addToCache(extendedClient, objectStore, time.Now().Unix())
 
 		go func() {
 			defer GinkgoRecover()
@@ -198,11 +199,13 @@ var _ = Describe("ExtendedClient Get", func() {
 		}()
 		Eventually(requestStarted).Should(BeClosed())
 
+		var cached barmancloudv1.ObjectStore
 		result := make(chan error, 1)
 		go func() {
-			result <- extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &barmancloudv1.ObjectStore{})
+			result <- extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &cached)
 		}()
 		Eventually(result).WithTimeout(2 * time.Second).Should(Receive(BeNil()))
+		Expect(cached.GetResourceVersion()).To(Equal("from cache"))
 	})
 
 	It("keeps a newer cached entry when an older request returns", func(ctx SpecContext) {
@@ -231,5 +234,15 @@ var _ = Describe("ExtendedClient Get", func() {
 		err = extendedClient.Get(ctx, client.ObjectKeyFromObject(objectStore), &cached)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cached.GetResourceVersion()).To(Equal("from cache"))
+	})
+
+	It("keeps the cached entry when a request sent in the same second returns", func() {
+		sent := time.Now().Unix()
+		addToCache(extendedClient, objectStore, sent)
+
+		extendedClient.storeInCache(objectStore.DeepCopy(), sent)
+
+		Expect(extendedClient.cachedObjects).To(HaveLen(1))
+		Expect(extendedClient.cachedObjects[0].entry.GetResourceVersion()).To(Equal("from cache"))
 	})
 })

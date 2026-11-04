@@ -99,7 +99,7 @@ func (e *ExtendedClient) getCachedObject(
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
 
-	contextLogger.Trace("locking the cache")
+	contextLogger.Trace("looking up the cache")
 	found, err := e.loadFromCache(key, obj)
 	if found || err != nil {
 		if found {
@@ -108,10 +108,8 @@ func (e *ExtendedClient) getCachedObject(
 		return err
 	}
 
-	// The request to the API server is done without holding the cache
-	// lock. A slow or stuck request must only block its own caller,
-	// not every other lookup (e.g. the metrics Collect call).
-	// The TTL counts from when the request was sent.
+	// No lock during the API request: a stuck request must block only
+	// its caller. The TTL counts from the time the request is sent.
 	fetchUnixTime := time.Now().Unix()
 	if err := e.Client.Get(ctx, key, obj, opts...); err != nil {
 		return err
@@ -157,8 +155,8 @@ func (e *ExtendedClient) loadFromCache(key client.ObjectKey, obj client.Object) 
 	return false, nil
 }
 
-// storeInCache adds obj to the cache, replacing any entry with the same
-// namespace, name and type, unless that entry was fetched later
+// storeInCache caches obj, unless the cache already holds a fetch of the
+// same object sent in the same second or later.
 func (e *ExtendedClient) storeInCache(obj client.Object, fetchUnixTime int64) {
 	cs := cachedEntry{
 		entry:         obj.DeepCopyObject().(client.Object),
@@ -173,7 +171,7 @@ func (e *ExtendedClient) storeInCache(obj client.Object, fetchUnixTime int64) {
 		if cacheEntry.entry.GetNamespace() == obj.GetNamespace() &&
 			cacheEntry.entry.GetName() == obj.GetName() &&
 			reflect.TypeOf(cacheEntry.entry) == reflect.TypeOf(obj) {
-			if cacheEntry.fetchUnixTime <= fetchUnixTime {
+			if cacheEntry.fetchUnixTime < fetchUnixTime {
 				e.cachedObjects[idx] = cs
 			}
 			return

@@ -141,8 +141,7 @@ var _ = Describe("Metrics Collect method", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("should return an error instead of hanging when the object store cannot be read", func() {
-		// Use a client whose requests never complete until the context is done
+	It("returns DeadlineExceeded when the object store read never completes", func() {
 		m.Client = fake.NewClientBuilder().
 			WithInterceptorFuncs(interceptor.Funcs{
 				Get: func(
@@ -160,7 +159,6 @@ var _ = Describe("Metrics Collect method", func() {
 
 		result := make(chan error, 1)
 		go func() {
-			// the instance manager calls Collect without a deadline
 			_, err := m.Collect(context.Background(), req)
 			result <- err
 		}()

@@ -37,10 +37,8 @@ import (
 // Sanitize the plugin name to be a valid Prometheus metric namespace
 var metricsDomain = strings.NewReplacer(".", "_", "-", "_").Replace(metadata.PluginName)
 
-// defaultMetricsCollectTimeout bounds a single Collect call. The instance
-// manager calls Collect while serving the /metrics endpoint of the
-// instance, so a Collect call that never returns would hang the whole
-// endpoint, not only the metrics of this plugin.
+// defaultMetricsCollectTimeout bounds Collect. The instance manager calls it
+// inside the /metrics handler, so a hang would block the whole endpoint.
 const defaultMetricsCollectTimeout = 5 * time.Second
 
 type metricsImpl struct {
@@ -48,7 +46,7 @@ type metricsImpl struct {
 	Client client.Client
 	metrics.UnimplementedMetricsServer
 
-	// collectTimeout overrides defaultMetricsCollectTimeout when set
+	// collectTimeout overrides the default, for tests
 	collectTimeout time.Duration
 }
 
