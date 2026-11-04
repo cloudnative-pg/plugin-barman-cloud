@@ -84,8 +84,10 @@ spec:
     - The CloudNativePG operator, version 1.30 or later.
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
+    - TLS certificates used for the mutual TLS (mTLS) communication
+      with the CloudNativePG operator.
 
-    ## Post-installation: TLS certificates
+    ### Post-installation: TLS certificates
 
     The plugin and the CloudNativePG operator communicate over mutual TLS.
     After installing the plugin, create the following secrets in the
