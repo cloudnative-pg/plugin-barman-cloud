@@ -1,0 +1,12 @@
+- op: add
+  path: /stages/0/tests/-
+  value:
+    entrypoint:
+    - scorecard-test
+    - basic-check-spec
+    # renovate: datasource=docker depName=quay.io/operator-framework/scorecard-test versioning=docker
+    # Version: v1.42.3
+    image: quay.io/operator-framework/scorecard-test@sha256:2370b520e3ca95b25544191d618b8b7fbe5a7c438ed84f729351847aee0ca6ea
+    labels:
+      suite: basic
+      test: basic-check-spec-test

@@ -1,0 +1,17 @@
+# Users create the TLS secrets after the install. Optional volumes let the pod
+# start without them; the plugin reads the certificates on each TLS handshake,
+# so it serves as soon as they exist. Until then, CNPG fails registering it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barman-cloud
+spec:
+  template:
+    spec:
+      volumes:
+        - name: server
+          secret:
+            optional: true
+        - name: client
+          secret:
+            optional: true

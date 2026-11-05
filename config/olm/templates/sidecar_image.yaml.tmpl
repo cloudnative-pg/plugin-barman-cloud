@@ -1,0 +1,18 @@
+# Not read by the plugin: operator-sdk lists RELATED_IMAGE_* env vars in
+# the CSV relatedImages, so the sidecar image, which the plugin injects at
+# runtime and is otherwise invisible to OLM, gets mirrored and pinned.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barman-cloud
+spec:
+  template:
+    spec:
+      containers:
+        - name: barman-cloud
+          env:
+            - name: RELATED_IMAGE_SIDECAR
+              value: ${SIDECAR_IMAGE}
+            - name: SIDECAR_IMAGE
+              value: ${SIDECAR_IMAGE}
+              valueFrom: null

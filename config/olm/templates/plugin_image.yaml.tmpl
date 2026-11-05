@@ -1,0 +1,5 @@
+# A patch rather than an `images` entry: the kubernetes/ base already
+# rewrites the plugin image, and a patch applies after it.
+- op: replace
+  path: /spec/template/spec/containers/0/image
+  value: ${PLUGIN_IMAGE}
