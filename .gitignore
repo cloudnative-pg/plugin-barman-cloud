@@ -47,5 +47,4 @@ manifest-build/
 
 # OLM rendered files
 config/olm/generated/
-olm-bundle/
 olm-manifests/
