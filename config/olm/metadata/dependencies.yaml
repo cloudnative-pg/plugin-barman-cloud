@@ -1,5 +1,0 @@
-dependencies:
-- type: olm.package
-  value:
-    packageName: cloudnative-pg
-    version: ">=1.30.0"
