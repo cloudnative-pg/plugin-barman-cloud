@@ -161,6 +161,26 @@ are replaced together, so the plugin is briefly unavailable regardless of the
 replica count. Multiple replicas protect against pod or node loss, not against
 upgrade downtime.
 
+## Restricting the Watched Namespaces
+
+By default the plugin operator works on every namespace. To limit it, set the
+`WATCH_NAMESPACE` environment variable on the plugin Deployment to a
+comma-separated list of namespaces:
+
+```sh
+kubectl -n cnpg-system set env deploy/barman-cloud WATCH_NAMESPACE=app1,app2
+```
+
+The plugin then only handles `Cluster` and `ObjectStore` resources in those
+namespaces. A `Cluster` in any other namespace fails with an error when it
+uses the plugin. When the variable is unset or empty, all namespaces are
+watched.
+
+The variable does not change the RBAC rules that come with the installation.
+To drop the cluster-wide permissions, grant the plugin a namespaced `Role` and
+`RoleBinding` in each listed namespace. Without them in every listed
+namespace, the plugin cannot work.
+
 ## Testing the latest development snapshot
 
 import { DevSnapshotSection } from '@site/src/components/Installation';
