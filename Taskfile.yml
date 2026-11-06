@@ -700,7 +700,7 @@ tasks:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
           VERSION: '{{.IMAGE_TAG}}'
 
-  olm:release:
+  operator-hub:release:
     desc: Build the OLM bundle and release it in the OperatorHub community repository
     vars:
       PRODUCT_NAME: 'plugin-barman-cloud'
@@ -710,6 +710,13 @@ tasks:
         - PLUGIN_IMAGE
         - SIDECAR_IMAGE
         - VERSION
+        - GITHUB_REF
+        - GITHUB_REF_NAME
+    preconditions:
+      - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
+        msg: not a tag, failing
+      - sh: '[ "v{{.VERSION}}" = "{{.GITHUB_REF_NAME}}" ]'
+        msg: VERSION {{.VERSION}} does not match the release tag {{.GITHUB_REF_NAME}}
     cmds:
       - task: olm:kustomization
         vars:
