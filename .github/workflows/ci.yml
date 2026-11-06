@@ -54,6 +54,29 @@ jobs:
         run: |
           task ci
 
+  olm:
+    runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Task
+        uses: arduino/setup-task@v3.0.0
+      - name: Install Dagger
+        env:
+          # renovate: datasource=github-tags depName=dagger/dagger versioning=semver
+          DAGGER_VERSION: 0.21.11
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
+      - name: Run OLM tests
+        run: |
+          task olm:test
+
   publish:
     runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
     permissions:
