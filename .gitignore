@@ -48,3 +48,6 @@ manifest-build/
 # OLM rendered files
 config/olm/generated/
 olm-manifests/
+olm-bundle/
+kubeconfig-internal
+buildkitd.toml
