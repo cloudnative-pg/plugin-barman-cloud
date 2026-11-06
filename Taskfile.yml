@@ -718,10 +718,14 @@ tasks:
       - sh: '[ "v{{.VERSION}}" = "{{.GITHUB_REF_NAME}}" ]'
         msg: VERSION {{.VERSION}} does not match the release tag {{.GITHUB_REF_NAME}}
     cmds:
+      - defer:
+          task: ci-machinery-infra:teardown
+      - defer: rm -rf olm-manifests
       - task: olm:kustomization
         vars:
           PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
+      - defer: rm -rf olm-bundle
       - task: ci-machinery-olm:bundle:generate
         vars:
           PACKAGE_NAME: '{{.PRODUCT_NAME}}'
