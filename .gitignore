@@ -48,6 +48,3 @@ manifest-build/
 # OLM rendered files
 config/olm/generated/
 olm-manifests/
-
-# OLM test kubeconfig
-kubeconfig-internal
