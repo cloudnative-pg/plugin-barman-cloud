@@ -37,7 +37,7 @@ PostgreSQL `Cluster`.
 
 There is a **direct mapping** between the `.spec.backup.barmanObjectStore`
 section in CloudNativePG and the `.spec.configuration` field in the
-`ObjectStore` CR. The conversion is mostly mechanical, with one key difference:
+`ObjectStore` CR. The conversion is mostly mechanical, with two key differences:
 
 :::warning
 In the plugin architecture, retention policies are defined as part of the `ObjectStore`.
@@ -46,6 +46,16 @@ In contrast, the in-tree implementation defined them at the `Cluster` level.
 
 If your `Cluster` used `.spec.backup.retentionPolicy`, move that configuration
 to `.spec.retentionPolicy` in the `ObjectStore`.
+
+:::warning
+Do not copy `serverName` into the `ObjectStore`. The `ObjectStore` API
+rejects `.spec.configuration.serverName` with
+`use the 'serverName' plugin parameter in the Cluster resource`.
+:::
+
+If your `Cluster` set `.spec.backup.barmanObjectStore.serverName`, leave it out
+of the `ObjectStore` and set it as the `serverName` plugin parameter in
+[Step 2](#step-2-update-the-cluster-for-plugin-wal-archiving) instead.
 
 ---
 
@@ -130,6 +140,22 @@ previous `backup` section:
     parameters:
       barmanObjectName: s3-eu
 ```
+
+If the in-tree configuration had a `serverName`, carry it over as a plugin
+parameter, so that the plugin keeps writing to the same path in the object
+store and the existing base backups and WAL files remain usable for recovery:
+
+```yaml
+  plugins:
+  - name: barman-cloud.cloudnative-pg.io
+    isWALArchiver: true
+    parameters:
+      barmanObjectName: s3-eu
+      serverName: pg-eu-v2
+```
+
+When `serverName` is not set, both the in-tree implementation and the plugin
+use the name of the `Cluster`, so no parameter is needed.
 
 ---
 
@@ -257,6 +283,15 @@ spec:
         barmanObjectName: s3-eu
         serverName: pg-eu
 ```
+
+:::warning
+Always set `serverName` explicitly when converting an external cluster. With
+the in-tree `barmanObjectStore`, an external cluster without `serverName`
+defaults to the name of the external cluster (`pg-eu` above). With the plugin,
+it defaults to the name of the `Cluster` being created (`pg-us` above), so
+omitting it makes the replica look for WAL files and base backups in the wrong
+path.
+:::
 
 ## Step 5: Verify your metrics
 
