@@ -25,14 +25,27 @@ jobs:
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Create image and manifest
+        id: publish
         env:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          task publish
+          task publish OUTPUT_FILE="${RUNNER_TEMP}/images.json"
           task manifest
+          echo "images=$(cat "${RUNNER_TEMP}/images.json")" >> "${GITHUB_OUTPUT}"
       - name: Attach manifest to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           task upload-manifest-to-release
+      - name: Open the OperatorHub pull request
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_PAT }}
+          PLUGIN_IMAGE: ${{ fromJSON(steps.publish.outputs.images).plugin }}
+          SIDECAR_IMAGE: ${{ fromJSON(steps.publish.outputs.images).sidecar }}
+          GIT_AUTHOR_NAME: ${{ github.actor }}
+          GIT_AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          GIT_COMMITTER_NAME: ${{ github.actor }}
+          GIT_COMMITTER_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+        run: |
+          task operator-hub:release PLUGIN_IMAGE="${PLUGIN_IMAGE}" SIDECAR_IMAGE="${SIDECAR_IMAGE}" VERSION="${GITHUB_REF_NAME#v}"
