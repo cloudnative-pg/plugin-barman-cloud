@@ -643,7 +643,6 @@ tasks:
           PLUGIN_IMAGE: '{{.PLUGIN_IMAGE}}'
           SIDECAR_IMAGE: '{{.SIDECAR_IMAGE}}'
           PLATFORMS: '{{.PLATFORMS}}'
-      - defer: rm -rf config/olm/generated
       - defer: rm -rf olm-manifests
       - task: olm:kustomization
         vars:

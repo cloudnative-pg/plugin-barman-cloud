@@ -52,7 +52,7 @@ jobs:
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run CI task
         run: |
-          task ci -y
+          task ci
 
   olm:
     runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
@@ -75,7 +75,7 @@ jobs:
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Run OLM tests
         run: |
-          task olm:test -y
+          task olm:test
 
   publish:
     runs-on: ${{ vars.CI_RUNNERS || 'ubuntu-latest' }}
@@ -99,7 +99,7 @@ jobs:
           curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$HOME/.local/bin sh
       - name: Write manifest
         run: |
-          task manifest -y
+          task manifest
       - name: Publish images
         if: |
           github.event_name == 'workflow_dispatch' ||
@@ -108,7 +108,7 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          task publish -y
+          task publish
       - name: Attach manifest to workflow run
         uses: actions/upload-artifact@v7
         with:

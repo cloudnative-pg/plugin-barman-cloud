@@ -29,10 +29,10 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          task publish -y
-          task manifest -y
+          task publish
+          task manifest
       - name: Attach manifest to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          task upload-manifest-to-release -y
+          task upload-manifest-to-release
