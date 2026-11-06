@@ -22,6 +22,7 @@ package operator
 import (
 	"context"
 	"crypto/tls"
+	"strings"
 
 	// +kubebuilder:scaffold:imports
 	"github.com/cloudnative-pg/machinery/pkg/log"
@@ -30,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -49,6 +51,20 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	barmancloudv1.AddKnownTypes(scheme)
 	// +kubebuilder:scaffold:scheme
+}
+
+// parseWatchNamespaces parses the comma-separated list of namespaces
+// contained in the WATCH_NAMESPACE environment variable, ignoring blank
+// entries. An empty result means that all the namespaces are watched.
+func parseWatchNamespaces(value string) []string {
+	var namespaces []string
+	for _, namespace := range strings.Split(value, ",") {
+		if namespace = strings.TrimSpace(namespace); namespace != "" {
+			namespaces = append(namespaces, namespace)
+		}
+	}
+
+	return namespaces
 }
 
 // Start starts the manager
@@ -100,8 +116,20 @@ func Start(ctx context.Context) error {
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
+	// When WATCH_NAMESPACE is set, the informer cache is restricted to the
+	// listed namespaces, so the plugin only needs namespaced RBAC there.
+	var cacheOptions cache.Options
+	if namespaces := parseWatchNamespaces(viper.GetString("watch-namespace")); len(namespaces) > 0 {
+		setupLog.Info("restricting to watched namespaces", "namespaces", namespaces)
+		cacheOptions.DefaultNamespaces = make(map[string]cache.Config, len(namespaces))
+		for _, namespace := range namespaces {
+			cacheOptions.DefaultNamespaces[namespace] = cache.Config{}
+		}
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
+		Cache:                  cacheOptions,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: viper.GetString("health-probe-bind-address"),
