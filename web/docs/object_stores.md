@@ -544,6 +544,64 @@ spec:
 
 The bucket is created on first use if it does not exist.
 
+---
+
+
+## Garage Object Store
+
+[Garage](https://garagehq.deuxfleurs.fr) is an open source, S3-compatible object store
+that can run inside your Kubernetes cluster. See the
+[RustFS documentation](https://garagehq.deuxfleurs.fr/documentation/cookbook/kubernetes/) for deployment options; a
+minimal `Deployment` with a `PersistentVolumeClaim` and a `Service` exposing
+port 3900 is enough for testing purposes. Garage serves only plain HTTP. When TLS is desired, a reverse proxy should be added [docs](https://garagehq.deuxfleurs.fr/documentation/cookbook/reverse-proxy/).
+See [Using Object Storage with a Private CA](#using-object-storage-with-a-private-ca) for configuring barman for TLS.
+
+Create a key/user for barman with the garage cli, create a bucket and grant the key/user read/write access to the bucket
+
+```sh
+kubectl exec -it statefulsets/garage -- ./garage key create cnpg-barman
+kubectl exec -it statefulsets/garage -- ./garage bucket create cnpg-backups;
+kubectl exec -it statefulsets/garage -- ./garage bucket allow --read --write --key cnpg-barman cnpg-backups;
+```
+
+Store the access key and secret key values in a `Secret` for the plugin:
+
+```sh
+kubectl create secret generic s3-creds \
+  --from-literal=ACCESS_KEY_ID=<garage access key> \
+  --from-literal=ACCESS_SECRET_KEY=<garage secret key> \
+  --from-literal=REGION=garage
+```
+
+Finally, create the Barman `ObjectStore`, pointing `endpointURL` at the Garage `Service`. 
+:::important
+Garage, by default, uses region `garage`.
+:::
+
+```yaml
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: s3-store
+spec:
+  configuration:
+    destinationPath: s3://BUCKET_NAME/
+    endpointURL: http://<garage-service>:3900
+    s3Credentials:
+      accessKeyId:
+        name: s3-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: s3-creds
+        key: ACCESS_SECRET_KEY
+      region:
+        name: s3-creds
+        key: REGION
+  [...]
+```
+
+The bucket is created on first use if it does not exist.
+
 :::important
 Verify on `s3://BUCKET_NAME/` the presence of archived WAL files before
 proceeding with a backup.
