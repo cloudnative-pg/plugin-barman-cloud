@@ -705,18 +705,16 @@ tasks:
     vars:
       PRODUCT_NAME: 'plugin-barman-cloud'
       CHANNEL: 'stable-v0'
+      VERSION: '{{trimPrefix "v" .GITHUB_REF_NAME}}'
     requires:
       vars:
         - PLUGIN_IMAGE
         - SIDECAR_IMAGE
-        - VERSION
         - GITHUB_REF
         - GITHUB_REF_NAME
     preconditions:
       - sh: "[[ {{.GITHUB_REF}} =~ 'refs/tags/v.*' ]]"
         msg: not a tag, failing
-      - sh: '[ "v{{.VERSION}}" = "{{.GITHUB_REF_NAME}}" ]'
-        msg: VERSION {{.VERSION}} does not match the release tag {{.GITHUB_REF_NAME}}
     cmds:
       - defer:
           task: ci-machinery-infra:teardown

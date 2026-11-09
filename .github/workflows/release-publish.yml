@@ -48,4 +48,4 @@ jobs:
           GIT_COMMITTER_NAME: ${{ github.actor }}
           GIT_COMMITTER_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
         run: |
-          task operator-hub:release PLUGIN_IMAGE="${PLUGIN_IMAGE}" SIDECAR_IMAGE="${SIDECAR_IMAGE}" VERSION="${GITHUB_REF_NAME#v}"
+          task operator-hub:release PLUGIN_IMAGE="${PLUGIN_IMAGE}" SIDECAR_IMAGE="${SIDECAR_IMAGE}"
