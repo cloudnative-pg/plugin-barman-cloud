@@ -398,27 +398,28 @@ tasks:
       # When set, the published images are written to this file as
       # {"plugin": "<image>", "sidecar": "<image>"}.
       OUTPUT_FILE: '{{.OUTPUT_FILE | default ""}}'
-      PUBLISH_DIR:
-        sh: mktemp -d
+      # Set only with OUTPUT_FILE: dagger saves each published image there instead of printing it.
+      PLUGIN_OUT: '{{if .OUTPUT_FILE}}-o {{.OUTPUT_FILE}}.plugin{{end}}'
+      SIDECAR_OUT: '{{if .OUTPUT_FILE}}-o {{.OUTPUT_FILE}}.sidecar{{end}}'
     env:
       # renovate: datasource=git-refs depName=docker lookupName=https://github.com/purpleclay/daggerverse currentValue=main
       DAGGER_DOCKER_SHA: ee12c1a4a2630e194ec20c5a9959183e3a78c192
     cmds:
-      - defer: rm -rf '{{.PUBLISH_DIR}}'
+      - defer: '[ -z "{{.OUTPUT_FILE}}" ] || rm -f "{{.OUTPUT_FILE}}.plugin" "{{.OUTPUT_FILE}}.sidecar"'
       - >
-        GITHUB_REF= dagger call -o '{{.PUBLISH_DIR}}/plugin' -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call {{.PLUGIN_OUT}} -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.plugin --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.PLUGIN_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - >
-        GITHUB_REF= dagger call -o '{{.PUBLISH_DIR}}/sidecar' -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
+        GITHUB_REF= dagger call {{.SIDECAR_OUT}} -m github.com/purpleclay/daggerverse/docker@${DAGGER_DOCKER_SHA}
         --registry ghcr.io --username $REGISTRY_USER --password env:REGISTRY_PASSWORD
         build --dir . --file containers/Dockerfile.sidecar --args GO_VERSION={{.GO_VERSION}} --platform linux/amd64 --platform linux/arm64
         publish --ref {{.SIDECAR_IMAGE_NAME}} --tags {{.IMAGE_VERSION}}
       - if: '[ -n "{{.OUTPUT_FILE}}" ]'
         cmd: >
           printf '{"plugin": "%s", "sidecar": "%s"}\n'
-          "$(head -n1 '{{.PUBLISH_DIR}}/plugin')" "$(head -n1 '{{.PUBLISH_DIR}}/sidecar')"
+          "$(head -n1 '{{.OUTPUT_FILE}}.plugin')" "$(head -n1 '{{.OUTPUT_FILE}}.sidecar')"
           > '{{.OUTPUT_FILE}}'
 
   controller-gen:
