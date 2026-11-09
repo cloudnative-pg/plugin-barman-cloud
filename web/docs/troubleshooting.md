@@ -236,7 +236,9 @@ When a backup fails, follow these steps in order:
    in-tree method, which requires a `.spec.backup` section in the `Cluster`.
    A `Cluster` that uses the plugin usually has no such section (see
    [Migrating from Built-in CloudNativePG Backup](migration.md)), so the
-   backup fails before the plugin is called.
+   backup fails before the plugin is called. The backup never starts. The
+   message shows in the `Backup` status and events, see
+   `kubectl describe backup <name>`.
 
    **Solution:** Set the method and the plugin name in the `Backup` or
    `ScheduledBackup`, as shown in
@@ -254,7 +256,8 @@ When a backup fails, follow these steps in order:
 
    ```sh
    kubectl cnpg backup -n <namespace> <cluster-name> \
-     -m plugin --plugin-name barman-cloud.cloudnative-pg.io
+     --method=plugin \
+     --plugin-name=barman-cloud.cloudnative-pg.io
    ```
 
 #### Backup performance issues
