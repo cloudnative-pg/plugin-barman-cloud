@@ -74,28 +74,33 @@ func GetRestoreCABundleEnv(configuration *barmanapi.BarmanObjectStoreConfigurati
 
 // MergeEnv merges all the values inside incomingEnv into env.
 func MergeEnv(env []string, incomingEnv []string) []string {
-	result := make([]string, len(env), len(env)+len(incomingEnv))
-	copy(result, env)
+	byName := make(map[string]string, len(env)+len(incomingEnv))
 
-	for _, incomingItem := range incomingEnv {
-		incomingKV := strings.SplitAfterN(incomingItem, "=", 2)
-		if len(incomingKV) != 2 {
-			continue
-		}
-
-		found := false
-		for idx, item := range result {
-			if strings.HasPrefix(item, incomingKV[0]) {
-				result[idx] = incomingItem
-				found = true
-			}
-		}
-		if !found {
-			result = append(result, incomingItem)
+	for _, item := range env {
+		if name, ok := envName(item); ok {
+			byName[name] = item
 		}
 	}
 
+	for _, item := range incomingEnv {
+		if name, ok := envName(item); ok {
+			byName[name] = item
+		}
+	}
+
+	result := make([]string, 0, len(byName))
+	for _, item := range byName {
+		result = append(result, item)
+	}
+
 	return result
+}
+
+// envName returns the name of a NAME=VALUE entry.
+func envName(item string) (string, bool) {
+	name, _, found := strings.Cut(item, "=")
+
+	return name, found
 }
 
 // BuildCertificateFilePath builds the path to the barman objectStore certificate
