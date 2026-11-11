@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.16.0...v0.16.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **deps:** Pin the Go toolchain to 1.27.4 ([#1231](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1231)) ([67af912](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/67af9120393b0bfa456333d3eafcce2814b87f57))
+
 ## [0.16.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.1...v0.16.0) (2026-11-09)
 
 
