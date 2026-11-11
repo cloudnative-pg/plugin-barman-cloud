@@ -142,8 +142,8 @@ and can be installed with the [Operator Lifecycle Manager](https://olm.operatorf
 (OLM), either from the OpenShift web console or by creating a `Subscription`.
 
 :::important
-Install the plugin in the **same namespace as the CloudNativePG operator**. 
-If CloudNativePG was also installed through OLM, use the namespace of its
+Install the plugin in the **same namespace as the CloudNativePG operator**.
+As CloudNativePG was also installed through OLM, use the namespace of its
 `Subscription` (for example `operators`).
 :::
 
@@ -172,7 +172,7 @@ kubectl -n <cnpg namespace> get csv
 ### Creating the TLS certificates
 
 An OLM bundle cannot contain cert-manager resources, so, unlike the other
-installation methods, **the plugin's TLS secrets are not created for you**. 
+installation methods, **the plugin's TLS secrets are not created for you**.
 The plugin pod starts without them, but CloudNativePG cannot register the plugin,
 and clusters that use it report an unknown plugin, until both secrets exist in
 the plugin's namespace:
