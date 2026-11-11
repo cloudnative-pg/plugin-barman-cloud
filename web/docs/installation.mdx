@@ -135,6 +135,114 @@ deployment "barman-cloud" successfully rolled out
 ```
 
   </TabItem>
+  <TabItem value="olm" label="OperatorHub (OLM)">
+
+The plugin is published on [OperatorHub](https://operatorhub.io/operator/plugin-barman-cloud)
+and can be installed with the [Operator Lifecycle Manager](https://olm.operatorframework.io/)
+(OLM), either from the OpenShift web console or by creating a `Subscription`.
+
+:::important
+Install the plugin in the **same namespace as the CloudNativePG operator**. 
+If CloudNativePG was also installed through OLM, use the namespace of its
+`Subscription` (for example `operators`).
+:::
+
+Create a `Subscription` for the plugin.
+The example below uses the `operatorhubio-catalog`
+catalog source shipped with upstream OLM:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: plugin-barman-cloud
+  namespace: <cnpg namespace>
+spec:
+  name: plugin-barman-cloud
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+```
+
+Wait for the `ClusterServiceVersion` to reach the `Succeeded` phase:
+
+```sh
+kubectl -n <cnpg namespace> get csv
+```
+
+### Creating the TLS certificates
+
+An OLM bundle cannot contain cert-manager resources, so, unlike the other
+installation methods, **the plugin's TLS secrets are not created for you**. 
+The plugin pod starts without them, but CloudNativePG cannot register the plugin,
+and clusters that use it report an unknown plugin, until both secrets exist in
+the plugin's namespace:
+
+- `barman-cloud-server-tls`
+- `barman-cloud-client-tls`
+
+If cert-manager is installed, create them with the following resources:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: barman-cloud-server
+spec:
+  secretName: barman-cloud-server-tls
+  commonName: barman-cloud
+  dnsNames:
+    - barman-cloud
+  usages:
+    - server auth
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: barman-cloud-client
+spec:
+  secretName: barman-cloud-client-tls
+  commonName: barman-cloud-client
+  usages:
+    - client auth
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+```
+
+```sh
+kubectl apply -n <cnpg namespace> -f certificates.yaml
+```
+
+The plugin loads the certificates on every TLS handshake, so it starts serving
+as soon as the secrets exist, without a restart. You can also provide the
+secrets by other means, as long as they have the same names and contain the
+`tls.crt` and `tls.key` keys.
+
+Finally, check that the deployment is up and running:
+
+```sh
+kubectl -n <cnpg namespace> rollout status deploy/barman-cloud
+```
+
+Example output:
+
+```output
+deployment "barman-cloud" successfully rolled out
+```
+
+  </TabItem>
 </Tabs>
 
 ---
