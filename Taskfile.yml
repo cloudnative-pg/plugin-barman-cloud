@@ -7,13 +7,13 @@ output: prefixed
 includes:
   ci-machinery-infra:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/92533c10fcf969cc67689084932d85547616bbd7/taskfiles/taskfile.infra.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/dev/92/taskfiles/taskfile.infra.yaml
     vars:
       # Keep clear of the e2e registry, published on port 5000
       REGISTRY_HOST_PORT: 5050
   ci-machinery-olm:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/92533c10fcf969cc67689084932d85547616bbd7/taskfiles/taskfile.olm.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/dev/92/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
@@ -700,6 +700,8 @@ tasks:
         vars:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
           VERSION: '{{.IMAGE_TAG}}'
+          SET_REPLACES: 'true'
+          CI_YAML: 'config/olm/ci.yaml'
 
   operator-hub:release:
     desc: Build the OLM bundle and release it in the OperatorHub community repository
@@ -740,6 +742,8 @@ tasks:
         vars:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
           VERSION: '{{.VERSION}}'
+          SET_REPLACES: 'true'
+          CI_YAML: 'config/olm/ci.yaml'
       - task: ci-machinery-olm:operator-hub:pull-request
         vars:
           OPERATOR_NAME: '{{.PRODUCT_NAME}}'
