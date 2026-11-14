@@ -35,6 +35,13 @@ import (
 	"github.com/cloudnative-pg/plugin-barman-cloud/internal/cnpgi/operator/rbac"
 )
 
+// objectStoreNotFoundRequeueAfter is how many seconds the operator waits
+// before running the reconciliation loop again when a Cluster refers to an
+// ObjectStore that does not exist yet. A requeue request without a delay is
+// dropped by the operator, so a Cluster created before its ObjectStore would
+// otherwise never be reconciled again until it is changed.
+const objectStoreNotFoundRequeueAfter int64 = 10
+
 // ReconcilerImplementation implements the Reconciler capability
 type ReconcilerImplementation struct {
 	Client client.Client
@@ -101,7 +108,8 @@ func (r ReconcilerImplementation) Pre(
 					"name", barmanObjectKey.Name,
 					"namespace", barmanObjectKey.Namespace)
 				return &reconciler.ReconcilerHooksResult{
-					Behavior: reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+					Behavior:     reconciler.ReconcilerHooksResult_BEHAVIOR_REQUEUE,
+					RequeueAfter: objectStoreNotFoundRequeueAfter,
 				}, nil
 			}
 
