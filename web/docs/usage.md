@@ -126,6 +126,37 @@ kubectl cnpg backup -n <namespace> <cluster-name> \
 ```
 :::
 
+### Locating a backup
+
+Once a backup completes, the plugin records where it was written in the
+`.status.pluginMetadata` section of the `Backup` object:
+
+| Key                | Value                                                                       |
+|--------------------|-----------------------------------------------------------------------------|
+| `barmanObjectName` | Name of the `ObjectStore` the backup was written to                         |
+| `serverName`       | Server name used for the backup (the `serverName` parameter, or the cluster name when unset) |
+| `destinationPath`  | `destinationPath` of the `ObjectStore` at backup time                       |
+| `endpointURL`      | `endpointURL` of the `ObjectStore` at backup time, only when set            |
+
+Credentials embedded in `destinationPath` or `endpointURL` are masked.
+
+Use `barmanObjectName` and `serverName` to fill in the `externalClusters`
+entry when [restoring a cluster](#restoring-a-cluster) from this backup.
+`destinationPath` and `endpointURL` show whether the `ObjectStore` has
+been changed to point somewhere else since the backup was taken.
+
+:::important
+`barmanObjectName` always refers to an `ObjectStore` in the namespace of
+the `Cluster` that uses it. To restore into a different namespace, create
+an `ObjectStore` there with the same `destinationPath`, `endpointURL` and
+credentials, and reference that one instead.
+:::
+
+:::note
+Backups taken with plugin versions that predate this feature don't carry
+these keys.
+:::
+
 ## Restoring a Cluster
 
 To restore a cluster from an object store, create a new `Cluster` resource that
