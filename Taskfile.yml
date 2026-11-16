@@ -7,13 +7,13 @@ output: prefixed
 includes:
   ci-machinery-infra:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/92533c10fcf969cc67689084932d85547616bbd7/taskfiles/taskfile.infra.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/18c22ef39efad74d3fb30b85f4222c8486bb7a32/taskfiles/taskfile.infra.yaml
     vars:
       # Keep clear of the e2e registry, published on port 5000
       REGISTRY_HOST_PORT: 5050
   ci-machinery-olm:
     # renovate: datasource=git-refs depName=ci-machinery lookupName=https://github.com/cloudnative-pg/ci-machinery currentValue=main
-    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/92533c10fcf969cc67689084932d85547616bbd7/taskfiles/taskfile.olm.yaml
+    taskfile: https://raw.githubusercontent.com/cloudnative-pg/ci-machinery/18c22ef39efad74d3fb30b85f4222c8486bb7a32/taskfiles/taskfile.olm.yaml
 
 # Variables that are shared across tasks.
 vars:
