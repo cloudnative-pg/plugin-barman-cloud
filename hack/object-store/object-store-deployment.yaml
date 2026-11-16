@@ -44,8 +44,8 @@ spec:
       containers:
       - name: object-store
         # renovate: datasource=docker depName=rustfs/rustfs versioning=docker
-        # Version: 1.0.5-glibc
-        image: docker.io/rustfs/rustfs@sha256:f9697e5401145bc3bc3926ea0ab3b39b0dabf8a4e8c28b125dde62cf264350e7
+        # Version: 1.0.6-glibc
+        image: docker.io/rustfs/rustfs@sha256:b9e3eef25e9668e9122b34eb286ead7a7e082cd2ac8ddf0dac9cd2abad861b5a
         command:
         - /usr/bin/rustfs
         ports:
