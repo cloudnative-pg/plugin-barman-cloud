@@ -139,12 +139,22 @@ deployment "barman-cloud" successfully rolled out
 
 The plugin is published on [OperatorHub](https://operatorhub.io/operator/plugin-barman-cloud)
 and can be installed with the [Operator Lifecycle Manager](https://olm.operatorframework.io/)
-(OLM), either from the OpenShift web console or by creating a `Subscription`.
+(OLM) by creating a `Subscription`.
 
 :::important
-Install the plugin in the **same namespace as the CloudNativePG operator**.
-As CloudNativePG was also installed through OLM, use the namespace of its
-`Subscription` (for example `operators`).
+This installation method **requires CloudNativePG to be installed through OLM
+as well**. The plugin depends on the CloudNativePG APIs (the `Cluster` and
+`Backup` resources of the `postgresql.cnpg.io` group), so OLM looks for an
+operator it manages that provides them. If CloudNativePG was installed in any
+other way (for example with the manifest or the Helm chart), OLM does not
+detect it and **installs a second CloudNativePG operator** to satisfy the
+dependency, which conflicts with the existing one.
+
+If your CloudNativePG operator is not managed by OLM, use one of the other
+installation methods instead.
+
+Install the plugin in the **same namespace as the CloudNativePG operator**,
+that is, the namespace of its OLM `Subscription` (for example `operators`).
 :::
 
 Create a `Subscription` for the plugin.
