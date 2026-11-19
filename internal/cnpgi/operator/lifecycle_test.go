@@ -276,6 +276,30 @@ var _ = Describe("LifecycleImplementation", func() {
 			Expect(string(response.JsonPatch)).To(ContainSubstring(`"image":"custom:1"`))
 		})
 
+		It("prefers the configured sidecar envs over the main container ones", func(ctx SpecContext) {
+			pod := &corev1.Pod{
+				TypeMeta:   podTypeMeta,
+				ObjectMeta: metav1.ObjectMeta{Name: "test-pod"},
+				Spec: corev1.PodSpec{Containers: []corev1.Container{{
+					Name: "postgres",
+					Env: []corev1.EnvVar{
+						{Name: "TMPDIR", Value: "/controller/tmp"},
+						{Name: "PGHOST", Value: "/controller/run"},
+					},
+				}}},
+			}
+			podJSON, _ := json.Marshal(pod)
+			request := &lifecycle.OperatorLifecycleRequest{ObjectDefinition: podJSON}
+
+			response, err := reconcileInstancePod(ctx, cluster, request, pluginConfiguration, sidecarConfiguration{
+				env: []corev1.EnvVar{{Name: "TMPDIR", Value: "/dev/shm"}},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(response.JsonPatch)).To(ContainSubstring(`{"name":"TMPDIR","value":"/dev/shm"}`))
+			Expect(string(response.JsonPatch)).To(ContainSubstring(`{"name":"PGHOST","value":"/controller/run"}`))
+			Expect(string(response.JsonPatch)).NotTo(ContainSubstring(`"/controller/tmp"`))
+		})
+
 		It("injects the sidecar for a recovery-only cluster", func(ctx SpecContext) {
 			recoveryOnlyConfig := &config.PluginConfiguration{
 				RecoveryBarmanObjectName: "object-store-recovery",
