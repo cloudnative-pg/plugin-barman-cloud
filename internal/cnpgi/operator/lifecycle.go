@@ -24,6 +24,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	cnpgv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -413,7 +414,7 @@ func reconcilePodSpec(
 	sidecarTemplate corev1.Container,
 	config sidecarConfiguration,
 ) error {
-	envs := make([]corev1.EnvVar, 0, 5+len(config.env))
+	envs := make([]corev1.EnvVar, 0, 5)
 	envs = append(envs,
 		corev1.EnvVar{
 			Name:  "NAMESPACE",
@@ -438,8 +439,6 @@ func reconcilePodSpec(
 			Value: cluster.GetObjectKind().GroupVersionKind().Version,
 		},
 	)
-
-	envs = append(envs, config.env...)
 
 	baseProbe := &corev1.Probe{
 		PeriodSeconds:    1,
@@ -473,38 +472,18 @@ func reconcilePodSpec(
 	sidecarTemplate.Resources = config.resources
 	sidecarTemplate.Args = append(sidecarTemplate.Args, config.additionalArgs...)
 
+	sidecarTemplate.Env = appendMissingEnvs(sidecarTemplate.Env, config.env)
+
 	// merge the main container envs if they aren't already set
 	for _, container := range spec.Containers {
 		if container.Name == mainContainerName {
-			for _, env := range container.Env {
-				found := false
-				for _, existingEnv := range sidecarTemplate.Env {
-					if existingEnv.Name == env.Name {
-						found = true
-						break
-					}
-				}
-				if !found {
-					sidecarTemplate.Env = append(sidecarTemplate.Env, env)
-				}
-			}
+			sidecarTemplate.Env = appendMissingEnvs(sidecarTemplate.Env, container.Env)
 			break
 		}
 	}
 
 	// merge the default envs if they aren't already set
-	for _, env := range envs {
-		found := false
-		for _, existingEnv := range sidecarTemplate.Env {
-			if existingEnv.Name == env.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			sidecarTemplate.Env = append(sidecarTemplate.Env, env)
-		}
-	}
+	sidecarTemplate.Env = appendMissingEnvs(sidecarTemplate.Env, envs)
 
 	if len(config.certificates) > 0 {
 		sidecarTemplate.VolumeMounts = ensureVolumeMount(
@@ -647,6 +626,19 @@ func ensureVolumeMount(mounts []corev1.VolumeMount, volumeMounts ...corev1.Volum
 	}
 
 	return mounts
+}
+
+// appendMissingEnvs appends the passed envs whose name is not already present in the list of envs.
+func appendMissingEnvs(envs []corev1.EnvVar, incomingEnvs []corev1.EnvVar) []corev1.EnvVar {
+	for _, env := range incomingEnvs {
+		if !slices.ContainsFunc(envs, func(existingEnv corev1.EnvVar) bool {
+			return existingEnv.Name == env.Name
+		}) {
+			envs = append(envs, env)
+		}
+	}
+
+	return envs
 }
 
 // removeVolume removes a volume with a known name from a list of volumes.
