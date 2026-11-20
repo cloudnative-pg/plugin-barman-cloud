@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.16.1](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.16.0...v0.16.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **deps:** Pin the Go toolchain to 1.27.4 ([#1231](https://github.com/cloudnative-pg/plugin-barman-cloud/issues/1231)) ([67af912](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/67af9120393b0bfa456333d3eafcce2814b87f57))
+* **deps:** Update module github.com/cloudnative-pg/cloudnative-pg to v1.30.2 ([916714e](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/916714e4ecb0480b088fb38cda575e479442c3b3))
+* **deps:** Update module github.com/cloudnative-pg/machinery to v0.7.0 ([691a620](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/691a620091ead51f441e43bab99a30731111cc54))
+* **deps:** Update module sigs.k8s.io/controller-runtime to v0.25.3 ([ab44272](https://github.com/cloudnative-pg/plugin-barman-cloud/commit/ab44272fb7fd7a312ce6f96e36cd5711335948f5))
+
 ## [0.16.0](https://github.com/cloudnative-pg/plugin-barman-cloud/compare/v0.15.1...v0.16.0) (2026-11-09)
 
 
