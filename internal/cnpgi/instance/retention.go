@@ -189,7 +189,24 @@ func (c *CatalogMaintenanceRunnable) maintenance(
 }
 
 // deleteBackupsNotInCatalog deletes all Backup objects pointing to the given cluster that are not
-// present in the backup anymore
+// present in the backup anymore.
+//
+// The deletion is guarded against short catalog listings (see #1115):
+// barman-cloud-backup-list exits successfully even when some backup.info
+// files cannot be read, so a transient object-store error can make the
+// listing come back short (or empty) and every missing Backup object would
+// be deleted. To avoid that, this function:
+//
+//   - skips the deletion pass entirely when the catalog is empty, and
+//   - only deletes a Backup object when its backup is older than the oldest
+//     entry still in the catalog. Those are the backups the retention policy
+//     has already pruned from the bucket, so the catalog is expected to have
+//     dropped them. A backup newer than the oldest catalog entry is still
+//     inside the retention window and must still be listed; if it is missing,
+//     the listing is short and the object is kept for the next cycle.
+//
+// A Backup object whose backup ID cannot be parsed is never deleted: when
+// the age of a backup cannot be established, keeping it is the safe choice.
 func deleteBackupsNotInCatalog(
 	ctx context.Context,
 	cli client.Client,
@@ -220,6 +237,24 @@ func deleteBackupsNotInCatalog(
 	contextLogger := log.FromContext(ctx)
 	contextLogger.Debug("Checking the catalog to delete backups not present anymore")
 
+	if len(backupIDs) == 0 {
+		// An empty catalog most likely means the listing failed or came back
+		// short, not that the bucket is genuinely empty. Deleting every
+		// completed Backup object on an empty listing would remove valid
+		// backups, so skip this pass and let the next cycle retry.
+		contextLogger.Info("Skipping deletion of backups not in the catalog: empty backup catalog")
+		return nil
+	}
+
+	oldestCatalogBackup, err := oldestBackupTime(backupIDs)
+	if err != nil {
+		// Without a usable catalog boundary the age of a missing backup
+		// cannot be established, so keep every Backup object for now.
+		contextLogger.Info("Skipping deletion of backups not in the catalog: " +
+			"cannot determine the oldest catalog backup")
+		return nil
+	}
+
 	backups := cnpgv1.BackupList{}
 	if err := cli.List(ctx, &backups, client.InNamespace(cluster.GetNamespace())); err != nil {
 		return fmt.Errorf("while getting backups: %w", err)
@@ -236,6 +271,26 @@ func deleteBackupsNotInCatalog(
 		// here we could add further checks, e.g. if the backup is not found but would still
 		// be in the retention policy we could either not delete it or update it is status
 		if !slices.Contains(backupIDs, backup.Status.BackupID) {
+			backupTime, err := parseBackupIDTime(backup.Status.BackupID)
+			if err != nil {
+				contextLogger.Info("Skipping deletion of backup not in the catalog: "+
+					"cannot parse backup ID",
+					"backup", backup.Name, "backupID", backup.Status.BackupID)
+				continue
+			}
+
+			if !backupTime.Before(oldestCatalogBackup) {
+				// The backup is newer than the oldest entry still in the
+				// catalog, so it is still inside the retention window and
+				// the catalog is expected to list it. Its absence means
+				// the listing came back short; keep the object for the
+				// next cycle instead of deleting a valid backup.
+				contextLogger.Info("Skipping deletion of backup not in the catalog: "+
+					"backup is newer than the oldest catalog entry",
+					"backup", backup.Name, "backupID", backup.Status.BackupID)
+				continue
+			}
+
 			contextLogger.Info("Deleting backup not in the catalog", "backup", backup.Name)
 			if err := cli.Delete(ctx, &backups.Items[id]); err != nil {
 				errors = append(errors, fmt.Errorf(
@@ -253,6 +308,44 @@ func deleteBackupsNotInCatalog(
 	}
 
 	return nil
+}
+
+// backupIDTimeLayouts are the formats a Barman backup ID can have.
+// Barman writes IDs as YYYYMMDDTHHMMSS, while some callers drop the "T".
+var backupIDTimeLayouts = []string{"20060102T150405", "20060102150405"}
+
+// parseBackupIDTime parses the timestamp carried by a Barman backup ID.
+func parseBackupIDTime(backupID string) (time.Time, error) {
+	for _, layout := range backupIDTimeLayouts {
+		if t, err := time.Parse(layout, backupID); err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("unrecognized backup ID format: %q", backupID)
+}
+
+// oldestBackupTime returns the oldest backup time among the given catalog
+// backup IDs. It returns an error when none of the IDs can be parsed.
+func oldestBackupTime(backupIDs []string) (time.Time, error) {
+	var oldest time.Time
+
+	for _, backupID := range backupIDs {
+		backupTime, err := parseBackupIDTime(backupID)
+		if err != nil {
+			continue
+		}
+
+		if oldest.IsZero() || backupTime.Before(oldest) {
+			oldest = backupTime
+		}
+	}
+
+	if oldest.IsZero() {
+		return time.Time{}, fmt.Errorf("no parsable backup ID in the catalog")
+	}
+
+	return oldest, nil
 }
 
 // useSameBackupLocation checks whether the given backup was taken using the same configuration as provided
