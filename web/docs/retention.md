@@ -36,3 +36,19 @@ Backups older than that are marked as *obsolete* and deleted after the next
 backup completes.
 :::
 
+### Retention is applied per serverName
+
+The retention policy is applied only to the lineage the cluster currently
+archives to, that is, to the backups stored under the cluster's current
+`serverName`. Earlier lineages are never pruned by the policy.
+
+This matters after a recovery: the recommended recovery pattern restores
+from the old `serverName` and archives to a new one, because the plugin
+refuses to archive into a non-empty folder. After each recovery the
+ObjectStore therefore holds several lineages, for example
+`s3://bucket/cluster-a/`, `s3://bucket/cluster-a-dr1/` and
+`s3://bucket/cluster-a-dr2/`, and only the current one is covered by the
+retention policy. The earlier lineages keep growing unless you delete them
+by hand. `ObjectStore.status` lists all the lineages with their recovery
+windows, so you can see which ones are no longer archived to.
+
