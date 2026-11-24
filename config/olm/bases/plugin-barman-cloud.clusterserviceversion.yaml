@@ -84,23 +84,31 @@ spec:
     - The CloudNativePG operator, version 1.30 or later.
     - The plugin **must** be installed in the same namespace as the
       CloudNativePG operator.
-    - TLS certificates used for the mutual TLS (mTLS) communication
-      with the CloudNativePG operator.
+    - Two TLS secrets, `barman-cloud-server-tls` and
+      `barman-cloud-client-tls`, used for the mutual TLS (mTLS)
+      communication with the CloudNativePG operator (see below).
 
-    ### Post-installation: TLS certificates
+    ### Post-installation: TLS secrets
 
     The plugin and the CloudNativePG operator communicate over mutual TLS.
-    After installing the plugin, create the following secrets in the
-    plugin's namespace:
+    After installing the plugin, the following two secrets of type
+    `kubernetes.io/tls` (with the `tls.crt` and `tls.key` keys) must exist
+    in the plugin's namespace:
 
     - `barman-cloud-server-tls`: server certificate, valid for the
       `barman-cloud` DNS name
     - `barman-cloud-client-tls`: client certificate used by the
       CloudNativePG operator
 
-    The plugin starts serving requests as soon as both secrets exist; no
-    restart is needed. The recommended way to create and renew them is
-    [cert-manager](https://cert-manager.io/):
+    The plugin pod starts without them, but until both secrets exist
+    CloudNativePG cannot register the plugin, and clusters that use it
+    report an unknown plugin. The plugin starts serving requests as soon as
+    both secrets exist; no restart is needed.
+
+    The secrets can be generated with any tool, as long as they have the
+    names and content described above. For example,
+    with [cert-manager](https://cert-manager.io/) installed, the following
+    resources create and renew them:
 
     ```yaml
     apiVersion: cert-manager.io/v1
