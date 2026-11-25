@@ -135,6 +135,43 @@ deployment "barman-cloud" successfully rolled out
 ```
 
   </TabItem>
+  <TabItem value="olm" label="OperatorHub (OLM)">
+
+The plugin is published on [OperatorHub](https://operatorhub.io/operator/plugin-barman-cloud)
+and can be installed with the [Operator Lifecycle Manager](https://olm.operatorframework.io/)
+(OLM). Follow the installation instructions on that page.
+
+:::important
+This installation method **requires CloudNativePG to be installed through OLM
+as well**. The plugin depends on the CloudNativePG APIs (the `Cluster` and
+`Backup` resources of the `postgresql.cnpg.io` group), so OLM looks for an
+operator it manages that provides them. If CloudNativePG was installed in any
+other way (for example with the manifest or the Helm chart), OLM does not
+detect it and **installs a second CloudNativePG operator** to satisfy the
+dependency, which conflicts with the existing one.
+
+If your CloudNativePG operator is not managed by OLM, use one of the other
+installation methods instead.
+:::
+
+Unlike the other installation methods, OLM **does not create the plugin's TLS
+secrets**. You must provide them after the installation, as described in the
+post-installation section of the
+[OperatorHub page](https://operatorhub.io/operator/plugin-barman-cloud).
+
+Finally, check that the deployment is up and running:
+
+```sh
+kubectl -n <cnpg namespace> rollout status deploy/barman-cloud
+```
+
+Example output:
+
+```output
+deployment "barman-cloud" successfully rolled out
+```
+
+  </TabItem>
 </Tabs>
 
 ---
