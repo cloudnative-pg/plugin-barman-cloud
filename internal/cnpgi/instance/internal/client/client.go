@@ -99,13 +99,35 @@ func (e *ExtendedClient) getCachedObject(
 		WithName("extended_client").
 		WithValues("name", key.Name, "namespace", key.Namespace)
 
-	contextLogger.Trace("locking the cache")
+	contextLogger.Trace("looking up the cache")
+	found, err := e.loadFromCache(key, obj)
+	if found || err != nil {
+		if found {
+			contextLogger.Debug("object found, loaded it from cache")
+		}
+		return err
+	}
+
+	// No lock during the API request: a stuck request must block only
+	// its caller. The TTL counts from the time the request is sent.
+	fetchUnixTime := time.Now().Unix()
+	if err := e.Client.Get(ctx, key, obj, opts...); err != nil {
+		return err
+	}
+
+	contextLogger.Debug("setting object in the cache")
+	e.storeInCache(obj, fetchUnixTime)
+
+	return nil
+}
+
+// loadFromCache copies a non-expired cached entry matching key and the type
+// of obj into obj. It returns true if such an entry was found.
+func (e *ExtendedClient) loadFromCache(key client.ObjectKey, obj client.Object) (bool, error) {
 	e.mux.Lock()
 	defer e.mux.Unlock()
 
-	// check if in cache
-	expiredObjectIndex := -1
-	for idx, cacheEntry := range e.cachedObjects {
+	for _, cacheEntry := range e.cachedObjects {
 		if cacheEntry.entry.GetNamespace() != key.Namespace || cacheEntry.entry.GetName() != key.Name {
 			continue
 		}
@@ -113,12 +135,8 @@ func (e *ExtendedClient) getCachedObject(
 			continue
 		}
 		if cacheEntry.isExpired() {
-			contextLogger.Trace("expired object found")
-			expiredObjectIndex = idx
-			break
+			return false, nil
 		}
-
-		contextLogger.Debug("object found, loading it from cache")
 
 		// Yes, this is a terrible hack, but that's exactly the way
 		// controller-runtime works.
@@ -127,31 +145,40 @@ func (e *ExtendedClient) getCachedObject(
 		outVal := reflect.ValueOf(obj)
 		objVal := reflect.ValueOf(cacheEntry.entry)
 		if !objVal.Type().AssignableTo(outVal.Type()) {
-			return fmt.Errorf("cache had type %s, but %s was asked for", objVal.Type(), outVal.Type())
+			return false, fmt.Errorf("cache had type %s, but %s was asked for", objVal.Type(), outVal.Type())
 		}
 
 		reflect.Indirect(outVal).Set(reflect.Indirect(objVal))
-		return nil
+		return true, nil
 	}
 
-	if err := e.Client.Get(ctx, key, obj, opts...); err != nil {
-		return err
-	}
+	return false, nil
+}
 
+// storeInCache caches obj, unless the cache already holds a fetch of the
+// same object sent in the same second or later.
+func (e *ExtendedClient) storeInCache(obj client.Object, fetchUnixTime int64) {
 	cs := cachedEntry{
 		entry:         obj.DeepCopyObject().(client.Object),
-		fetchUnixTime: time.Now().Unix(),
+		fetchUnixTime: fetchUnixTime,
 		ttlSeconds:    DefaultTTLSeconds,
 	}
 
-	contextLogger.Debug("setting object in the cache")
-	if expiredObjectIndex != -1 {
-		e.cachedObjects[expiredObjectIndex] = cs
-	} else {
-		e.cachedObjects = append(e.cachedObjects, cs)
+	e.mux.Lock()
+	defer e.mux.Unlock()
+
+	for idx, cacheEntry := range e.cachedObjects {
+		if cacheEntry.entry.GetNamespace() == obj.GetNamespace() &&
+			cacheEntry.entry.GetName() == obj.GetName() &&
+			reflect.TypeOf(cacheEntry.entry) == reflect.TypeOf(obj) {
+			if cacheEntry.fetchUnixTime < fetchUnixTime {
+				e.cachedObjects[idx] = cs
+			}
+			return
+		}
 	}
 
-	return nil
+	e.cachedObjects = append(e.cachedObjects, cs)
 }
 
 // removeObject ensures that a object is not present in the cache
