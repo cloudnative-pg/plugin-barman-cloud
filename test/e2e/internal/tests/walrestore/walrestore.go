@@ -51,6 +51,15 @@ const (
 	// which lives on the CloudNativePG scratch-data volume shared with the
 	// postgres container, so the path is visible from the postgres container too.
 	spoolDirectory = "/controller/wal-restore-spool"
+	// streamingRetryStateFile is where the CloudNativePG instance manager keeps
+	// the state of the periodic forced restore failures that let a standby
+	// retry streaming replication. Every 30s, measured from the first restore
+	// of the standby, wal-restore fails on purpose for 5s on any segment that
+	// is not in the spool, unless the instance manager cannot store this state
+	// (it logs "Cannot store the streaming retry state" and skips the failure).
+	// The test makes the file read-only, so this holds for the whole spec. It
+	// needs a non-root exec user and the CloudNativePG main behavior.
+	streamingRetryStateFile = "/controller/wal-restore-streaming-retry.json"
 	// pgWalPath is PgDataPath + "/pg_wal" in the CloudNativePG operand image.
 	pgWalPath = "/var/lib/postgresql/data/pgdata/pg_wal"
 	// endOfWALStreamFlag is the sentinel file the barman-cloud restorer writes in
@@ -106,6 +115,21 @@ func execInPod(
 		nil,
 		args,
 	)
+}
+
+// dumpSidecarLogs prints the tail of the plugin sidecar logs of a pod, to
+// explain a failed wal-restore invocation.
+func dumpSidecarLogs(ctx context.Context, clientSet *kubernetes.Clientset, namespace, pod string) {
+	tail := int64(100)
+	raw, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod, &corev1.PodLogOptions{
+		Container: "plugin-barman-cloud",
+		TailLines: &tail,
+	}).DoRaw(ctx)
+	if err != nil {
+		GinkgoWriter.Printf("cannot read the sidecar logs of %s: %v\n", pod, err)
+		return
+	}
+	GinkgoWriter.Printf("last sidecar logs of %s:\n%s\n", pod, raw)
 }
 
 // This test drives the plugin's parallel WAL restore directly: it invokes the
@@ -183,8 +207,13 @@ var _ = Describe("Parallel WAL restore", func() {
 			// Operations scoped to the fixed pods/clients, kept as closures so the
 			// step assertions below read like the original state-machine table.
 			restore := func(name string) error {
-				_, _, err := execInPod(ctx, clientSet, cfg, ns, standby, postgresContainer,
+				stdout, stderr, err := execInPod(ctx, clientSet, cfg, ns, standby, postgresContainer,
 					managerExecutable, "wal-restore", name, pgWalPath+"/"+name)
+				if err != nil {
+					dumpSidecarLogs(ctx, clientSet, ns, standby)
+					GinkgoWriter.Printf("wal-restore %s failed\nstdout: %s\nstderr: %s\n",
+						name, stdout, stderr)
+				}
 				return err
 			}
 			existsIn := func(dir, name string) bool {
@@ -205,11 +234,9 @@ var _ = Describe("Parallel WAL restore", func() {
 					"sh", "-c", "rm -f "+spoolDirectory+"/* 2>/dev/null; true")
 			}
 			forge := func(src, dst string) {
-				// ExecuteInContainer drops stdout/stderr on a non-zero exit, so on
-				// failure this only reports the exit code, not the aws CLI's error text.
-				_, _, err := execInPod(ctx, clientSet, cfg, ns, s3Client, s3ClientName,
+				_, stderr, err := execInPod(ctx, clientSet, cfg, ns, s3Client, s3ClientName,
 					"aws", "s3", "cp", walObjectURI(src), walObjectURI(dst))
-				Expect(err).NotTo(HaveOccurred(), "forging %s -> %s", src, dst)
+				Expect(err).NotTo(HaveOccurred(), "forging %s -> %s: %s", src, dst, stderr)
 			}
 			objectExists := func(name string) bool {
 				out, _, err := execInPod(ctx, clientSet, cfg, ns, s3Client, s3ClientName,
@@ -240,6 +267,11 @@ var _ = Describe("Parallel WAL restore", func() {
 
 			By("ensuring the spool directory is empty on the standby")
 			purgeSpool()
+
+			By("disabling the streaming retry on the standby")
+			_, _, err = execInPod(ctx, clientSet, cfg, ns, standby, postgresContainer,
+				"install", "-m", "0400", "/dev/null", streamingRetryStateFile)
+			Expect(err).NotTo(HaveOccurred(), "disabling the streaming retry failed")
 
 			// #1: served fresh; #2 and #3 prefetched into the spool; flag unset.
 			By("requesting WAL #1: #1 restored, #2 and #3 prefetched")
