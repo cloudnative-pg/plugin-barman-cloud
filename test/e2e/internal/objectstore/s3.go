@@ -117,8 +117,8 @@ func newS3Deployment(namespace, name string) *appsv1.Deployment {
 							// The glibc build is used because the musl default is
 							// noticeably slower (rustfs/rustfs#1662).
 							// renovate: datasource=docker depName=rustfs/rustfs versioning=docker
-							// Version: 1.0.6-glibc
-							Image:   "docker.io/rustfs/rustfs@sha256:b9e3eef25e9668e9122b34eb286ead7a7e082cd2ac8ddf0dac9cd2abad861b5a",
+							// Version: 1.0.7-glibc
+							Image:   "docker.io/rustfs/rustfs@sha256:a5d5067b6461a2b027df02984cd939947b154ad58ca3e05d5f141193c81a53de",
 							Command: []string{"/usr/bin/rustfs"},
 							Ports: []corev1.ContainerPort{
 								{
