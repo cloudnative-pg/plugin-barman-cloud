@@ -10,7 +10,9 @@ The following parameters are available for the Barman Cloud Plugin:
 
 - `barmanObjectName`: references the `ObjectStore` resource to be used by the
   plugin.
-- `serverName`: Specifies the server name in the object store.
+- `serverName`: Specifies the server name in the object store. When omitted,
+  it defaults to the name of the `Cluster` resource, also when it is set on a
+  recovery or replica source in `externalClusters[]`.
 - `sidecarImage`: overrides the [sidecar container image](images.md#sidecar-container-image)
   injected into the instance pods and the recovery job pods of the cluster.
   It can also be set on a recovery or replica source in `externalClusters[]`.
