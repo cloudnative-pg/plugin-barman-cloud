@@ -81,8 +81,7 @@ func ExecuteInContainer(
 		Stderr: &stderr,
 	})
 	if err != nil {
-		// Return what the command printed too: it is the only way for callers
-		// to learn why a non-zero exit happened.
+		// Return the output too: callers need it to explain a non-zero exit.
 		return stdout.String(), stderr.String(), fmt.Errorf(
 			"error executing command in pod '%s/%s': %w",
 			container.NamespaceName, container.PodName, err)

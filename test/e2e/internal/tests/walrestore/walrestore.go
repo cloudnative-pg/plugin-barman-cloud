@@ -55,9 +55,10 @@ const (
 	// the state of the periodic forced restore failures that let a standby
 	// retry streaming replication. Every 30s, measured from the first restore
 	// of the standby, wal-restore fails on purpose for 5s on any segment that
-	// is not in the spool, unless the instance manager cannot store this state.
-	// The test makes the file read-only, so no window can open during the
-	// requests, however slow the runner is.
+	// is not in the spool, unless the instance manager cannot store this state
+	// (it logs "Cannot store the streaming retry state" and skips the failure).
+	// The test makes the file read-only, so this holds for the whole spec. It
+	// needs a non-root exec user and the CloudNativePG main behavior.
 	streamingRetryStateFile = "/controller/wal-restore-streaming-retry.json"
 	// pgWalPath is PgDataPath + "/pg_wal" in the CloudNativePG operand image.
 	pgWalPath = "/var/lib/postgresql/data/pgdata/pg_wal"
@@ -267,8 +268,6 @@ var _ = Describe("Parallel WAL restore", func() {
 			By("ensuring the spool directory is empty on the standby")
 			purgeSpool()
 
-			// Disable the forced restore failures, so that the requests below
-			// cannot be rejected on purpose by the instance manager.
 			By("disabling the streaming retry on the standby")
 			_, _, err = execInPod(ctx, clientSet, cfg, ns, standby, postgresContainer,
 				"install", "-m", "0400", "/dev/null", streamingRetryStateFile)
